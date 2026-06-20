@@ -1,65 +1,258 @@
-import Image from "next/image";
+'use client';
+
+import { useEffect, useCallback, useState } from 'react';
+import { useTheme } from '@/hooks/useTheme';
+import { useUIStore } from '@/stores';
+import { useKeyboardShortcuts } from '@/hooks/useKeyboardShortcuts';
+import { CommandPalette } from '@/components/CommandPalette';
+import { PersonaSelector } from '@/components/PersonaSelector';
+import { ModelSelector } from '@/components/ModelSelector';
+import { ReasoningEffort } from '@/components/ReasoningEffort';
+import { VoiceControls } from '@/components/VoiceControls';
+import { ChatComposer } from '@/components/chat/ChatComposer';
+import { ChatWindow } from '@/components/chat/ChatWindow';
+import { PipelineView } from '@/components/pipeline/PipelineView';
+import { MemoryGalaxy } from '@/components/memory/MemoryGalaxy';
+import { LoopEngineering } from '@/components/loop/LoopEngineering';
+import { StudioView } from '@/components/studio/StudioView';
+import { ResearchMultiFormat } from '@/components/research/ResearchMultiFormat';
+import { SubstackAutomation } from '@/components/substack/SubstackAutomation';
+import { PERSONAS } from '@/lib/personas';
+import { useAuthCheck } from '@/hooks/useAuthCheck';
+import { AuthGate } from '@/components/auth/AuthGate';
+
+type Panel = 'chat' | 'pipeline' | 'memory' | 'loop' | 'studio' | 'research' | 'substack';
+
+const THEMES = [
+  { id: 'dark', label: 'Dark', color: '#6366f1' },
+  { id: 'light', label: 'Light', color: '#6366f1' },
+  { id: 'midnight', label: 'Midnight', color: '#8b5cf6' },
+  { id: 'forest', label: 'Forest', color: '#34d399' },
+  { id: 'arctic', label: 'Arctic', color: '#0ea5e9' },
+] as const;
 
 export default function Home() {
+  const { isAuthenticated, isLoading } = useAuthCheck();
+  const { theme, setTheme } = useTheme();
+  const {
+    sidebarOpen,
+    toggleSidebar,
+    connectionStatus,
+    activePersona,
+    selectedModel,
+    reasoningEffort,
+    commandPaletteOpen,
+    setCommandPaletteOpen,
+    addToast,
+  } = useUIStore();
+
+  const [activePanel, setActivePanel] = useState<Panel>('chat');
+
+  // Wire keyboard shortcuts
+  useKeyboardShortcuts();
+
+  // Handle command palette selection
+  const handleCommandSelect = useCallback((command: string) => {
+    addToast({
+      type: 'info',
+      message: `Executed: ${command}`,
+      duration: 2000,
+    });
+  }, [addToast]);
+
+  // Handle chat send
+  const handleSend = useCallback((message: string) => {
+    addToast({
+      type: 'success',
+      message: `Sent: ${message.slice(0, 40)}${message.length > 40 ? '...' : ''}`,
+      duration: 1500,
+    });
+  }, [addToast]);
+
+  // Get current persona for system prompt display
+  const currentPersona = PERSONAS[activePersona as keyof typeof PERSONAS] || PERSONAS.david;
+
+  const navItems = [
+    { icon: '💬', label: 'Chat', panel: 'chat' as Panel },
+    { icon: '⚡', label: 'Pipeline', panel: 'pipeline' as Panel },
+    { icon: '🧠', label: 'Memory', panel: 'memory' as Panel },
+    { icon: '🔄', label: 'Loops', panel: 'loop' as Panel },
+    { icon: '🎨', label: 'Studio', panel: 'studio' as Panel },
+    { icon: '📊', label: 'Research', panel: 'research' as Panel },
+    { icon: '📰', label: 'Substack', panel: 'substack' as Panel },
+  ];
+
+  // Show loading spinner while checking auth
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen bg-[var(--bg)]">
+        <div className="flex flex-col items-center gap-3">
+          <div className="w-8 h-8 rounded-lg bg-[var(--accent)] flex items-center justify-center animate-pulse">
+            <span className="text-white font-bold text-sm">O</span>
+          </div>
+          <p className="text-xs text-[var(--text-muted)]">Checking auth...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Show login if not authenticated
+  if (!isAuthenticated) {
+    return <AuthGate />;
+  }
+
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
+    <div className="flex h-full">
+      {/* Command Palette Overlay */}
+      <CommandPalette onSelect={handleCommandSelect} />
+
+      {/* Sidebar */}
+      <aside
+        className={`
+          flex flex-col border-r border-[var(--border)] bg-[var(--bg-secondary)]
+          transition-[width] duration-200 ease
+          ${sidebarOpen ? 'w-[260px]' : 'w-0 overflow-hidden'}
+        `}
+      >
+        {/* Logo */}
+        <div className="flex items-center gap-2 px-4 h-[52px] border-b border-[var(--border)]">
+          <div className="w-7 h-7 rounded-lg bg-[var(--accent)] flex items-center justify-center">
+            <span className="text-white font-bold text-xs">O</span>
+          </div>
+          <span className="font-semibold text-sm">Overlord</span>
+        </div>
+
+        {/* Nav */}
+        <nav className="flex-1 p-3 space-y-1">
+          {navItems.map((item) => (
+            <button
+              key={item.panel}
+              onClick={() => setActivePanel(item.panel)}
+              className={`
+                w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm
+                transition-colors duration-150
+                ${activePanel === item.panel
+                  ? 'bg-[var(--accent)] text-white'
+                  : 'text-[var(--text-secondary)] hover:bg-[var(--bg-tertiary)] hover:text-[var(--text)]'
+                }
+              `}
             >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
+              <span className="text-base">{item.icon}</span>
+              <span>{item.label}</span>
+            </button>
+          ))}
+        </nav>
+
+        {/* Theme Switcher */}
+        <div className="p-3 border-t border-[var(--border)]">
+          <p className="text-[10px] uppercase tracking-wider text-[var(--text-muted)] mb-2 px-1">
+            Theme
           </p>
+          <div className="flex gap-1.5">
+            {THEMES.map((t) => (
+              <button
+                key={t.id}
+                onClick={() => setTheme(t.id)}
+                className={`
+                  w-7 h-7 rounded-full border-2 flex items-center justify-center
+                  transition-all duration-150
+                  ${theme === t.id
+                    ? 'border-white scale-110'
+                    : 'border-transparent hover:border-[var(--border)]'
+                  }
+                `}
+                style={{ backgroundColor: t.color }}
+                title={t.label}
+              >
+                {theme === t.id && (
+                  <span className="text-white text-[10px]">✓</span>
+                )}
+              </button>
+            ))}
+          </div>
         </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
+      </aside>
+
+      {/* Main Content */}
+      <div className="flex-1 flex flex-col min-w-0">
+        {/* Header */}
+        <header className="h-[52px] border-b border-[var(--border)] flex items-center px-4 gap-2 bg-[var(--bg)]">
+          <button
+            onClick={toggleSidebar}
+            className="w-8 h-8 rounded-lg flex items-center justify-center hover:bg-[var(--bg-tertiary)] transition-colors"
+            aria-label="Toggle sidebar"
           >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none" className="text-[var(--text-secondary)]">
+              <rect x="1" y="2" width="14" height="2" rx="1" fill="currentColor"/>
+              <rect x="1" y="7" width="14" height="2" rx="1" fill="currentColor"/>
+              <rect x="1" y="12" width="14" height="2" rx="1" fill="currentColor"/>
+            </svg>
+          </button>
+
+          <h1 className="text-sm font-medium flex-1">
+            {activePanel === 'chat' && 'Agent OS — Phase 3'}
+            {activePanel === 'pipeline' && 'Idea → Implement Pipeline'}
+            {activePanel === 'memory' && 'Memory Galaxy'}
+            {activePanel === 'loop' && 'Loop Engineering'}
+            {activePanel === 'studio' && 'Studio'}
+            {activePanel === 'research' && 'Research → Multi-Format'}
+            {activePanel === 'substack' && 'Substack Automation'}
+          </h1>
+
+          {/* Persona Selector */}
+          <PersonaSelector />
+
+          {/* Model Selector */}
+          <ModelSelector />
+
+          {/* Reasoning Effort */}
+          <ReasoningEffort />
+
+          {/* Voice Controls */}
+          <VoiceControls />
+
+          {/* Connection Status */}
+          <div className="flex items-center gap-2 text-xs text-[var(--text-secondary)]">
+            <span
+              className={`
+                w-2 h-2 rounded-full
+                ${connectionStatus === 'connected' ? 'bg-[var(--success)]' : ''}
+                ${connectionStatus === 'reconnecting' ? 'bg-[var(--warning)] animate-pulse' : ''}
+                ${connectionStatus === 'disconnected' ? 'bg-[var(--error)]' : ''}
+              `}
             />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
-        </div>
-      </main>
+            <span className="capitalize">{connectionStatus}</span>
+          </div>
+        </header>
+
+        {/* Content Area */}
+        <main className="flex-1 flex flex-col overflow-hidden">
+          {activePanel === 'chat' && (
+            <>
+              <ChatWindow sessionId="default" />
+              <ChatComposer onSend={handleSend} />
+            </>
+          )}
+          {activePanel === 'pipeline' && (
+            <PipelineView isOpen={true} onClose={() => setActivePanel('chat')} />
+          )}
+          {activePanel === 'memory' && (
+            <MemoryGalaxy isOpen={true} onClose={() => setActivePanel('chat')} />
+          )}
+          {activePanel === 'loop' && (
+            <LoopEngineering isOpen={true} onClose={() => setActivePanel('chat')} />
+          )}
+          {activePanel === 'studio' && (
+            <StudioView isOpen={true} onClose={() => setActivePanel('chat')} />
+          )}
+          {activePanel === 'research' && (
+            <ResearchMultiFormat isOpen={true} onClose={() => setActivePanel('chat')} />
+          )}
+          {activePanel === 'substack' && (
+            <SubstackAutomation isOpen={true} onClose={() => setActivePanel('chat')} />
+          )}
+        </main>
+      </div>
     </div>
   );
 }
