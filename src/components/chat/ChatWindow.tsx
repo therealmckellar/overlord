@@ -4,6 +4,7 @@ import React, { useRef, useEffect } from 'react';
 import { useMessageStore } from '@/stores/messageStore';
 import { useUIStore } from '@/stores/uiStore';
 import { ChatMessage } from './ChatMessage';
+import { TypingIndicator } from './TypingIndicator';
 import { ScrollControls } from './ScrollControls';
 import { MessageListSkeleton } from '../skeletons/Skeleton';
 
@@ -16,7 +17,7 @@ export function ChatWindow({ sessionId, isLoading }: ChatWindowProps) {
   const messages = useMessageStore((s) => s.messagesBySession[sessionId] || []);
   const streamingContent = useMessageStore((s) => s.streamingContent);
   const isStreaming = useMessageStore((s) => s.isStreaming);
-  const { selectedModel, reasoningEffort } = useUIStore();
+  const { selectedModel, reasoningEffort, activePersona } = useUIStore();
   const scrollRef = useRef<HTMLDivElement>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
 
@@ -60,12 +61,16 @@ export function ChatWindow({ sessionId, isLoading }: ChatWindowProps) {
                   id: 'streaming',
                   sessionId,
                   content: streamingContent,
-                  sender: { id: 'assistant', name: 'Assistant', role: 'assistant' },
+                  sender: { id: 'assistant', name: 'Assistant', role: 'assistant' as const },
                   timestamp: Date.now(),
                   isStreaming: true,
                 }}
                 showStatus={false}
               />
+            )}
+            {/* Typing indicator — shown when streaming but no content yet */}
+            {isStreaming && !streamingContent && (
+              <TypingIndicator agentName={activePersona.charAt(0).toUpperCase() + activePersona.slice(1)} persona={activePersona} />
             )}
           </>
         )}

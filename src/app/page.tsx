@@ -18,6 +18,8 @@ import { StudioView } from '@/components/studio/StudioView';
 import { ResearchMultiFormat } from '@/components/research/ResearchMultiFormat';
 import { SubstackAutomation } from '@/components/substack/SubstackAutomation';
 import { PERSONAS } from '@/lib/personas';
+import { StatusBar } from '@/components/status/StatusBar';
+import { Breadcrumbs } from '@/components/ui/Breadcrumbs';
 import { useAuthCheck } from '@/hooks/useAuthCheck';
 import { AuthGate } from '@/components/auth/AuthGate';
 import { useChatStream } from '@/hooks/useChatStream';
@@ -120,11 +122,28 @@ export default function Home() {
 
   return (
     <div className="flex h-full">
+      {/* Skip links for keyboard nav */}
+      <a
+        href="#main-content"
+        className="sr-only focus:not-sr-only focus:absolute focus:top-2 focus:left-2 focus:z-[100] focus:px-3 focus:py-1.5 focus:bg-[var(--accent)] focus:text-white focus:rounded-lg focus:text-sm"
+      >
+        Skip to main content
+      </a>
+      <a
+        href="#sidebar-nav"
+        className="sr-only focus:not-sr-only focus:absolute focus:top-2 focus:left-28 focus:z-[100] focus:px-3 focus:py-1.5 focus:bg-[var(--accent)] focus:text-white focus:rounded-lg focus:text-sm"
+      >
+        Skip to navigation
+      </a>
+
       {/* Command Palette Overlay */}
       <CommandPalette onSelect={handleCommandSelect} />
 
       {/* Sidebar */}
       <aside
+        id="sidebar-nav"
+        role="navigation"
+        aria-label="Main navigation"
         className={`
           flex flex-col border-r border-[var(--border)] bg-[var(--bg-secondary)]
           transition-[width] duration-200 ease
@@ -191,9 +210,12 @@ export default function Home() {
       </aside>
 
       {/* Main Content */}
-      <div className="flex-1 flex flex-col min-w-0">
+      <div id="main-content" className="flex-1 flex flex-col min-w-0" role="main">
         {/* Header */}
-        <header className="h-[52px] border-b border-[var(--border)] flex items-center px-4 gap-2 bg-[var(--bg)]">
+        <header
+          className="h-[52px] border-b border-[var(--border)] flex items-center px-4 gap-2 bg-[var(--bg)]"
+          role="banner"
+        >
           <button
             onClick={toggleSidebar}
             className="w-8 h-8 rounded-lg flex items-center justify-center hover:bg-[var(--bg-tertiary)] transition-colors"
@@ -244,6 +266,7 @@ export default function Home() {
 
         {/* Content Area */}
         <main className="flex-1 flex flex-col overflow-hidden">
+          <Breadcrumbs />
           {activePanel === 'chat' && (
             <>
               <ChatWindow sessionId="default" />
@@ -269,6 +292,9 @@ export default function Home() {
             <SubstackAutomation isOpen={true} onClose={() => setActivePanel('chat')} />
           )}
         </main>
+
+        {/* Status Bar */}
+        <StatusBar sessionId={activeSession} />
       </div>
     </div>
   );

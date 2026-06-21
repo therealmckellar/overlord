@@ -10,6 +10,7 @@ import type { Message } from '@/types';
 import { ThinkingBlock } from './ThinkingBlock';
 import { ToolCallCard } from './ToolCallCard';
 import { StatusCard } from './StatusCard';
+import { MessageReactions } from './MessageReactions';
 
 interface ChatMessageProps {
   message: Message;
@@ -184,6 +185,15 @@ export function ChatMessage({
             reasoningEffort={reasoningEffort}
           />
         )}
+
+        {/* Reactions & Pin */}
+        <MessageReactions
+          messageId={message.id}
+          sessionId={message.sessionId}
+          reactions={message.reactions}
+          isPinned={message.pinned}
+          showPin={!isUser}
+        />
       </div>
     </div>
   );
