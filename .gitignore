@@ -39,3 +39,6 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+data/overlord.db
+data/overlord.db-wal
+data/overlord.db-shm
