@@ -2,7 +2,7 @@
 
 import { useEffect, useCallback, useState } from 'react';
 import { useTheme } from '@/hooks/useTheme';
-import { useUIStore } from '@/stores';
+import { useUIStore, useSessionStore } from '@/stores';
 import { useKeyboardShortcuts } from '@/hooks/useKeyboardShortcuts';
 import { CommandPalette } from '@/components/CommandPalette';
 import { PersonaSelector } from '@/components/PersonaSelector';
@@ -20,6 +20,7 @@ import { SubstackAutomation } from '@/components/substack/SubstackAutomation';
 import { PERSONAS } from '@/lib/personas';
 import { useAuthCheck } from '@/hooks/useAuthCheck';
 import { AuthGate } from '@/components/auth/AuthGate';
+import { useChatStream } from '@/hooks/useChatStream';
 
 type Panel = 'chat' | 'pipeline' | 'memory' | 'loop' | 'studio' | 'research' | 'substack';
 
@@ -48,6 +49,20 @@ export default function Home() {
 
   const [activePanel, setActivePanel] = useState<Panel>('chat');
 
+  // Session management
+  const { activeSessionId, sessions, createSession, setActiveSession } = useSessionStore();
+  const activeSession = activeSessionId || 'default';
+
+  // Ensure there's at least one session
+  useEffect(() => {
+    if (sessions.length === 0) {
+      const s = createSession('New Chat');
+      setActiveSession(s.id);
+    } else if (!activeSessionId) {
+      setActiveSession(sessions[0].id);
+    }
+  }, [sessions.length, activeSessionId, createSession, setActiveSession]);
+
   // Wire keyboard shortcuts
   useKeyboardShortcuts();
 
@@ -60,17 +75,19 @@ export default function Home() {
     });
   }, [addToast]);
 
-  // Handle chat send
-  const handleSend = useCallback((message: string) => {
-    addToast({
-      type: 'success',
-      message: `Sent: ${message.slice(0, 40)}${message.length > 40 ? '...' : ''}`,
-      duration: 1500,
-    });
-  }, [addToast]);
-
   // Get current persona for system prompt display
   const currentPersona = PERSONAS[activePersona as keyof typeof PERSONAS] || PERSONAS.david;
+
+  // Handle chat send — real SSE streaming to OpenRouter
+  const { sendMessage: sendChatMessage } = useChatStream({
+    sessionId: activeSession,
+    persona: currentPersona.slug,
+  });
+
+  const handleSend = useCallback((message: string) => {
+    if (!message.trim()) return;
+    sendChatMessage(message);
+  }, [sendChatMessage]);
 
   const navItems = [
     { icon: '💬', label: 'Chat', panel: 'chat' as Panel },
