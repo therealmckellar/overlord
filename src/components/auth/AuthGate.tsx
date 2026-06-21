@@ -35,15 +35,14 @@ export function AuthGate({ children }: { children?: React.ReactNode }) {
           {mode === 'login' ? (
             <LoginForm
               onSuccess={() => {
-                // AuthGate will auto-detect via useAuthCheck
-                window.location.reload();
+                // Auth state is already set by LoginForm — no reload needed
               }}
               onSwitchToRegister={() => setMode('register')}
             />
           ) : (
             <RegisterForm
               onSuccess={() => {
-                window.location.reload();
+                // Auth state is already set by RegisterForm — no reload needed
               }}
               onSwitchToLogin={() => setMode('login')}
             />

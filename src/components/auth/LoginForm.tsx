@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { useAuthStore } from '@/stores/authStore';
 
 interface LoginFormProps {
   onSuccess: () => void;
@@ -12,6 +13,7 @@ export function LoginForm({ onSuccess, onSwitchToRegister }: LoginFormProps) {
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const { setUser } = useAuthStore();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -20,7 +22,9 @@ export function LoginForm({ onSuccess, onSwitchToRegister }: LoginFormProps) {
 
     try {
       const { login: loginApi } = await import('../../lib/auth/api');
-      await loginApi(email, password);
+      const data = await loginApi(email, password);
+      // Set auth store directly — avoids race condition with reload
+      setUser(data.user, data.expiresAt);
       onSuccess();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Login failed');
