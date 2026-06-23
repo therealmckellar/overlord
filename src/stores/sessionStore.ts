@@ -132,8 +132,9 @@ export const useSessionStore = create<SessionState>()(
 
       setActiveSession: (id) => {
         set({ activeSessionId: id });
+        // Mark session read — use setTimeout to avoid nested set() during state update
         if (id) {
-          get().markSessionRead(id);
+          setTimeout(() => get().markSessionRead(id), 0);
         }
       },
 

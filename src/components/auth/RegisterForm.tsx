@@ -15,7 +15,7 @@ export function RegisterForm({ onSuccess, onSwitchToLogin }: RegisterFormProps) 
   const [confirmPassword, setConfirmPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
-  const { setUser } = useAuthStore();
+  const setUser = useAuthStore((s) => s.setUser);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

@@ -6,7 +6,7 @@ import { useUIStore } from '@/stores/uiStore';
 
 export function ChatComposer() {
   const [text, setText] = useState('');
-  const { toggleCommandPalette } = useUIStore();
+  const toggleCommandPalette = useUIStore((s) => s.toggleCommandPalette);
   const inputRef = useRef<HTMLTextAreaElement>(null);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {

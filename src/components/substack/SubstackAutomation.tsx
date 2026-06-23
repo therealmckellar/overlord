@@ -68,7 +68,7 @@ export function SubstackAutomation({ isOpen, onClose }: SubstackAutomationProps)
     persona: 'steve',
     topics: ['business growth', 'funding strategies', 'market trends', 'entrepreneurship'],
   });
-  const { addToast } = useUIStore();
+  const addToast = useUIStore((s) => s.addToast);
 
   if (!isOpen) return null;
 

@@ -15,7 +15,9 @@ export const COMMANDS = [
 
 export function useCommandPalette() {
   const [query, setQuery] = useState('');
-  const { commandPaletteOpen, setCommandPaletteOpen, toggleCommandPalette } = useUIStore();
+  const commandPaletteOpen = useUIStore((s) => s.commandPaletteOpen);
+  const setCommandPaletteOpen = useUIStore((s) => s.setCommandPaletteOpen);
+  const toggleCommandPalette = useUIStore((s) => s.toggleCommandPalette);
 
   const fuse = new Fuse(COMMANDS, {
     keys: ['label', 'value', 'description'],

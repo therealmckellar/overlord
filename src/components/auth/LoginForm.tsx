@@ -13,7 +13,7 @@ export function LoginForm({ onSuccess, onSwitchToRegister }: LoginFormProps) {
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
-  const { setUser } = useAuthStore();
+  const setUser = useAuthStore((s) => s.setUser);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -25,6 +25,9 @@ export function LoginForm({ onSuccess, onSwitchToRegister }: LoginFormProps) {
       const data = await loginApi(email, password);
       // Set auth store directly — avoids race condition with reload
       setUser(data.user, data.expiresAt);
+      // Signal to useAuthCheck that a fresh login just happened — skip the getMe() revalidation
+      // which would 401 in the brief window before the httpOnly cookie is available client-side
+      try { sessionStorage.setItem('ol_just_logged_in', '1'); } catch { /* ignore */ }
       onSuccess();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Login failed');

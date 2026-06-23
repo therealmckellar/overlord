@@ -20,7 +20,8 @@ const LEVEL_COLORS: Record<Level, string> = {
 };
 
 export const ReasoningEffort = () => {
-  const { reasoningEffort, setReasoningEffort } = useUIStore();
+  const reasoningEffort = useUIStore((s) => s.reasoningEffort);
+  const setReasoningEffort = useUIStore((s) => s.setReasoningEffort);
 
   const cycle = () => {
     const idx = LEVELS.indexOf(reasoningEffort);

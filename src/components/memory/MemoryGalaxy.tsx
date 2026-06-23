@@ -30,7 +30,7 @@ export function MemoryGalaxy({ isOpen, onClose }: MemoryGalaxyProps) {
     addMemory, deleteMemory, updateMemory,
   } = useMemoryStore();
 
-  const { addToast } = useUIStore();
+  const addToast = useUIStore((s) => s.addToast);
 
   const filtered = getFilteredMemories();
   const allTags = getAllTags();

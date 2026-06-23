@@ -5,8 +5,9 @@ import { useUIStore } from '@/stores/uiStore';
 import { useSessionStore } from '@/stores/sessionStore';
 
 export function useKeyboardShortcuts() {
-  const { toggleCommandPalette, toggleSidebar } = useUIStore();
-  const { createSession } = useSessionStore();
+  const toggleCommandPalette = useUIStore((s) => s.toggleCommandPalette);
+  const toggleSidebar = useUIStore((s) => s.toggleSidebar);
+  const createSession = useSessionStore((s) => s.createSession);
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {

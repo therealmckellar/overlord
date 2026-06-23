@@ -16,7 +16,7 @@ interface StudioViewProps {
 
 export function StudioView({ isOpen, onClose }: StudioViewProps) {
   const [activeTab, setActiveTab] = useState<StudioTab>('voice');
-  const { addToast } = useUIStore();
+  const addToast = useUIStore((s) => s.addToast);
 
   if (!isOpen) return null;
 
@@ -74,7 +74,7 @@ function VoiceStudio() {
   const [text, setText] = useState('');
   const [isPlaying, setIsPlaying] = useState(false);
   const [voice, setVoice] = useState('alloy');
-  const { addToast } = useUIStore();
+  const addToast = useUIStore((s) => s.addToast);
 
   const voices = ['alloy', 'echo', 'fable', 'onyx', 'nova', 'shimmer'];
 
@@ -154,7 +154,7 @@ function ImageStudio() {
   const [prompt, setPrompt] = useState('');
   const [generating, setGenerating] = useState(false);
   const [generatedUrl, setGeneratedUrl] = useState<string | null>(null);
-  const { addToast } = useUIStore();
+  const addToast = useUIStore((s) => s.addToast);
 
   const handleGenerate = async () => {
     if (!prompt.trim()) return;
@@ -228,7 +228,7 @@ function ImageStudio() {
 function VideoStudio() {
   const [prompt, setPrompt] = useState('');
   const [generating, setGenerating] = useState(false);
-  const { addToast } = useUIStore();
+  const addToast = useUIStore((s) => s.addToast);
 
   const handleGenerate = () => {
     if (!prompt.trim()) return;

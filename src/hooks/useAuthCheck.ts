@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useCallback } from 'react';
+import { useEffect, useCallback, useRef } from 'react';
 import { useAuthStore } from '@/stores/authStore';
 import { getMe, logout as logoutApi, refreshToken } from '@/lib/auth/api';
 
@@ -9,22 +9,51 @@ import { getMe, logout as logoutApi, refreshToken } from '@/lib/auth/api';
  * Call this once at the app root (layout or main page).
  */
 export function useAuthCheck() {
-  const { user, isAuthenticated, isLoading, setUser, clearAuth, setLoading, refreshExpiry } =
-    useAuthStore();
+  const user = useAuthStore((s) => s.user);
+  const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
+  const isLoading = useAuthStore((s) => s.isLoading);
+  const setUser = useAuthStore((s) => s.setUser);
+  const clearAuth = useAuthStore((s) => s.clearAuth);
+  const setLoading = useAuthStore((s) => s.setLoading);
+  const refreshExpiry = useAuthStore((s) => s.refreshExpiry);
+
+  // Guard: prevent effect from running more than once
+  const hasRun = useRef(false);
 
   // Check auth on mount
   useEffect(() => {
+    if (hasRun.current) return;
+    hasRun.current = true;
+
     let cancelled = false;
 
     async function check() {
       try {
+        // If LoginForm just set this flag, skip getMe() — the cookie may not be
+        // readable yet and the store is already up to date from the login call.
+        let justLoggedIn = false;
+        try { justLoggedIn = sessionStorage.getItem('ol_just_logged_in') === '1'; } catch { /* ignore */ }
+        if (justLoggedIn && isAuthenticated) {
+          try { sessionStorage.removeItem('ol_just_logged_in'); } catch { /* ignore */ }
+          setLoading(false);
+          return;
+        }
+
+        // Skip getMe() if Zustand persist hasn't rehydrated yet — isAuthenticated
+        // will be false from the initial state, not from a real auth check.
+        // Calling getMe() now would 401 and incorrectly clear auth.
+        if (!isAuthenticated) {
+          setLoading(false);
+          return;
+        }
+
         const data = await getMe();
         if (!cancelled) {
           setUser(data.user);
         }
       } catch {
-        // Not authenticated — that's fine, show login
-        if (!cancelled) {
+        // Token expired/invalid — only clear if we were actually authenticated
+        if (!cancelled && isAuthenticated) {
           clearAuth();
         }
       } finally {
@@ -38,7 +67,7 @@ export function useAuthCheck() {
     return () => {
       cancelled = true;
     };
-  }, [setUser, clearAuth, setLoading]);
+  }, [setUser, clearAuth, setLoading, isAuthenticated]);
 
   // Set up token refresh (proactive, before expiry)
   useEffect(() => {

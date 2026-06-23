@@ -5,7 +5,10 @@ import { useUIStore } from '@/stores/uiStore';
 import { ChevronDown, Cpu, Check } from 'lucide-react';
 
 export const ModelSelector = () => {
-  const { selectedModel, setSelectedModel, availableModels, setAvailableModels } = useUIStore();
+  const selectedModel = useUIStore((s) => s.selectedModel);
+  const setSelectedModel = useUIStore((s) => s.setSelectedModel);
+  const availableModels = useUIStore((s) => s.availableModels);
+  const setAvailableModels = useUIStore((s) => s.setAvailableModels);
   const [isOpen, setIsOpen] = useState(false);
 
   // Fetch models from API on mount

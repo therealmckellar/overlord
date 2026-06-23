@@ -17,7 +17,9 @@ export function ChatWindow({ sessionId, isLoading }: ChatWindowProps) {
   const messages = useMessageStore((s) => s.messagesBySession[sessionId] || []);
   const streamingContent = useMessageStore((s) => s.streamingContent);
   const isStreaming = useMessageStore((s) => s.isStreaming);
-  const { selectedModel, reasoningEffort, activePersona } = useUIStore();
+  const selectedModel = useUIStore((s) => s.selectedModel);
+  const reasoningEffort = useUIStore((s) => s.reasoningEffort);
+  const activePersona = useUIStore((s) => s.activePersona);
   const scrollRef = useRef<HTMLDivElement>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
 

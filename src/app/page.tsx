@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useCallback, useState } from 'react';
+import { useEffect, useCallback, useState, useRef } from 'react';
 import { useTheme } from '@/hooks/useTheme';
 import { useUIStore, useSessionStore } from '@/stores';
 import { useKeyboardShortcuts } from '@/hooks/useKeyboardShortcuts';
@@ -22,6 +22,7 @@ import { StatusBar } from '@/components/status/StatusBar';
 import { Breadcrumbs } from '@/components/ui/Breadcrumbs';
 import { useAuthCheck } from '@/hooks/useAuthCheck';
 import { AuthGate } from '@/components/auth/AuthGate';
+import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { useChatStream } from '@/hooks/useChatStream';
 
 type Panel = 'chat' | 'pipeline' | 'memory' | 'loop' | 'studio' | 'research' | 'substack';
@@ -37,22 +38,23 @@ const THEMES = [
 export default function Home() {
   const { isAuthenticated, isLoading } = useAuthCheck();
   const { theme, setTheme } = useTheme();
-  const {
-    sidebarOpen,
-    toggleSidebar,
-    connectionStatus,
-    activePersona,
-    selectedModel,
-    reasoningEffort,
-    commandPaletteOpen,
-    setCommandPaletteOpen,
-    addToast,
-  } = useUIStore();
+  const sidebarOpen = useUIStore((s) => s.sidebarOpen);
+  const toggleSidebar = useUIStore((s) => s.toggleSidebar);
+  const connectionStatus = useUIStore((s) => s.connectionStatus);
+  const activePersona = useUIStore((s) => s.activePersona);
+  const selectedModel = useUIStore((s) => s.selectedModel);
+  const reasoningEffort = useUIStore((s) => s.reasoningEffort);
+  const commandPaletteOpen = useUIStore((s) => s.commandPaletteOpen);
+  const setCommandPaletteOpen = useUIStore((s) => s.setCommandPaletteOpen);
+  const addToast = useUIStore((s) => s.addToast);
 
   const [activePanel, setActivePanel] = useState<Panel>('chat');
 
   // Session management
-  const { activeSessionId, sessions, createSession, setActiveSession } = useSessionStore();
+  const activeSessionId = useSessionStore((s) => s.activeSessionId);
+  const sessions = useSessionStore((s) => s.sessions);
+  const createSession = useSessionStore((s) => s.createSession);
+  const setActiveSession = useSessionStore((s) => s.setActiveSession);
   const activeSession = activeSessionId || 'default';
 
   // Ensure there's at least one session
@@ -121,6 +123,7 @@ export default function Home() {
   }
 
   return (
+    <ErrorBoundary>
     <div className="flex h-full">
       {/* Skip links for keyboard nav */}
       <a
@@ -297,5 +300,6 @@ export default function Home() {
         <StatusBar sessionId={activeSession} />
       </div>
     </div>
+    </ErrorBoundary>
   );
 }

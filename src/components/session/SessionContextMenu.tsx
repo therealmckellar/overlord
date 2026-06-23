@@ -51,7 +51,10 @@ function ArrowDownTrayIcon({ className }: { className?: string }) {
 export const SessionContextMenu: React.FC<SessionContextMenuProps> = ({ sessionId }) => {
   const [isOpen, setIsOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
-  const { renameSession, duplicateSession, deleteSession, exportSession } = useSessionStore();
+  const renameSession = useSessionStore((s) => s.renameSession);
+  const duplicateSession = useSessionStore((s) => s.duplicateSession);
+  const deleteSession = useSessionStore((s) => s.deleteSession);
+  const exportSession = useSessionStore((s) => s.exportSession);
 
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {

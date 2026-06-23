@@ -19,7 +19,8 @@ const bgMap = {
 };
 
 export function ToastContainer() {
-  const { toasts, removeToast } = useUIStore();
+  const toasts = useUIStore((s) => s.toasts);
+  const removeToast = useUIStore((s) => s.removeToast);
 
   if (toasts.length === 0) return null;
 

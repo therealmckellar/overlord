@@ -57,3 +57,4 @@ export function AuthGate({ children }: { children?: React.ReactNode }) {
     </div>
   );
 }
+AuthGate.displayName = 'AuthGate';

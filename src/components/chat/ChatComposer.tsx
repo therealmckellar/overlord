@@ -29,7 +29,7 @@ const MENTIONABLE_USERS = [
 export function ChatComposer({ onSend }: ChatComposerProps) {
   const [input, setInput] = useState('');
   const textareaRef = useRef<HTMLTextAreaElement>(null);
-  const { setCommandPaletteOpen } = useUIStore();
+  const setCommandPaletteOpen = useUIStore((s) => s.setCommandPaletteOpen);
 
   // Emoji picker
   const [emojiPickerOpen, setEmojiPickerOpen] = useState(false);

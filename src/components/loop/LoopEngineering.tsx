@@ -78,7 +78,7 @@ export function LoopEngineering({ isOpen, onClose }: LoopEngineeringProps) {
   const [tasks, setTasks] = useState<LoopTask[]>(DEMO_TASKS);
   const [selectedTask, setSelectedTask] = useState<LoopTask | null>(null);
   const [showForm, setShowForm] = useState(false);
-  const { addToast } = useUIStore();
+  const addToast = useUIStore((s) => s.addToast);
 
   if (!isOpen) return null;
 

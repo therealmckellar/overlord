@@ -5,7 +5,8 @@ import { getThemeColors } from '@/config/themes';
 import { useEffect, useState } from 'react';
 
 export function useTheme() {
-  const { theme, setTheme } = useUIStore();
+  const theme = useUIStore((s) => s.theme);
+  const setTheme = useUIStore((s) => s.setTheme);
   const colors = getThemeColors(theme);
 
   useEffect(() => {
@@ -13,10 +14,11 @@ export function useTheme() {
     // Set data-theme attribute for CSS selector targeting
     root.setAttribute('data-theme', theme);
     // Apply theme colors as CSS custom properties
-    Object.entries(colors).forEach(([key, value]) => {
+    const c = getThemeColors(theme);
+    Object.entries(c).forEach(([key, value]) => {
       root.style.setProperty(`--${key}`, value);
     });
-  }, [theme, colors]);
+  }, [theme]);
 
   return { theme, setTheme, colors };
 }

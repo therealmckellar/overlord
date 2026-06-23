@@ -35,7 +35,7 @@ export function ResearchMultiFormat({ isOpen, onClose }: ResearchMultiFormatProp
   const [selectedFormats, setSelectedFormats] = useState<OutputFormat[]>(['report', 'infographic']);
   const [projects, setProjects] = useState<ResearchProject[]>([]);
   const [selectedProject, setSelectedProject] = useState<ResearchProject | null>(null);
-  const { addToast } = useUIStore();
+  const addToast = useUIStore((s) => s.addToast);
 
   const toggleFormat = (format: OutputFormat) => {
     setSelectedFormats((prev) =>

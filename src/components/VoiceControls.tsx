@@ -7,7 +7,10 @@ import { useSTT } from '@/hooks/useSTT';
 import { Mic, MicOff, Volume2, VolumeX } from 'lucide-react';
 
 export const VoiceControls = () => {
-  const { voiceEnabled, toggleVoice, soundsEnabled, toggleSounds } = useUIStore();
+  const voiceEnabled = useUIStore((s) => s.voiceEnabled);
+  const toggleVoice = useUIStore((s) => s.toggleVoice);
+  const soundsEnabled = useUIStore((s) => s.soundsEnabled);
+  const toggleSounds = useUIStore((s) => s.toggleSounds);
   const { speak, stop: stopTTS, isSpeaking, canSpeak } = useTTS();
   const { startRecording, stopRecording, isRecording, error: sttError } = useSTT(
     useCallback((text: string) => {

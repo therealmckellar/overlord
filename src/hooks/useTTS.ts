@@ -6,7 +6,7 @@ import { useUIStore } from '@/stores/uiStore';
 export const useTTS = () => {
   const [isSpeaking, setIsSpeaking] = useState(false);
   const [isPaused, setIsPaused] = useState(false);
-  const { soundsEnabled } = useUIStore();
+  const soundsEnabled = useUIStore((s) => s.soundsEnabled);
   
   const synth = typeof window !== 'undefined' ? window.speechSynthesis : null;
 

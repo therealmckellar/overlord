@@ -38,7 +38,7 @@ export function PipelineView({ isOpen, onClose }: PipelineViewProps) {
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
   const [selectedIdea, setSelectedIdea] = useState<PipelineIdea | null>(null);
-  const { addToast } = useUIStore();
+  const addToast = useUIStore((s) => s.addToast);
 
   // Form state
   const [title, setTitle] = useState('');

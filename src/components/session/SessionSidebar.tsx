@@ -41,17 +41,15 @@ function ArchiveBoxIcon({ className }: { className?: string }) {
 }
 
 export const SessionSidebar: React.FC = () => {
-  const { 
-    sessions, 
-    activeSessionId, 
-    setActiveSession, 
-    createSession,
-    searchSessions,
-    togglePinSession,
-    archiveSession 
-  } = useSessionStore();
-  
-  const { sidebarOpen } = useUIStore();
+  const sessions = useSessionStore((s) => s.sessions);
+  const activeSessionId = useSessionStore((s) => s.activeSessionId);
+  const setActiveSession = useSessionStore((s) => s.setActiveSession);
+  const createSession = useSessionStore((s) => s.createSession);
+  const searchSessions = useSessionStore((s) => s.searchSessions);
+  const togglePinSession = useSessionStore((s) => s.togglePinSession);
+  const archiveSession = useSessionStore((s) => s.archiveSession);
+
+  const sidebarOpen = useUIStore((s) => s.sidebarOpen);
   const [searchQuery, setSearchQuery] = useState('');
 
   if (!sidebarOpen) return null;

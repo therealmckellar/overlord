@@ -6,7 +6,8 @@ import { PERSONAS, PersonaSlug } from '@/lib/personas';
 import { ChevronDown, UserCircle } from 'lucide-react';
 
 export const PersonaSelector = () => {
-  const { activePersona, setActivePersona } = useUIStore();
+  const activePersona = useUIStore((s) => s.activePersona);
+  const setActivePersona = useUIStore((s) => s.setActivePersona);
   const [isOpen, setIsOpen] = useState(false);
 
   const currentPersona = PERSONAS[activePersona as PersonaSlug] || PERSONAS.david;
