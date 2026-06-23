@@ -17,13 +17,8 @@ export function useAuthCheck() {
   const setLoading = useAuthStore((s) => s.setLoading);
   const refreshExpiry = useAuthStore((s) => s.refreshExpiry);
 
-  // Guard: prevent effect from running more than once
-  const hasRun = useRef(false);
-
-  // Check auth on mount
+  // Check auth on mount and when auth state rehydrates
   useEffect(() => {
-    if (hasRun.current) return;
-    hasRun.current = true;
 
     let cancelled = false;
 

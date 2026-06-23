@@ -1,7 +1,7 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  /* config options here */
+  // Hardcoded port — Overlord NEVER uses 3000 (that's Documenso)
 };
 
 export default nextConfig;
