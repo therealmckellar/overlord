@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useCallback, useState, useRef } from 'react';
+import { useEffect, useCallback, useState } from 'react';
 import { useTheme } from '@/hooks/useTheme';
 import { useUIStore, useSessionStore } from '@/stores';
 import { useKeyboardShortcuts } from '@/hooks/useKeyboardShortcuts';
@@ -17,6 +17,8 @@ import { LoopEngineering } from '@/components/loop/LoopEngineering';
 import { StudioView } from '@/components/studio/StudioView';
 import { ResearchMultiFormat } from '@/components/research/ResearchMultiFormat';
 import { SubstackAutomation } from '@/components/substack/SubstackAutomation';
+import { Dashboard } from '@/components/dashboard/Dashboard';
+import { Sidebar } from '@/components/dashboard/Sidebar';
 import { PERSONAS } from '@/lib/personas';
 import { StatusBar } from '@/components/status/StatusBar';
 import { Breadcrumbs } from '@/components/ui/Breadcrumbs';
@@ -25,15 +27,7 @@ import { AuthGate } from '@/components/auth/AuthGate';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { useChatStream } from '@/hooks/useChatStream';
 
-type Panel = 'chat' | 'pipeline' | 'memory' | 'loop' | 'studio' | 'research' | 'substack';
-
-const THEMES = [
-  { id: 'dark', label: 'Dark', color: '#6366f1' },
-  { id: 'light', label: 'Light', color: '#6366f1' },
-  { id: 'midnight', label: 'Midnight', color: '#8b5cf6' },
-  { id: 'forest', label: 'Forest', color: '#34d399' },
-  { id: 'arctic', label: 'Arctic', color: '#0ea5e9' },
-] as const;
+type Panel = 'dashboard' | 'chat' | 'pipeline' | 'memory' | 'loop' | 'studio' | 'research' | 'substack';
 
 export default function Home() {
   const { isAuthenticated, isLoading } = useAuthCheck();
@@ -48,7 +42,7 @@ export default function Home() {
   const setCommandPaletteOpen = useUIStore((s) => s.setCommandPaletteOpen);
   const addToast = useUIStore((s) => s.addToast);
 
-  const [activePanel, setActivePanel] = useState<Panel>('chat');
+  const [activePanel, setActivePanel] = useState<Panel>('dashboard');
 
   // Session management
   const activeSessionId = useSessionStore((s) => s.activeSessionId);
@@ -93,16 +87,6 @@ export default function Home() {
     sendChatMessage(message);
   }, [sendChatMessage]);
 
-  const navItems = [
-    { icon: '💬', label: 'Chat', panel: 'chat' as Panel },
-    { icon: '⚡', label: 'Pipeline', panel: 'pipeline' as Panel },
-    { icon: '🧠', label: 'Memory', panel: 'memory' as Panel },
-    { icon: '🔄', label: 'Loops', panel: 'loop' as Panel },
-    { icon: '🎨', label: 'Studio', panel: 'studio' as Panel },
-    { icon: '📊', label: 'Research', panel: 'research' as Panel },
-    { icon: '📰', label: 'Substack', panel: 'substack' as Panel },
-  ];
-
   // Show loading spinner while checking auth
   if (isLoading) {
     return (
@@ -132,85 +116,12 @@ export default function Home() {
       >
         Skip to main content
       </a>
-      <a
-        href="#sidebar-nav"
-        className="sr-only focus:not-sr-only focus:absolute focus:top-2 focus:left-28 focus:z-[100] focus:px-3 focus:py-1.5 focus:bg-[var(--accent)] focus:text-white focus:rounded-lg focus:text-sm"
-      >
-        Skip to navigation
-      </a>
 
       {/* Command Palette Overlay */}
       <CommandPalette onSelect={handleCommandSelect} />
 
       {/* Sidebar */}
-      <aside
-        id="sidebar-nav"
-        role="navigation"
-        aria-label="Main navigation"
-        className={`
-          flex flex-col border-r border-[var(--border)] bg-[var(--bg-secondary)]
-          transition-[width] duration-200 ease
-          ${sidebarOpen ? 'w-[260px]' : 'w-0 overflow-hidden'}
-        `}
-      >
-        {/* Logo */}
-        <div className="flex items-center gap-2 px-4 h-[52px] border-b border-[var(--border)]">
-          <div className="w-7 h-7 rounded-lg bg-[var(--accent)] flex items-center justify-center">
-            <span className="text-white font-bold text-xs">O</span>
-          </div>
-          <span className="font-semibold text-sm">Overlord</span>
-        </div>
-
-        {/* Nav */}
-        <nav className="flex-1 p-3 space-y-1">
-          {navItems.map((item) => (
-            <button
-              key={item.panel}
-              onClick={() => setActivePanel(item.panel)}
-              className={`
-                w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm
-                transition-colors duration-150
-                ${activePanel === item.panel
-                  ? 'bg-[var(--accent)] text-white'
-                  : 'text-[var(--text-secondary)] hover:bg-[var(--bg-tertiary)] hover:text-[var(--text)]'
-                }
-              `}
-            >
-              <span className="text-base">{item.icon}</span>
-              <span>{item.label}</span>
-            </button>
-          ))}
-        </nav>
-
-        {/* Theme Switcher */}
-        <div className="p-3 border-t border-[var(--border)]">
-          <p className="text-[10px] uppercase tracking-wider text-[var(--text-muted)] mb-2 px-1">
-            Theme
-          </p>
-          <div className="flex gap-1.5">
-            {THEMES.map((t) => (
-              <button
-                key={t.id}
-                onClick={() => setTheme(t.id)}
-                className={`
-                  w-7 h-7 rounded-full border-2 flex items-center justify-center
-                  transition-all duration-150
-                  ${theme === t.id
-                    ? 'border-white scale-110'
-                    : 'border-transparent hover:border-[var(--border)]'
-                  }
-                `}
-                style={{ backgroundColor: t.color }}
-                title={t.label}
-              >
-                {theme === t.id && (
-                  <span className="text-white text-[10px]">✓</span>
-                )}
-              </button>
-            ))}
-          </div>
-        </div>
-      </aside>
+      <Sidebar activePanel={activePanel} onNavigate={(panel) => setActivePanel(panel as Panel)} />
 
       {/* Main Content */}
       <div id="main-content" className="flex-1 flex flex-col min-w-0" role="main">
@@ -232,7 +143,8 @@ export default function Home() {
           </button>
 
           <h1 className="text-sm font-medium flex-1">
-            {activePanel === 'chat' && 'Agent OS — Phase 3'}
+            {activePanel === 'dashboard' && 'Dashboard'}
+            {activePanel === 'chat' && 'Chat'}
             {activePanel === 'pipeline' && 'Idea → Implement Pipeline'}
             {activePanel === 'memory' && 'Memory Galaxy'}
             {activePanel === 'loop' && 'Loop Engineering'}
@@ -256,12 +168,7 @@ export default function Home() {
           {/* Connection Status */}
           <div className="flex items-center gap-2 text-xs text-[var(--text-secondary)]">
             <span
-              className={`
-                w-2 h-2 rounded-full
-                ${connectionStatus === 'connected' ? 'bg-[var(--success)]' : ''}
-                ${connectionStatus === 'reconnecting' ? 'bg-[var(--warning)] animate-pulse' : ''}
-                ${connectionStatus === 'disconnected' ? 'bg-[var(--error)]' : ''}
-              `}
+              className={`w-2 h-2 rounded-full ${connectionStatus === 'connected' ? 'bg-[var(--success)]' : connectionStatus === 'reconnecting' ? 'bg-[var(--warning)] animate-pulse' : 'bg-[var(--error)]'}`}
             />
             <span className="capitalize">{connectionStatus}</span>
           </div>
@@ -270,6 +177,7 @@ export default function Home() {
         {/* Content Area */}
         <main className="flex-1 flex flex-col overflow-hidden">
           <Breadcrumbs />
+          {activePanel === 'dashboard' && <Dashboard />}
           {activePanel === 'chat' && (
             <>
               <ChatWindow sessionId="default" />
@@ -277,22 +185,22 @@ export default function Home() {
             </>
           )}
           {activePanel === 'pipeline' && (
-            <PipelineView isOpen={true} onClose={() => setActivePanel('chat')} />
+            <PipelineView isOpen={true} onClose={() => setActivePanel('dashboard')} />
           )}
           {activePanel === 'memory' && (
-            <MemoryGalaxy isOpen={true} onClose={() => setActivePanel('chat')} />
+            <MemoryGalaxy isOpen={true} onClose={() => setActivePanel('dashboard')} />
           )}
           {activePanel === 'loop' && (
-            <LoopEngineering isOpen={true} onClose={() => setActivePanel('chat')} />
+            <LoopEngineering isOpen={true} onClose={() => setActivePanel('dashboard')} />
           )}
           {activePanel === 'studio' && (
-            <StudioView isOpen={true} onClose={() => setActivePanel('chat')} />
+            <StudioView isOpen={true} onClose={() => setActivePanel('dashboard')} />
           )}
           {activePanel === 'research' && (
-            <ResearchMultiFormat isOpen={true} onClose={() => setActivePanel('chat')} />
+            <ResearchMultiFormat isOpen={true} onClose={() => setActivePanel('dashboard')} />
           )}
           {activePanel === 'substack' && (
-            <SubstackAutomation isOpen={true} onClose={() => setActivePanel('chat')} />
+            <SubstackAutomation isOpen={true} onClose={() => setActivePanel('dashboard')} />
           )}
         </main>
 
