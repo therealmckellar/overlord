@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { useAuthStore } from '@/stores/authStore';
 
 interface LoginFormProps {
@@ -9,6 +10,7 @@ interface LoginFormProps {
 }
 
 export function LoginForm({ onSuccess, onSwitchToRegister }: LoginFormProps) {
+  const router = useRouter();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
@@ -21,7 +23,7 @@ export function LoginForm({ onSuccess, onSwitchToRegister }: LoginFormProps) {
     setLoading(true);
 
     try {
-      const { login: loginApi } = await import('../../lib/auth/api');
+      const { login: loginApi } = await import('@/lib/auth/api');
       const data = await loginApi(email, password);
       // Set auth store directly — avoids race condition with reload
       setUser(data.user, data.expiresAt);
@@ -29,6 +31,8 @@ export function LoginForm({ onSuccess, onSwitchToRegister }: LoginFormProps) {
       // which would 401 in the brief window before the httpOnly cookie is available client-side
       try { sessionStorage.setItem('ol_just_logged_in', '1'); } catch { /* ignore */ }
       onSuccess();
+      // Force navigation to ensure fresh render cycle after login
+      router.push('/');
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Login failed');
     } finally {

@@ -17,31 +17,36 @@ export function useAuthCheck() {
   const setLoading = useAuthStore((s) => s.setLoading);
   const refreshExpiry = useAuthStore((s) => s.refreshExpiry);
 
-  // Check auth on mount and when auth state rehydrates
-  useEffect(() => {
+  // Track whether a fresh login just happened (survives effect re-runs)
+  const justLoggedInRef = useRef(false);
+  try {
+    if (sessionStorage.getItem('ol_just_logged_in') === '1') {
+      justLoggedInRef.current = true;
+      sessionStorage.removeItem('ol_just_logged_in');
+    }
+  } catch { /* ignore */ }
 
+  // Check auth on mount and when auth state changes
+  useEffect(() => {
     let cancelled = false;
 
     async function check() {
       try {
-        // If LoginForm just set this flag, skip getMe() — the cookie may not be
-        // readable yet and the store is already up to date from the login call.
-        let justLoggedIn = false;
-        try { justLoggedIn = sessionStorage.getItem('ol_just_logged_in') === '1'; } catch { /* ignore */ }
-        if (justLoggedIn && isAuthenticated) {
-          try { sessionStorage.removeItem('ol_just_logged_in'); } catch { /* ignore */ }
+        // If LoginForm just logged in, trust the store — skip getMe() to avoid
+        // any cookie-timing edge effects.
+        if (justLoggedInRef.current && isAuthenticated) {
+          justLoggedInRef.current = false;
           setLoading(false);
           return;
         }
 
-        // Skip getMe() if Zustand persist hasn't rehydrated yet — isAuthenticated
-        // will be false from the initial state, not from a real auth check.
-        // Calling getMe() now would 401 and incorrectly clear auth.
+        // Not authenticated — don't call getMe, just settle loading.
         if (!isAuthenticated) {
           setLoading(false);
           return;
         }
 
+        // Authenticated — validate session with getMe.
         const data = await getMe();
         if (!cancelled) {
           setUser(data.user);
