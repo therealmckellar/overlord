@@ -1,4 +1,4 @@
-'use client';
+import { shallow } from 'zustand/shallow';
 
 import React, { useRef, useEffect } from 'react';
 import { useMessageStore } from '@/stores/messageStore';
@@ -14,12 +14,22 @@ interface ChatWindowProps {
 }
 
 export function ChatWindow({ sessionId, isLoading }: ChatWindowProps) {
-  const messages = useMessageStore((s) => s.messagesBySession[sessionId] || []);
-  const streamingContent = useMessageStore((s) => s.streamingContent);
-  const isStreaming = useMessageStore((s) => s.isStreaming);
-  const selectedModel = useUIStore((s) => s.selectedModel);
-  const reasoningEffort = useUIStore((s) => s.reasoningEffort);
-  const activePersona = useUIStore((s) => s.activePersona);
+  const { messages, streamingContent, isStreaming } = useMessageStore(
+    (s) => ({
+      messages: s.messagesBySession[sessionId] || [],
+      streamingContent: s.streamingContent,
+      isStreaming: s.isStreaming,
+    }),
+    shallow
+  );
+  const { selectedModel, reasoningEffort, activePersona } = useUIStore(
+    (s) => ({
+      selectedModel: s.selectedModel,
+      reasoningEffort: s.reasoningEffort,
+      activePersona: s.activePersona,
+    }),
+    shallow
+  );
   const scrollRef = useRef<HTMLDivElement>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
 

@@ -33,7 +33,7 @@ export async function POST(req: NextRequest) {
     const accessTokenCookie = serialize('accessToken', tokens.accessToken, {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
-      sameSite: 'strict',
+      sameSite: 'lax',
       path: '/',
       maxAge: 3600,
     });
@@ -41,7 +41,7 @@ export async function POST(req: NextRequest) {
     const refreshTokenCookie = serialize('refreshToken', tokens.refreshToken, {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
-      sameSite: 'strict',
+      sameSite: 'lax',
       path: '/api/auth/refresh',
       maxAge: 60 * 60 * 24 * 7,
     });
