@@ -6,7 +6,7 @@ import { useUIStore, useSessionStore } from '@/stores';
 import { useKeyboardShortcuts } from '@/hooks/useKeyboardShortcuts';
 import { CommandPalette } from '@/components/CommandPalette';
 import { PersonaSelector } from '@/components/PersonaSelector';
-import { ModelSelector } from '@/components/ModelSelector';
+
 import { ReasoningEffort } from '@/components/ReasoningEffort';
 import { VoiceControls } from '@/components/VoiceControls';
 import { ChatComposer } from '@/components/chat/ChatComposer';
@@ -27,9 +27,10 @@ import { useAuthCheck } from '@/hooks/useAuthCheck';
 import { AuthGate } from '@/components/auth/AuthGate';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { useChatStream } from '@/hooks/useChatStream';
-import { JarvisVoice } from '@/components/JarvisVoice';
+import { JarvisPanel } from '@/components/JarvisPanel';
 
-type Panel = 'dashboard' | 'chat' | 'pipeline' | 'memory' | 'loop' | 'studio' | 'research' | 'substack' | 'agent';
+
+type Panel = 'dashboard' | 'chat' | 'pipeline' | 'memory' | 'loop' | 'studio' | 'research' | 'substack' | 'agent' | 'jarvis';
 
 export default function Home() {
   const { isAuthenticated, isLoading } = useAuthCheck();
@@ -153,14 +154,13 @@ export default function Home() {
             {activePanel === 'studio' && 'Studio'}
             {activePanel === 'research' && 'Research → Multi-Format'}
             {activePanel === 'substack' && 'Content Studio'}
-            {activePanel === 'agent' && 'Jarvis — Agent Command'}
+            {activePanel === 'agent' && 'Agent Roster'}
+            {activePanel === 'jarvis' && 'Jarvis — Voice Agent'}
           </h1>
 
           {/* Persona Selector */}
           <PersonaSelector />
 
-          {/* Model Selector */}
-          <ModelSelector />
 
           {/* Reasoning Effort */}
           <ReasoningEffort />
@@ -206,13 +206,13 @@ export default function Home() {
             <ContentStudio isOpen={true} onClose={() => setActivePanel('dashboard')} />
           )}
           {activePanel === 'agent' && <AgentPanel />}
+          {activePanel === 'jarvis' && <JarvisPanel />}
         </main>
 
         {/* Status Bar */}
         <StatusBar sessionId={activeSession} />
       </div>
     </div>
-    <JarvisVoice />
     </ErrorBoundary>
   );
 }

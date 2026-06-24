@@ -36,6 +36,13 @@ const navGroups = [
       { id: 'substack', label: 'Content', icon: '✨', panel: 'substack' },
     ],
   },
+  {
+    id: 'jarvis',
+    label: 'JARVIS',
+    items: [
+      { id: 'jarvis', label: 'Voice Agent', icon: '🎙️', panel: 'jarvis' },
+    ],
+  },
 ];
 
 export function Sidebar({ activePanel, onNavigate }: { activePanel: string; onNavigate: (panel: string) => void }) {
