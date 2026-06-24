@@ -8,6 +8,7 @@ import { useSessionStore } from '@/stores/sessionStore';
 interface SendMessageOptions {
   sessionId: string;
   persona: string;
+  model: string;
 }
 
 const MAX_RECONNECT_ATTEMPTS = 5;
@@ -19,7 +20,7 @@ function getReconnectDelay(attempt: number): number {
   return Math.min(BASE_RECONNECT_DELAY_MS * Math.pow(2, attempt), RECONNECT_DELAY_CAP_MS);
 }
 
-export function useChatStream({ sessionId, persona }: SendMessageOptions) {
+export function useChatStream({ sessionId, persona, model }: SendMessageOptions) {
   const addMessage = useMessageStore((s) => s.addMessage);
   const setStreamingContent = useMessageStore((s) => s.setStreamingContent);
   const setIsStreaming = useMessageStore((s) => s.setIsStreaming);
@@ -44,6 +45,7 @@ export function useChatStream({ sessionId, persona }: SendMessageOptions) {
       headers: {
         'Content-Type': 'application/json',
         'x-persona': persona,
+        'x-model': model,
       },
       body: JSON.stringify({ messages, session }),
       signal,
@@ -118,7 +120,7 @@ export function useChatStream({ sessionId, persona }: SendMessageOptions) {
       });
     }
     return { success: true, assistantContent };
-  }, [sessionId, persona, addMessage, appendStreamChunk]);
+  }, [sessionId, persona, model, addMessage, appendStreamChunk]);
 
   const sendMessage = useCallback(async (content: string) => {
     if (abortRef.current) {
@@ -221,7 +223,7 @@ export function useChatStream({ sessionId, persona }: SendMessageOptions) {
       setStreamingContent('');
       abortRef.current = null;
     }
-  }, [sessionId, persona, addMessage, setStreamingContent, setIsStreaming, appendStreamChunk, addToast, setConnectionStatus, updateSession, doFetch]);
+  }, [sessionId, persona, model, addMessage, setStreamingContent, setIsStreaming, appendStreamChunk, addToast, setConnectionStatus, updateSession, doFetch]);
 
   const cancelStream = useCallback(() => {
     abortRef.current?.abort();

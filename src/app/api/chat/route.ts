@@ -41,7 +41,11 @@ export async function POST(req: NextRequest) {
   const body = await req.json();
   const { messages, session } = body;
   const personaSlug = req.headers.get('x-persona') || 'david';
+  const modelFromHeader = req.headers.get('x-model');
   const persona = PERSONAS[personaSlug as keyof typeof PERSONAS] || PERSONAS.david;
+
+  // Use model from selector header, fallback to env var
+  const model = modelFromHeader || OPENROUTER_MODEL;
 
   const openRouterMessages = buildMessages(messages || [], persona.systemPrompt);
 
@@ -68,7 +72,7 @@ export async function POST(req: NextRequest) {
             'X-Title': 'Overlord',
           },
           body: JSON.stringify({
-            model: OPENROUTER_MODEL,
+            model,
             messages: openRouterMessages,
             stream: true,
             temperature: 0.7,

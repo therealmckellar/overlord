@@ -84,6 +84,7 @@ export default function Home() {
   const { sendMessage: sendChatMessage } = useChatStream({
     sessionId: activeSession,
     persona: currentPersona.slug,
+    model: selectedModel,
   });
 
   const handleSend = useCallback((message: string) => {
