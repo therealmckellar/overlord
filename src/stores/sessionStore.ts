@@ -68,7 +68,7 @@ export const useSessionStore = create<SessionState>()(
       createSession: (title) => {
         const session: Session = {
           id: generateId(12),
-          title: title || `Chat ${new Date().toLocaleDateString()}`,
+          title: title || `Chat ${Date.now() % 10000}`,
           createdAt: Date.now(),
           updatedAt: Date.now(),
           messageCount: 0,

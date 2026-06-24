@@ -1,13 +1,9 @@
 'use client';
 
 import React, { useState } from 'react';
-import {
-  Mic, Image, Video, Music, Sparkles, Download,
-  Play, Square, Loader2, Volume2
-} from 'lucide-react';
-import { useUIStore } from '@/stores/uiStore';
+import { Code, Terminal, FolderGit2, Play, FileText } from 'lucide-react';
 
-type StudioTab = 'voice' | 'image' | 'video';
+type StudioTab = 'code' | 'terminal' | 'files' | 'pipeline';
 
 interface StudioViewProps {
   isOpen: boolean;
@@ -15,15 +11,15 @@ interface StudioViewProps {
 }
 
 export function StudioView({ isOpen, onClose }: StudioViewProps) {
-  const [activeTab, setActiveTab] = useState<StudioTab>('voice');
-  const addToast = useUIStore((s) => s.addToast);
+  const [activeTab, setActiveTab] = useState<StudioTab>('code');
 
   if (!isOpen) return null;
 
   const tabs: { id: StudioTab; label: string; icon: React.ElementType }[] = [
-    { id: 'voice', label: 'Voice', icon: Mic },
-    { id: 'image', label: 'Image', icon: Image },
-    { id: 'video', label: 'Video', icon: Video },
+    { id: 'code', label: 'Code', icon: Code },
+    { id: 'terminal', label: 'Terminal', icon: Terminal },
+    { id: 'files', label: 'Files', icon: FolderGit2 },
+    { id: 'pipeline', label: 'Pipeline', icon: Play },
   ];
 
   return (
@@ -31,11 +27,11 @@ export function StudioView({ isOpen, onClose }: StudioViewProps) {
       {/* Header */}
       <div className="flex items-center justify-between px-6 py-3 border-b border-[var(--border)] bg-[var(--bg-secondary)]">
         <h2 className="text-sm font-semibold text-[var(--text)] flex items-center gap-2">
-          <Sparkles className="w-4 h-4 text-[var(--accent)]" />
+          <Code className="w-4 h-4 text-[var(--accent)]" />
           Studio
         </h2>
         <button onClick={onClose} className="p-1 rounded hover:bg-[var(--bg-tertiary)] text-[var(--text-muted)] hover:text-[var(--text)] transition-colors">
-          <Square className="w-4 h-4" />
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2"><path d="M4 4l8 8M12 4l-8 8" /></svg>
         </button>
       </div>
 
@@ -62,213 +58,106 @@ export function StudioView({ isOpen, onClose }: StudioViewProps) {
 
       {/* Content */}
       <div className="flex-1 overflow-y-auto p-6">
-        {activeTab === 'voice' && <VoiceStudio />}
-        {activeTab === 'image' && <ImageStudio />}
-        {activeTab === 'video' && <VideoStudio />}
+        {activeTab === 'code' && <CodeEditor />}
+        {activeTab === 'terminal' && <TerminalEmulator />}
+        {activeTab === 'files' && <FileBrowser />}
+        {activeTab === 'pipeline' && <PipelineRunner />}
       </div>
     </div>
   );
 }
 
-function VoiceStudio() {
-  const [text, setText] = useState('');
-  const [isPlaying, setIsPlaying] = useState(false);
-  const [voice, setVoice] = useState('alloy');
-  const addToast = useUIStore((s) => s.addToast);
-
-  const voices = ['alloy', 'echo', 'fable', 'onyx', 'nova', 'shimmer'];
-
-  const handleSpeak = () => {
-    if (!text.trim()) return;
-    if ('speechSynthesis' in window) {
-      const utterance = new SpeechSynthesisUtterance(text);
-      utterance.onstart = () => setIsPlaying(true);
-      utterance.onend = () => setIsPlaying(false);
-      speechSynthesis.speak(utterance);
-      addToast({ type: 'info', message: 'Playing voice...' });
-    } else {
-      addToast({ type: 'error', message: 'Speech synthesis not supported' });
-    }
-  };
-
-  const handleStop = () => {
-    speechSynthesis.cancel();
-    setIsPlaying(false);
-  };
-
+function CodeEditor() {
+  const [code, setCode] = useState(`// Welcome to Overlord Studio
+function buildAgentOS() {
+  const agents = ['Claude', 'Hermes', 'Jarvis'];
+  return agents.map(a => a.deploy());
+}`);
   return (
-    <div className="max-w-2xl mx-auto space-y-6">
-      <div>
-        <h3 className="text-lg font-semibold text-[var(--text)] mb-1">Voice Generation</h3>
-        <p className="text-xs text-[var(--text-muted)]">Convert text to speech with different voices</p>
+    <div className="h-full flex flex-col rounded-lg border border-[var(--border)] overflow-hidden">
+      <div className="flex items-center gap-2 px-4 py-2 border-b border-[var(--border)] bg-[var(--bg-tertiary)]">
+        <FileText className="w-3.5 h-3.5 text-[var(--text-muted)]" />
+        <span className="text-xs text-[var(--text-secondary)]">main.ts</span>
+        <span className="ml-auto text-[10px] text-[var(--success)]">● Saved</span>
       </div>
-
       <textarea
-        value={text}
-        onChange={(e) => setText(e.target.value)}
-        placeholder="Enter text to convert to speech..."
-        rows={6}
-        className="w-full px-4 py-3 text-sm rounded-lg bg-[var(--bg-secondary)] border border-[var(--border)] text-[var(--text)] placeholder:text-[var(--text-muted)] focus:outline-none focus:border-[var(--accent)] resize-none"
+        value={code}
+        onChange={(e) => setCode(e.target.value)}
+        className="flex-1 bg-[var(--bg)] p-4 font-mono text-sm text-[var(--text)] resize-none outline-none"
+        spellCheck={false}
       />
+    </div>
+  );
+}
 
-      <div>
-        <label className="text-xs text-[var(--text-muted)] mb-2 block">Voice</label>
-        <div className="flex flex-wrap gap-2">
-          {voices.map((v) => (
-            <button
-              key={v}
-              onClick={() => setVoice(v)}
-              className={`px-3 py-1.5 text-xs rounded-lg transition-colors ${
-                voice === v
-                  ? 'bg-[var(--accent)] text-white'
-                  : 'bg-[var(--bg-secondary)] border border-[var(--border)] text-[var(--text-muted)] hover:text-[var(--text)]'
-              }`}
-            >
-              {v}
-            </button>
-          ))}
-        </div>
-      </div>
-
-      <div className="flex items-center gap-3">
-        <button
-          onClick={isPlaying ? handleStop : handleSpeak}
-          disabled={!text.trim()}
-          className="flex items-center gap-2 px-6 py-2.5 text-sm rounded-lg bg-[var(--accent)] text-white hover:bg-[var(--accent-hover)] disabled:opacity-30 transition-colors"
-        >
-          {isPlaying ? <Square className="w-4 h-4" /> : <Play className="w-4 h-4" />}
-          {isPlaying ? 'Stop' : 'Speak'}
-        </button>
-        {isPlaying && (
-          <div className="flex items-center gap-2 text-xs text-[var(--accent)]">
-            <Volume2 className="w-4 h-4 animate-pulse" />
-            Playing...
-          </div>
-        )}
+function TerminalEmulator() {
+  const lines = [
+    '$ npm run build',
+    '✓ Compiled in 2.1s',
+    '✓ 17 routes built',
+    '$ npm run dev',
+    '→ Listening on :9125',
+    '→ Ready!',
+  ];
+  return (
+    <div className="h-full bg-black rounded-lg p-4 font-mono text-sm text-green-400 overflow-y-auto">
+      {lines.map((line, i) => (
+        <div key={i}>{line}</div>
+      ))}
+      <div className="flex items-center gap-2 mt-2">
+        <span className="text-green-400">$</span>
+        <span className="w-2 h-4 bg-green-400 animate-pulse" />
       </div>
     </div>
   );
 }
 
-function ImageStudio() {
-  const [prompt, setPrompt] = useState('');
-  const [generating, setGenerating] = useState(false);
-  const [generatedUrl, setGeneratedUrl] = useState<string | null>(null);
-  const addToast = useUIStore((s) => s.addToast);
-
-  const handleGenerate = async () => {
-    if (!prompt.trim()) return;
-    setGenerating(true);
-    // In production this calls an image generation API
-    setTimeout(() => {
-      setGeneratedUrl('https://placehold.co/512x512/6366f1/ffffff?text=AI+Generated');
-      setGenerating(false);
-      addToast({ type: 'success', message: 'Image generated' });
-    }, 2000);
-  };
-
+function FileBrowser() {
+  const files = [
+    { name: 'src/', type: 'dir' },
+    { name: '  components/', type: 'dir' },
+    { name: '    agent/', type: 'dir' },
+    { name: '    chat/', type: 'dir' },
+    { name: '    dashboard/', type: 'dir' },
+    { name: '    studio/', type: 'dir' },
+    { name: '  hooks/', type: 'dir' },
+    { name: '  stores/', type: 'dir' },
+    { name: '  app/', type: 'dir' },
+    { name: 'package.json', type: 'file' },
+    { name: 'README.md', type: 'file' },
+  ];
   return (
-    <div className="max-w-2xl mx-auto space-y-6">
-      <div>
-        <h3 className="text-lg font-semibold text-[var(--text)] mb-1">Image Generation</h3>
-        <p className="text-xs text-[var(--text-muted)]">Generate images from text prompts</p>
-      </div>
-
-      <div className="flex gap-2">
-        <input
-          type="text"
-          value={prompt}
-          onChange={(e) => setPrompt(e.target.value)}
-          placeholder="Describe the image you want..."
-          className="flex-1 px-4 py-2.5 text-sm rounded-lg bg-[var(--bg-secondary)] border border-[var(--border)] text-[var(--text)] placeholder:text-[var(--text-muted)] focus:outline-none focus:border-[var(--accent)]"
-        />
-        <button
-          onClick={handleGenerate}
-          disabled={!prompt.trim() || generating}
-          className="flex items-center gap-2 px-4 py-2.5 text-sm rounded-lg bg-[var(--accent)] text-white hover:bg-[var(--accent-hover)] disabled:opacity-30 transition-colors"
-        >
-          {generating ? <Loader2 className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}
-          Generate
-        </button>
-      </div>
-
-      {/* Output */}
-      <div className="aspect-square max-w-md mx-auto rounded-lg border border-[var(--border)] bg-[var(--bg-secondary)] flex items-center justify-center overflow-hidden">
-        {generating ? (
-          <div className="text-center space-y-3">
-            <Loader2 className="w-8 h-8 mx-auto text-[var(--accent)] animate-spin" />
-            <p className="text-xs text-[var(--text-muted)]">Generating image...</p>
-          </div>
-        ) : generatedUrl ? (
-          <img src={generatedUrl} alt="Generated" className="w-full h-full object-cover" />
-        ) : (
-          <div className="text-center space-y-2">
-            <Image className="w-12 h-12 mx-auto text-[var(--text-muted)] opacity-20" />
-            <p className="text-xs text-[var(--text-muted)]">Enter a prompt to generate an image</p>
-          </div>
-        )}
-      </div>
-
-      {generatedUrl && (
-        <div className="flex justify-center">
-          <a
-            href={generatedUrl}
-            download
-            className="flex items-center gap-2 px-4 py-2 text-xs rounded-lg bg-[var(--bg-secondary)] border border-[var(--border)] text-[var(--text)] hover:bg-[var(--bg-tertiary)] transition-colors"
-          >
-            <Download className="w-3.5 h-3.5" />
-            Download
-          </a>
+    <div className="h-full rounded-lg border border-[var(--border)] bg-[var(--bg-secondary)] p-4 font-mono text-sm overflow-y-auto">
+      {files.map((f, i) => (
+        <div key={i} className={`py-1 px-2 rounded hover:bg-[var(--bg-tertiary)] cursor-pointer ${f.type === 'dir' ? 'text-[var(--accent)]' : 'text-[var(--text-secondary)]'}`}>
+          {f.type === 'dir' ? '📁 ' : '📄 '}{f.name}
         </div>
-      )}
+      ))}
     </div>
   );
 }
 
-function VideoStudio() {
-  const [prompt, setPrompt] = useState('');
-  const [generating, setGenerating] = useState(false);
-  const addToast = useUIStore((s) => s.addToast);
-
-  const handleGenerate = () => {
-    if (!prompt.trim()) return;
-    setGenerating(true);
-    setTimeout(() => {
-      setGenerating(false);
-      addToast({ type: 'info', message: 'Video generation queued (demo)' });
-    }, 1500);
-  };
-
+function PipelineRunner() {
+  const stages = [
+    { name: 'Lint', status: 'success' as const },
+    { name: 'TypeCheck', status: 'success' as const },
+    { name: 'Build', status: 'success' as const },
+    { name: 'Test', status: 'running' as const },
+    { name: 'Deploy', status: 'pending' as const },
+  ];
   return (
-    <div className="max-w-2xl mx-auto space-y-6">
-      <div>
-        <h3 className="text-lg font-semibold text-[var(--text)] mb-1">Video Generation</h3>
-        <p className="text-xs text-[var(--text-muted)]">Generate short videos from text descriptions</p>
-      </div>
-
-      <textarea
-        value={prompt}
-        onChange={(e) => setPrompt(e.target.value)}
-        placeholder="Describe the video you want to create..."
-        rows={4}
-        className="w-full px-4 py-3 text-sm rounded-lg bg-[var(--bg-secondary)] border border-[var(--border)] text-[var(--text)] placeholder:text-[var(--text-muted)] focus:outline-none focus:border-[var(--accent)] resize-none"
-      />
-
-      <button
-        onClick={handleGenerate}
-        disabled={!prompt.trim() || generating}
-        className="flex items-center gap-2 px-6 py-2.5 text-sm rounded-lg bg-[var(--accent)] text-white hover:bg-[var(--accent-hover)] disabled:opacity-30 transition-colors"
-      >
-        {generating ? <Loader2 className="w-4 h-4 animate-spin" /> : <Video className="w-4 h-4" />}
-        {generating ? 'Generating...' : 'Generate Video'}
-      </button>
-
-      <div className="aspect-video max-w-md mx-auto rounded-lg border border-[var(--border)] bg-[var(--bg-secondary)] flex items-center justify-center">
-        <div className="text-center space-y-2">
-          <Video className="w-12 h-12 mx-auto text-[var(--text-muted)] opacity-20" />
-          <p className="text-xs text-[var(--text-muted)]">Video output will appear here</p>
+    <div className="space-y-3">
+      {stages.map((stage, i) => (
+        <div key={i} className="flex items-center gap-3 px-4 py-3 rounded-lg border border-[var(--border)] bg-[var(--bg-secondary)]">
+          <div className={`w-3 h-3 rounded-full ${
+            stage.status === 'success' ? 'bg-[var(--success)]' :
+            stage.status === 'running' ? 'bg-[var(--warning)] animate-pulse' :
+            'bg-[var(--bg-tertiary)]'
+          }`} />
+          <span className="text-sm text-[var(--text)]">{stage.name}</span>
+          <span className="ml-auto text-xs text-[var(--text-muted)] capitalize">{stage.status}</span>
         </div>
-      </div>
+      ))}
     </div>
   );
 }

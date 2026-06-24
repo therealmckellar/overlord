@@ -146,7 +146,7 @@ export const useUIStore = create<UIState>()(
       setBreadcrumbs: (crumbs) => set({ breadcrumbs: crumbs }),
 
       // Connection
-      connectionStatus: 'disconnected',
+      connectionStatus: 'connected',
       setConnectionStatus: (status) => set({ connectionStatus: status }),
 
       // Shortcuts help
