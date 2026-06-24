@@ -17,6 +17,7 @@ import { LoopEngineering } from '@/components/loop/LoopEngineering';
 import { StudioView } from '@/components/studio/StudioView';
 import { ResearchMultiFormat } from '@/components/research/ResearchMultiFormat';
 import { SubstackAutomation } from '@/components/substack/SubstackAutomation';
+import { AgentPanel } from '@/components/agent/AgentPanel';
 import { Dashboard } from '@/components/dashboard/Dashboard';
 import { Sidebar } from '@/components/dashboard/Sidebar';
 import { PERSONAS } from '@/lib/personas';
@@ -26,8 +27,9 @@ import { useAuthCheck } from '@/hooks/useAuthCheck';
 import { AuthGate } from '@/components/auth/AuthGate';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { useChatStream } from '@/hooks/useChatStream';
+import { JarvisVoice } from '@/components/JarvisVoice';
 
-type Panel = 'dashboard' | 'chat' | 'pipeline' | 'memory' | 'loop' | 'studio' | 'research' | 'substack';
+type Panel = 'dashboard' | 'chat' | 'pipeline' | 'memory' | 'loop' | 'studio' | 'research' | 'substack' | 'agent';
 
 export default function Home() {
   const { isAuthenticated, isLoading } = useAuthCheck();
@@ -151,6 +153,7 @@ export default function Home() {
             {activePanel === 'studio' && 'Studio'}
             {activePanel === 'research' && 'Research → Multi-Format'}
             {activePanel === 'substack' && 'Substack Automation'}
+            {activePanel === 'agent' && 'Jarvis — Agent Command'}
           </h1>
 
           {/* Persona Selector */}
@@ -202,12 +205,14 @@ export default function Home() {
           {activePanel === 'substack' && (
             <SubstackAutomation isOpen={true} onClose={() => setActivePanel('dashboard')} />
           )}
+          {activePanel === 'agent' && <AgentPanel />}
         </main>
 
         {/* Status Bar */}
         <StatusBar sessionId={activeSession} />
       </div>
     </div>
+    <JarvisVoice />
     </ErrorBoundary>
   );
 }
