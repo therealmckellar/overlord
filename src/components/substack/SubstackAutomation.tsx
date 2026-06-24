@@ -8,12 +8,14 @@ import {
   Pen, Brush, Pipette, Grid3x3, X, Loader2, ChevronRight,
   Plus, Trash2, Copy, RefreshCw, Maximize2, FileText,
   Brain, LayoutGrid, BookOpen, ScanLine, BarChart3,
-  Mic, Globe, Zap, ChevronDown, Check, AlertCircle, Clock,
+  Mic, Globe, ChevronDown, Check, AlertCircle, Clock,
   GripHorizontal, Eye, PanelLeftClose, PanelLeftOpen, Settings2,
-  Play
+  Play, Zap
 } from 'lucide-react';
 import { useUIStore } from '@/stores/uiStore';
 import { PERSONAS } from '@/lib/personas';
+import { getAgentDisplayInfo } from '@/hooks/useAgentTask';
+import type { TaskCategory } from '@/lib/model-graph';
 
 type StudioMode = 'image' | 'video' | 'design' | 'canvas' | 'report' | 'mindmap' | 'flashcard' | 'kanban' | 'research';
 type Tool = 'select' | 'brush' | 'eraser' | 'text' | 'shape' | 'eyedropper' | 'move' | 'zoom';
@@ -130,6 +132,18 @@ const GRADIENT_PRESETS = [
   'linear-gradient(135deg, #0c0c0c 0%, #1a1a2e 100%)',
   'linear-gradient(135deg, #ff9a9e 0%, #fad0c4 100%)',
 ];
+
+const MODE_TASK_CATEGORY: Record<StudioMode, TaskCategory> = {
+  image: 'image-generation',
+  video: 'video-creation',
+  design: 'design-graphics',
+  canvas: 'canvas-drawing',
+  report: 'report-generation',
+  mindmap: 'mindmap',
+  flashcard: 'flashcards',
+  kanban: 'kanban-task',
+  research: 'deep-research',
+};
 
 const MODE_CONFIG: Record<StudioMode, { icon: React.ElementType; label: string; description: string }> = {
   image: { icon: Image, label: 'Image', description: 'Generate images from text prompts' },
@@ -938,6 +952,13 @@ export function ContentStudio({ isOpen, onClose }: ContentStudioProps) {
                     <><Wand2 size={12} /> Generate {modeConfig.label}</>
                   )}
                 </button>
+                {/* Agent routing indicator */}
+                <div className="flex items-center justify-center gap-1.5 mt-2 text-[9px] text-[var(--text-muted)]">
+                  <Zap size={8} />
+                  <span>Routed to <span className="font-medium" style={{ color: getAgentDisplayInfo(MODE_TASK_CATEGORY[mode]).color }}>{getAgentDisplayInfo(MODE_TASK_CATEGORY[mode]).name}</span></span>
+                  <span>•</span>
+                  <span className="truncate max-w-[120px]">{getAgentDisplayInfo(MODE_TASK_CATEGORY[mode]).model}</span>
+                </div>
               </div>
             )}
 
