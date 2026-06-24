@@ -6,6 +6,7 @@ import { useUIStore, useSessionStore } from '@/stores';
 import { useKeyboardShortcuts } from '@/hooks/useKeyboardShortcuts';
 import { CommandPalette } from '@/components/CommandPalette';
 import { PersonaSelector } from '@/components/PersonaSelector';
+import { ModelSelector } from '@/components/ModelSelector';
 
 import { ReasoningEffort } from '@/components/ReasoningEffort';
 import { VoiceControls } from '@/components/VoiceControls';
@@ -160,6 +161,9 @@ export default function Home() {
 
           {/* Persona Selector */}
           <PersonaSelector />
+
+          {/* Model Selector (from graph) */}
+          <ModelSelector />
 
 
           {/* Reasoning Effort */}
