@@ -859,7 +859,7 @@ export function ContentStudio({ isOpen, onClose }: ContentStudioProps) {
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex bg-[var(--bg)]">
+    <div className="absolute inset-0 z-10 flex bg-[var(--bg)]">
       {/* Left Sidebar */}
       <div className={`border-r border-[var(--border)] flex flex-col bg-[var(--bg-secondary)] transition-all duration-200 ${sidebarCollapsed ? 'w-12' : 'w-72'}`}>
         {/* Header */}

@@ -126,7 +126,7 @@ export default function Home() {
       <Sidebar activePanel={activePanel} onNavigate={(panel) => setActivePanel(panel as Panel)} />
 
       {/* Main Content */}
-      <div id="main-content" className="flex-1 flex flex-col min-w-0" role="main">
+      <div id="main-content" className="flex-1 flex flex-col min-w-0 relative" role="main">
         {/* Header */}
         <header
           className="h-[52px] border-b border-[var(--border)] flex items-center px-4 gap-2 bg-[var(--bg)]"

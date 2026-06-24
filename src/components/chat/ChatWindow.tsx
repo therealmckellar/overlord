@@ -90,22 +90,11 @@ function EmptyState() {
         <span className="text-3xl">⚡</span>
       </div>
       <h2 className="text-2xl font-bold text-[var(--text)]">
-        Phase 2 — Core UX
+        Overlord
       </h2>
       <p className="text-[var(--text-secondary)] leading-relaxed max-w-md mx-auto">
-        Thinking blocks, tool cards, markdown rendering, KaTeX math, toast notifications, skeletons, and more — all wired in.
+        Ask anything. Your agents are ready.
       </p>
-
-      <div className="grid grid-cols-2 gap-3 text-xs pt-4 max-w-lg mx-auto">
-        <FeatureCard emoji="🧠" title="Thinking Blocks" desc="Collapsible reasoning sections" />
-        <FeatureCard emoji="🔧" title="Tool Cards" desc="Expandable tool call activity" />
-        <FeatureCard emoji="📊" title="Status Cards" desc="Tokens, model, elapsed time" />
-        <FeatureCard emoji="📋" title="Copy & Clipboard" desc="One-click copy on all messages" />
-        <FeatureCard emoji="🔢" title="KaTeX Math" desc="$...$ and $$...$$ rendering" />
-        <FeatureCard emoji="📐" title="GFM Tables" desc="Styled responsive tables" />
-        <FeatureCard emoji="🔔" title="Toast Queue" desc="Zustand-driven notifications" />
-        <FeatureCard emoji="💀" title="Skeletons" desc="Loading placeholders everywhere" />
-      </div>
     </div>
   );
 }

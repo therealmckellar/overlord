@@ -53,7 +53,7 @@ export function MemoryGalaxy({ isOpen, onClose }: MemoryGalaxyProps) {
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex bg-[var(--bg)]">
+    <div className="absolute inset-0 z-10 flex bg-[var(--bg)]">
       {/* Sidebar — filters */}
       <div className="w-64 border-r border-[var(--border)] flex flex-col bg-[var(--bg-secondary)]">
         <div className="flex items-center justify-between px-4 py-3 border-b border-[var(--border)]">

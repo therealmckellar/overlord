@@ -23,7 +23,7 @@ export function StudioView({ isOpen, onClose }: StudioViewProps) {
   ];
 
   return (
-    <div className="fixed inset-0 z-50 flex flex-col bg-[var(--bg)]">
+    <div className="absolute inset-0 z-10 flex flex-col bg-[var(--bg)]">
       {/* Header */}
       <div className="flex items-center justify-between px-6 py-3 border-b border-[var(--border)] bg-[var(--bg-secondary)]">
         <h2 className="text-sm font-semibold text-[var(--text)] flex items-center gap-2">
