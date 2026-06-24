@@ -33,7 +33,7 @@ const navGroups = [
     label: 'AUTOMATE',
     items: [
       { id: 'research', label: 'Research', icon: '📊', panel: 'research' },
-      { id: 'substack', label: 'Substack', icon: '📰', panel: 'substack' },
+      { id: 'substack', label: 'Content', icon: '✨', panel: 'substack' },
     ],
   },
 ];
@@ -57,7 +57,7 @@ export function Sidebar({ activePanel, onNavigate }: { activePanel: string; onNa
   return (
     <aside
       className={`
-        flex flex-col border-r border-[var(--border)] bg-[var(--bg-secondary)]
+        shrink-0 flex flex-col border-r border-[var(--border)] bg-[var(--bg-secondary)]
         transition-[width] duration-200 ease
         ${sidebarOpen ? 'w-[260px]' : 'w-0 overflow-hidden'}
       `}

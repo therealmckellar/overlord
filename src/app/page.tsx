@@ -16,7 +16,7 @@ import { MemoryGalaxy } from '@/components/memory/MemoryGalaxy';
 import { LoopEngineering } from '@/components/loop/LoopEngineering';
 import { StudioView } from '@/components/studio/StudioView';
 import { ResearchMultiFormat } from '@/components/research/ResearchMultiFormat';
-import { SubstackAutomation } from '@/components/substack/SubstackAutomation';
+import { ContentStudio } from '@/components/substack/SubstackAutomation';
 import { AgentPanel } from '@/components/agent/AgentPanel';
 import { Dashboard } from '@/components/dashboard/Dashboard';
 import { Sidebar } from '@/components/dashboard/Sidebar';
@@ -152,7 +152,7 @@ export default function Home() {
             {activePanel === 'loop' && 'Loop Engineering'}
             {activePanel === 'studio' && 'Studio'}
             {activePanel === 'research' && 'Research → Multi-Format'}
-            {activePanel === 'substack' && 'Substack Automation'}
+            {activePanel === 'substack' && 'Content Studio'}
             {activePanel === 'agent' && 'Jarvis — Agent Command'}
           </h1>
 
@@ -203,7 +203,7 @@ export default function Home() {
             <ResearchMultiFormat isOpen={true} onClose={() => setActivePanel('dashboard')} />
           )}
           {activePanel === 'substack' && (
-            <SubstackAutomation isOpen={true} onClose={() => setActivePanel('dashboard')} />
+            <ContentStudio isOpen={true} onClose={() => setActivePanel('dashboard')} />
           )}
           {activePanel === 'agent' && <AgentPanel />}
         </main>
