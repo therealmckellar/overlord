@@ -1,7 +1,9 @@
 'use client';
 
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useRef, useEffect } from 'react';
 import { useUIStore } from '@/stores/uiStore';
+import { useMessageStore } from '@/stores/messageStore';
+import { useChatStream } from '@/hooks/useChatStream';
 import { useJarvis } from '@/hooks/useJarvis';
 import { Mic, MicOff, Volume2, VolumeX, MessageSquare, History } from 'lucide-react';
 
@@ -20,39 +22,53 @@ interface JarvisMessage {
   timestamp: Date;
 }
 
+const JARVIS_SESSION = 'jarvis-voice';
+
 export function JarvisPanel() {
   const addToast = useUIStore((s) => s.addToast);
+  const selectedModel = useUIStore((s) => s.selectedModel);
   const [messages, setMessages] = useState<JarvisMessage[]>([]);
+  const lastProcessedRef = useRef<string | null>(null);
 
-  const handleCommand = useCallback((command: string) => {
-    const lower = command.toLowerCase();
-    let response = '';
+  const { sendMessage: sendChatMessage } = useChatStream({
+    sessionId: JARVIS_SESSION,
+    persona: 'david',
+    model: selectedModel,
+  });
 
-    if (lower.includes('create') && lower.includes('agent')) {
-      response = 'Agent spawn dialog opened. Configure your new agent below.';
-      addToast({ type: 'info', message: 'Spawn agent dialog opened', duration: 2000 });
-    } else if (lower.includes('status')) {
-      response = 'All systems operational. 4 agents active. Memory at 62%. Chat sessions: 3.';
-      addToast({ type: 'info', message: 'Status: All systems operational', duration: 3000 });
-    } else if (lower.includes('chat')) {
-      response = 'Opening new chat session...';
-      addToast({ type: 'info', message: 'New chat opened', duration: 1500 });
-    } else if (lower.includes('dashboard')) {
-      response = 'Navigating to dashboard.';
-      addToast({ type: 'info', message: 'Showing dashboard', duration: 1500 });
-    } else if (lower.includes('export')) {
-      response = 'Session exported successfully.';
-      addToast({ type: 'success', message: 'Session exported', duration: 2000 });
-    } else {
-      response = `Command received: "${command}"`;
-    }
-
+  const handleCommand = useCallback(async (command: string) => {
     setMessages(prev => [
       ...prev,
       { id: `user-${Date.now()}`, type: 'user', text: command, timestamp: new Date() },
-      { id: `jarvis-${Date.now()}`, type: 'jarvis', text: response, timestamp: new Date() },
     ]);
-  }, [addToast]);
+
+    addToast({ type: 'info', message: 'Jarvis processing...', duration: 1500 });
+
+    try {
+      await sendChatMessage(command);
+    } catch {
+      setMessages(prev => [
+        ...prev,
+        { id: `jarvis-${Date.now()}`, type: 'jarvis', text: 'Sorry, I had an issue processing that.', timestamp: new Date() },
+      ]);
+    }
+  }, [addToast, sendChatMessage]);
+
+  // Watch message store for Jarvis responses
+  useEffect(() => {
+    const interval = setInterval(() => {
+      const storeMsgs = useMessageStore.getState().messagesBySession[JARVIS_SESSION] || [];
+      const lastAssistant = storeMsgs.filter((m) => m.sender.role === 'assistant').slice(-1)[0];
+      if (lastAssistant && lastAssistant.id !== lastProcessedRef.current) {
+        lastProcessedRef.current = lastAssistant.id;
+        setMessages(prev => [
+          ...prev,
+          { id: `jarvis-${Date.now()}`, type: 'jarvis', text: lastAssistant.content, timestamp: new Date() },
+        ]);
+      }
+    }, 300);
+    return () => clearInterval(interval);
+  }, []);
 
   const { isListening, isSpeaking, isSupported, transcript, lastCommand, toggle, speak } = useJarvis(handleCommand);
 
