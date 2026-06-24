@@ -24,6 +24,7 @@ export const PersonaSelector = () => {
         />
         <span className="text-xs font-medium text-zinc-300 group-hover:text-white">
           {currentPersona.name}
+          {activePersona === 'hermes' && <span className="ml-1 text-[9px] text-[var(--accent)]">⚡</span>}
         </span>
         <ChevronDown className={`w-3 h-3 text-zinc-500 transition-transform ${isOpen ? 'rotate-180' : ''}`} />
       </button>
@@ -53,6 +54,9 @@ export const PersonaSelector = () => {
                   style={{ backgroundColor: persona.color }}
                 />
                 <span className="flex-1 font-medium">{persona.name}</span>
+                {persona.slug === 'hermes' && (
+                  <span className="text-[9px] px-1.5 py-0.5 rounded bg-[var(--accent)]/20 text-[var(--accent)] font-medium">ORCHESTRATOR</span>
+                )}
                 {activePersona === persona.slug && (
                   <div className="w-1 h-1 rounded-full bg-white" />
                 )}

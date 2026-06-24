@@ -137,7 +137,7 @@ export const useUIStore = create<UIState>()(
       toggleSounds: () => set((s) => ({ soundsEnabled: !s.soundsEnabled })),
 
       // Persona
-      activePersona: 'david',
+      activePersona: 'hermes',
       setActivePersona: (slug) => set({ activePersona: slug }),
 
 
