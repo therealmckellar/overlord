@@ -305,6 +305,32 @@ export function getAllAgents(): AgentConfig[] {
 }
 
 /**
+ * Unique models for the ModelSelector dropdown.
+ * Deduplicates by model name and aggregates agent roles.
+ */
+export const UNIQUE_MODELS: Array<{
+  value: string;
+  label: string;
+  agents: AgentRole[];
+}> = (() => {
+  const byModel = new Map<string, AgentRole[]>();
+  for (const cfg of Object.values(MODEL_GRAPH)) {
+    if (cfg.role === 'orchestrator') continue;
+    const existing = byModel.get(cfg.model);
+    if (existing) {
+      existing.push(cfg.role);
+    } else {
+      byModel.set(cfg.model, [cfg.role]);
+    }
+  }
+  return Array.from(byModel.entries()).map(([model, agents]) => ({
+    value: model,
+    label: model.split('/').pop()!.split(':')[0].replace(/-/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase()),
+    agents,
+  }));
+})();
+
+/**
  * Validate that a task is being routed to the correct agent.
  * Throws if orchestrator tries to do work directly.
  */
