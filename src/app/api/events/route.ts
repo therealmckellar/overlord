@@ -1,35 +1,38 @@
 import { NextResponse } from 'next/server';
-
-interface EventItem {
-  id: string;
-  timestamp: number;
-  type: 'info' | 'success' | 'warning' | 'error';
-  source: string;
-  message: string;
-}
-
-// In-memory ring buffer for recent events
-const eventBuffer: EventItem[] = [];
-const MAX_EVENTS = 50;
-
-export function logEvent(type: EventItem['type'], source: string, message: string) {
-  eventBuffer.unshift({
-    id: Math.random().toString(36).slice(2, 10),
-    timestamp: Date.now(),
-    type,
-    source,
-    message,
-  });
-  if (eventBuffer.length > MAX_EVENTS) {
-    eventBuffer.length = MAX_EVENTS;
-  }
-}
+import { getRecentEvents, subscribeEvents } from '@/lib/event-bus';
 
 export async function GET() {
-  return NextResponse.json({ events: eventBuffer });
-}
+  const events = getRecentEvents();
+  
+  // Check if the request wants SSE (based on Accept header)
+  // In Next.js App Router, for SSE we return a ReadableStream
+  const stream = new ReadableStream({
+    start(controller) {
+      const encoder = new TextEncoder();
+      
+      // Push existing events first
+      events.forEach(event => {
+        controller.enqueue(encoder.encode(`data: ${JSON.stringify(event)}\n\n`));
+      });
 
-// Seed some initial events
-logEvent('info', 'System', 'Overlord started');
-logEvent('success', 'Auth', 'Authentication system ready');
-logEvent('info', 'Chat', 'Chat system initialized');
+      // Subscribe to new events
+      const unsubscribe = subscribeEvents((event) => {
+        controller.enqueue(encoder.encode(`data: ${JSON.stringify(event)}\n\n`));
+      });
+
+      // Handle stream closing
+      // Note: In some environments, we need to handle the close event explicitly
+    },
+    cancel() {
+      // Cleanup if necessary
+    }
+  });
+
+  return new NextResponse(stream, {
+    headers: {
+      'Content-Type': 'text/event-stream',
+      'Cache-Control': 'no-cache, no-transform',
+      'Connection': 'keep-alive',
+    },
+  });
+}
