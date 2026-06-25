@@ -9,11 +9,15 @@
 
 export type AgentRole = 
   | 'orchestrator'    // Hermes — delegates only, never does work
+  | 'planner'         // Task planning & decomposition
+  | 'architect'       // System architecture & design
   | 'builder'         // Heavy coding/UI/builds
+  | 'build-fixer'     // Build/test failure fixes
   | 'researcher'      // Research, decks, LPs, deep analysis
   | 'reviewer'        // Code review, quality gates
   | 'security'        // Security audit
   | 'perf'            // Performance audit
+  | 'silent-failure'  // Silent failure detection & debugging
   | 'docs'            // Docs, copy, marketing
   | 'sdr'             // Sales/SDR outreach
   | 'e2e'             // End-to-end testing
@@ -69,6 +73,31 @@ export const MODEL_GRAPH: Record<AgentRole, AgentConfig> = {
     allowedTasks: [], // Orchestrator does NO work — only delegates
   },
 
+  planner: {
+    role: 'planner',
+    model: 'nvidia/nemotron-3-ultra-550b-a55b:free',
+    provider: 'openrouter',
+    agentFlag: 'planner',
+    maxTokens: 16384,
+    allowedTasks: [
+      'deep-research',
+      'report-generation',
+      'data-analysis',
+    ],
+  },
+
+  architect: {
+    role: 'architect',
+    model: 'nvidia/nemotron-3-ultra-550b-a55b:free',
+    provider: 'openrouter',
+    agentFlag: 'architect',
+    maxTokens: 16384,
+    allowedTasks: [
+      'code-build',
+      'refactor',
+    ],
+  },
+
   builder: {
     role: 'builder',
     model: 'openai/gpt-oss-120b:free',
@@ -83,6 +112,19 @@ export const MODEL_GRAPH: Record<AgentRole, AgentConfig> = {
       'landing-page',
       'code-build',
       'kanban-task',
+    ],
+  },
+
+  'build-fixer': {
+    role: 'build-fixer',
+    model: 'poolside/laguna-m.1:free',
+    provider: 'openrouter',
+    agentFlag: 'build-fixer',
+    maxTokens: 16384,
+    allowedTasks: [
+      'code-build',
+      'code-review',
+      'e2e-test',
     ],
   },
 
@@ -113,7 +155,7 @@ export const MODEL_GRAPH: Record<AgentRole, AgentConfig> = {
 
   security: {
     role: 'security',
-    model: 'openai/gpt-oss-120b:free',
+    model: 'nvidia/nemotron-3-super-120b-a12b:free',
     provider: 'openrouter',
     agentFlag: 'security',
     maxTokens: 8192,
@@ -127,6 +169,19 @@ export const MODEL_GRAPH: Record<AgentRole, AgentConfig> = {
     agentFlag: 'perf',
     maxTokens: 8192,
     allowedTasks: ['performance-audit'],
+  },
+
+  'silent-failure': {
+    role: 'silent-failure',
+    model: 'cohere/north-mini-code:free',
+    provider: 'openrouter',
+    agentFlag: 'silent-failure',
+    maxTokens: 8192,
+    allowedTasks: [
+      'code-review',
+      'codebase-explore',
+      'e2e-test',
+    ],
   },
 
   docs: {
@@ -143,9 +198,9 @@ export const MODEL_GRAPH: Record<AgentRole, AgentConfig> = {
 
   sdr: {
     role: 'sdr',
-    model: 'openai/gpt-oss-120b:free',
+    model: 'google/gemma-4-26b-a4b-it:free',
     provider: 'openrouter',
-    agentFlag: 'builder',
+    agentFlag: 'sdr',
     maxTokens: 8192,
     allowedTasks: ['sdr-outreach'],
   },

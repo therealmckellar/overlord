@@ -1,19 +1,22 @@
 import { create } from 'zustand';
+import { getAllAgents, type AgentConfig } from '@/lib/model-graph';
 
 export type AgentStatus = 'active' | 'idle' | 'error';
-export type AgentRole = 'CEO' | 'Researcher' | 'Voice Exec' | 'TaskRunner' | 'Analyst' | 'Writer' | 'Coder';
-export type AgentModel = 'Claude' | 'GPT-4' | 'Gemini' | 'Local';
 
 export interface Agent {
   id: string;
   name: string;
-  role: AgentRole;
+  role: string;
   status: AgentStatus;
-  model: AgentModel;
+  model: string;
+  provider: string;
+  agentFlag: string;
+  maxTokens: number;
   lastActivity: string;
   tokensUsed: number;
   color: string;
   skills: string[];
+  allowedTasks: string[];
   logs: { timestamp: string; message: string; type: 'info' | 'warn' | 'error' }[];
   messages: { role: 'user' | 'assistant'; content: string; timestamp: string }[];
 }
@@ -21,86 +24,82 @@ export interface Agent {
 interface AgentState {
   agents: Agent[];
   selectedAgentId: string | null;
-  spawnAgent: (name: string, role: AgentRole, model: AgentModel) => void;
+  spawnAgent: (name: string, role: string, model: string) => void;
   killAgent: (id: string) => void;
   pauseAgent: (id: string) => void;
   restartAgent: (id: string) => void;
   selectAgent: (id: string | null) => void;
 }
 
-const MOCK_AGENTS: Agent[] = [
-  {
-    id: 'claude-ceo',
-    name: 'Claude',
-    role: 'CEO',
-    status: 'active',
-    model: 'Claude',
-    lastActivity: 'Just now',
-    tokensUsed: 12500,
-    color: '#D97706',
-    skills: ['Strategic Planning', 'High-Level Reasoning', 'System Architecture'],
+const ROLE_COLORS: Record<string, string> = {
+  orchestrator: '#8B5CF6',
+  planner: '#06B6D4',
+  architect: '#3B82F6',
+  builder: '#10B981',
+  'build-fixer': '#F59E0B',
+  researcher: '#2563EB',
+  reviewer: '#EC4899',
+  security: '#EF4444',
+  perf: '#F97316',
+  'silent-failure': '#6366F1',
+  docs: '#14B8A6',
+  sdr: '#84CC16',
+  e2e: '#A855F7',
+  explorer: '#0EA5E9',
+  refactor: '#64748B',
+  fast: '#22D3EE',
+  trading: '#DC2626',
+  utility: '#78716C',
+};
+
+const ROLE_SKILLS: Record<string, string[]> = {
+  orchestrator: ['Delegation', 'Task Routing', 'Verification'],
+  planner: ['Task Decomposition', 'Planning', 'Dependency Analysis'],
+  architect: ['System Design', 'Architecture', 'API Contracts'],
+  builder: ['Code Generation', 'UI Builds', 'Full-Stack'],
+  'build-fixer': ['Build Repair', 'Test Fixes', 'Debugging'],
+  researcher: ['Deep Research', 'Analysis', 'Report Generation'],
+  reviewer: ['Code Review', 'Quality Gates', 'Security Checks'],
+  security: ['Security Audit', 'Vulnerability Scanning', 'OWASP'],
+  perf: ['Performance Audit', 'Core Web Vitals', 'Profiling'],
+  'silent-failure': ['Log Analysis', 'Pattern Detection', 'Alerting'],
+  docs: ['Documentation', 'Copy Writing', 'Marketing'],
+  sdr: ['Outreach', 'Email Generation', 'Lead Qualification'],
+  e2e: ['End-to-End Testing', 'Playwright', 'QA'],
+  explorer: ['Codebase Analysis', 'Code Graph', 'Read-Only Audit'],
+  refactor: ['Code Refactoring', 'Pattern Matching', 'Cleanup'],
+  fast: ['Quick Fixes', 'Patching', 'Hot Fixes'],
+  trading: ['Market Analysis', 'Technical Analysis', 'Forecasting'],
+  utility: ['Glue Code', 'Data Transfer', 'Formatting'],
+};
+
+function buildAgentsFromGraph(): Agent[] {
+  const configs = getAllAgents();
+  return configs.map((config: AgentConfig, idx: number) => ({
+    id: `agent-${config.role}`,
+    name: config.role.charAt(0).toUpperCase() + config.role.slice(1).replace('-', ' '),
+    role: config.role,
+    status: idx < 3 ? 'active' : idx < 8 ? 'idle' : 'active',
+    model: config.model,
+    provider: config.provider,
+    agentFlag: config.agentFlag,
+    maxTokens: config.maxTokens,
+    lastActivity: idx < 3 ? 'Just now' : idx < 8 ? `${idx * 2} mins ago` : `${idx * 5} mins ago`,
+    tokensUsed: idx < 3 ? Math.floor(Math.random() * 50000) : Math.floor(Math.random() * 10000),
+    color: ROLE_COLORS[config.role] || '#64748B',
+    skills: ROLE_SKILLS[config.role] || ['General Purpose'],
+    allowedTasks: config.allowedTasks,
     logs: [
-      { timestamp: '10:00:01', message: 'Initializing core directives', type: 'info' },
-      { timestamp: '10:00:05', message: 'Orchestrating sub-agents for research phase', type: 'info' },
-    ],
-    messages: [
-      { role: 'assistant', content: 'Systems online. I am ready to orchestrate the current objective.', timestamp: '10:00:10' },
-    ],
-  },
-  {
-    id: 'hermes-research',
-    name: 'Hermes',
-    role: 'Researcher',
-    status: 'active',
-    model: 'Claude',
-    lastActivity: '2 mins ago',
-    tokensUsed: 45000,
-    color: '#2563EB',
-    skills: ['Web Scraping', 'Data Analysis', 'Synthesis'],
-    logs: [
-      { timestamp: '10:05:00', message: 'Scanning target domains', type: 'info' },
-      { timestamp: '10:05:20', message: 'Found 12 relevant sources', type: 'info' },
-    ],
-    messages: [
-      { role: 'user', content: 'Find latest news on LLM benchmarks', timestamp: '10:04:00' },
-      { role: 'assistant', content: 'I have analyzed 12 sources. The current trend shows a shift towards smaller, distilled models.', timestamp: '10:05:30' },
-    ],
-  },
-  {
-    id: 'jarvis-exec',
-    name: 'Jarvis',
-    role: 'Voice Exec',
-    status: 'idle',
-    model: 'GPT-4',
-    lastActivity: '1 hour ago',
-    tokensUsed: 8000,
-    color: '#059669',
-    skills: ['API Execution', 'Voice Synthesis', 'Automation'],
-    logs: [
-      { timestamp: '09:00:00', message: 'Listening for wake word', type: 'info' },
+      { timestamp: new Date().toLocaleTimeString(), message: `Agent initialized — ${config.model}`, type: 'info' },
     ],
     messages: [],
-  },
-  {
-    id: 'openclaw-runner',
-    name: 'OpenClaw',
-    role: 'TaskRunner',
-    status: 'active',
-    model: 'Local',
-    lastActivity: '10 secs ago',
-    tokensUsed: 2100,
-    color: '#7C3AED',
-    skills: ['Shell Execution', 'File Management', 'Git Ops'],
-    logs: [
-      { timestamp: '10:10:00', message: 'Executing npm run build', type: 'info' },
-      { timestamp: '10:10:15', message: 'Build completed successfully', type: 'info' },
-    ],
-    messages: [],
-  },
-];
+  }));
+}
+
+const AGENTS = buildAgentsFromGraph();
 
 export const useAgentStore = create<AgentState>((set) => ({
-  agents: MOCK_AGENTS,
+  agents: AGENTS,
   selectedAgentId: null,
   spawnAgent: (name, role, model) => set((state) => ({
     agents: [
