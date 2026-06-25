@@ -11,7 +11,7 @@ interface SendMessageOptions {
   model: string;
 }
 
-const MAX_RECONNECT_ATTEMPTS = 5;
+const MAX_RECONNECT_ATTEMPTS = 10;
 const BASE_RECONNECT_DELAY_MS = 1000;
 const RECONNECT_DELAY_CAP_MS = 30000;
 
@@ -46,6 +46,7 @@ export function useChatStream({ sessionId, persona, model }: SendMessageOptions)
         'Content-Type': 'application/json',
         'x-persona': persona,
         'x-model': model,
+        ...(lastMessageId.current ? { 'x-resume-from': lastMessageId.current } : {}),
       },
       body: JSON.stringify({ messages, session }),
       signal,
@@ -181,7 +182,12 @@ export function useChatStream({ sessionId, persona, model }: SendMessageOptions)
           }
         }
 
-        setConnectionStatus('disconnected');
+        setConnectionStatus('offline');
+        addToast({
+          type: 'error',
+          message: 'Connection lost. Click Reconnect to try again.',
+          duration: 0, // persists until dismissed
+        });
         throw err;
       }
     };
@@ -230,5 +236,16 @@ export function useChatStream({ sessionId, persona, model }: SendMessageOptions)
     abortRef.current = null;
   }, []);
 
-  return { sendMessage, cancelStream };
+  const reconnect = useCallback(() => {
+    setConnectionStatus('reconnecting');
+    reconnectAttempts.current = 0;
+    // Re-trigger send with last user message if available
+    const allMsgs = useMessageStore.getState().messagesBySession[sessionId];
+    const lastUserMsg = allMsgs?.filter((m) => m.sender.role === 'user').slice(-1)[0];
+    if (lastUserMsg) {
+      sendMessage(lastUserMsg.content);
+    }
+  }, [sessionId, sendMessage]);
+
+  return { sendMessage, cancelStream, reconnect };
 }

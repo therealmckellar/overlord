@@ -11,15 +11,18 @@ const EMPTY_MESSAGES: never[] = [];
 interface ChatWindowProps {
   sessionId: string;
   isLoading?: boolean;
+  onReconnect?: () => void;
 }
 
-export function ChatWindow({ sessionId, isLoading }: ChatWindowProps) {
+export function ChatWindow({ sessionId, isLoading, onReconnect }: ChatWindowProps) {
   const messages = useMessageStore((s) => s.messagesBySession[sessionId] ?? EMPTY_MESSAGES);
   const streamingContent = useMessageStore((s) => s.streamingContent);
   const isStreaming = useMessageStore((s) => s.isStreaming);
   const selectedModel = useUIStore((s) => s.selectedModel);
   const reasoningEffort = useUIStore((s) => s.reasoningEffort);
   const activePersona = useUIStore((s) => s.activePersona);
+  const connectionStatus = useUIStore((s) => s.connectionStatus);
+  const reconnectChat = useUIStore((s) => s.reconnectChat);
   const scrollRef = useRef<HTMLDivElement>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
 
@@ -41,7 +44,22 @@ export function ChatWindow({ sessionId, isLoading }: ChatWindowProps) {
   }
 
   return (
-    <div ref={scrollRef} className="flex-1 overflow-y-auto p-4">
+    <div ref={scrollRef} className="flex-1 overflow-y-auto p-4 relative">
+      {/* Connection lost banner */}
+      {connectionStatus === 'offline' && (
+        <div className="sticky top-0 z-20 mb-4 bg-[var(--error)]/10 border border-[var(--error)]/30 rounded-lg px-4 py-3 flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <span className="w-2 h-2 rounded-full bg-[var(--error)] animate-pulse" />
+            <span className="text-sm text-[var(--text)]">Connection lost. Stream interrupted.</span>
+          </div>
+          <button
+            onClick={onReconnect || reconnectChat}
+            className="text-xs font-medium px-3 py-1 rounded-md bg-[var(--accent)] text-white hover:opacity-90 transition-opacity"
+          >
+            Reconnect
+          </button>
+        </div>
+      )}
       <div className="max-w-3xl mx-auto space-y-4">
         {messages.length === 0 && !streamingContent ? (
           <EmptyState />

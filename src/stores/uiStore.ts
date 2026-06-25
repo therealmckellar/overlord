@@ -62,8 +62,9 @@ interface UIState {
   setBreadcrumbs: (crumbs: { label: string; href?: string }[]) => void;
 
   // Connection status
-  connectionStatus: 'connected' | 'disconnected' | 'reconnecting';
-  setConnectionStatus: (status: 'connected' | 'disconnected' | 'reconnecting') => void;
+  connectionStatus: 'connected' | 'disconnected' | 'reconnecting' | 'offline';
+  setConnectionStatus: (status: 'connected' | 'disconnected' | 'reconnecting' | 'offline') => void;
+  reconnectChat: () => void;
 
   // Keyboard shortcuts help
   shortcutsHelpOpen: boolean;
@@ -146,8 +147,9 @@ export const useUIStore = create<UIState>()(
       setBreadcrumbs: (crumbs) => set({ breadcrumbs: crumbs }),
 
       // Connection
-      connectionStatus: 'connected',
+      connectionStatus: 'connected' as const,
       setConnectionStatus: (status) => set({ connectionStatus: status }),
+      reconnectChat: () => set({ connectionStatus: 'reconnecting' }),
 
       // Shortcuts help
       shortcutsHelpOpen: false,

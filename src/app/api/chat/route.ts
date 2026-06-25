@@ -42,6 +42,7 @@ export async function POST(req: NextRequest) {
   const { messages, session } = body;
   const personaSlug = req.headers.get('x-persona') || 'david';
   const modelFromHeader = req.headers.get('x-model');
+  const resumeFromId = req.headers.get('x-resume-from');
   const persona = PERSONAS[personaSlug as keyof typeof PERSONAS] || PERSONAS.david;
 
   // Use model from selector header, fallback to env var
@@ -59,6 +60,24 @@ export async function POST(req: NextRequest) {
         payload += `data: ${JSON.stringify({ content: data })}\n\n`;
         controller.enqueue(encoder.encode(payload));
       };
+
+      // Keepalive ping every 15s to prevent proxy/countdown timeouts
+      const keepaliveInterval = setInterval(() => {
+        try {
+          controller.enqueue(encoder.encode(`: keepalive\n\n`));
+        } catch {
+          // controller closed, ignore
+        }
+      }, 15000);
+
+      const _cleanup = () => { clearInterval(keepaliveInterval); };
+      // Clean up on stream cancel
+      req.signal.addEventListener('abort', _cleanup, { once: true });
+
+      // If resuming from a previous stream, signal client
+      if (resumeFromId) {
+        send('resumed', '', resumeFromId);
+      }
 
       send('typing', `${persona.name} is thinking...`);
 
@@ -129,6 +148,7 @@ export async function POST(req: NextRequest) {
         send('error', `Stream error: ${message}`);
       }
 
+      clearInterval(keepaliveInterval);
       controller.close();
     },
   });

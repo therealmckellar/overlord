@@ -81,7 +81,7 @@ export default function Home() {
   const currentPersona = PERSONAS[activePersona as keyof typeof PERSONAS] || PERSONAS.david;
 
   // Handle chat send — real SSE streaming to OpenRouter
-  const { sendMessage: sendChatMessage } = useChatStream({
+  const { sendMessage: sendChatMessage, reconnect: reconnectChat } = useChatStream({
     sessionId: activeSession,
     persona: currentPersona.slug,
     model: selectedModel,
@@ -188,7 +188,7 @@ export default function Home() {
           {activePanel === 'dashboard' && <Dashboard />}
           {activePanel === 'chat' && (
             <>
-              <ChatWindow sessionId="default" />
+              <ChatWindow sessionId="default" onReconnect={reconnectChat} />
               <ChatComposer onSend={handleSend} />
             </>
           )}
