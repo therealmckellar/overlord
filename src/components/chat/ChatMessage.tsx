@@ -6,6 +6,7 @@ import remarkGfm from 'remark-gfm';
 import remarkMath from 'remark-math';
 import rehypeKatex from 'rehype-katex';
 import { Copy, Check, User, Bot } from 'lucide-react';
+import { formatRelative, isSameDay } from '@/lib/time';
 import type { Message } from '@/types';
 import { ThinkingBlock } from './ThinkingBlock';
 import { ToolCallCard } from './ToolCallCard';
@@ -104,7 +105,7 @@ export function ChatMessage({
             {message.sender.name}
           </span>
           <span className="text-[10px] text-[var(--text-muted)]">
-            {new Date(message.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+            {formatRelative(message.timestamp)}
           </span>
         </div>
 

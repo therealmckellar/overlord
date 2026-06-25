@@ -2,21 +2,14 @@
 
 import React, { useState, useRef, useCallback } from 'react';
 import { useUIStore } from '@/stores/uiStore';
+import { useSessionStore } from '@/stores/sessionStore';
 import { Send, Paperclip, Smile } from 'lucide-react';
 import { EmojiPicker } from './EmojiPicker';
+import { useSlashCommands, SLASH_COMMANDS, getCompletions } from '@/lib/slash-commands';
 
 interface ChatComposerProps {
   onSend: (message: string) => void;
 }
-
-// Built-in slash commands for autocomplete
-const SLASH_COMMANDS = [
-  { value: '/help', description: 'Show available commands' },
-  { value: '/clear', description: 'Clear current session' },
-  { value: '/export', description: 'Export session as JSON' },
-  { value: '/settings', description: 'Open settings panel' },
-  { value: '/new', description: 'Start a new session' },
-];
 
 // Mock mentionable users
 const MENTIONABLE_USERS = [
@@ -70,7 +63,7 @@ export function ChatComposer({ onSend }: ChatComposerProps) {
   };
 
   const filteredSlashCommands = SLASH_COMMANDS.filter(
-    (cmd) => cmd.value.includes(autocompleteQuery),
+    (cmd: { value: string; label: string; description: string; usage: string }) => cmd.value.includes(autocompleteQuery),
   );
 
   const filteredMentions = MENTIONABLE_USERS.filter(
@@ -204,7 +197,7 @@ export function ChatComposer({ onSend }: ChatComposerProps) {
                   <p className="px-3 py-1 text-[10px] font-semibold text-[var(--text-muted)] uppercase tracking-wider">
                     Commands
                   </p>
-                  {filteredSlashCommands.map((cmd, i) => (
+                  {filteredSlashCommands.map((cmd: { value: string; label: string; description: string }, i: number) => (
                     <button
                       key={cmd.value}
                       onClick={() => insertAutocomplete(cmd.value)}

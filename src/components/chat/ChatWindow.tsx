@@ -5,6 +5,7 @@ import { ChatMessage } from './ChatMessage';
 import { TypingIndicator } from './TypingIndicator';
 import { ScrollControls } from './ScrollControls';
 import { MessageListSkeleton } from '../skeletons/Skeleton';
+import { isSameDay } from '@/lib/time';
 
 const EMPTY_MESSAGES: never[] = [];
 
@@ -65,14 +66,22 @@ export function ChatWindow({ sessionId, isLoading, onReconnect }: ChatWindowProp
           <EmptyState />
         ) : (
           <>
-            {messages.map((msg) => (
-              <ChatMessage
-                key={msg.id}
-                message={msg}
-                showStatus={msg.sender.role === 'assistant'}
-                model={selectedModel}
-                reasoningEffort={reasoningEffort}
-              />
+            {messages.map((msg, i) => (
+              <React.Fragment key={msg.id}>
+                {i > 0 && !isSameDay(messages[i - 1].timestamp, msg.timestamp) && (
+                  <div className="flex justify-center my-6">
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-[var(--text-muted)] bg-[var(--bg-tertiary)] px-2 py-1 rounded-full border border-[var(--border)]">
+                      {new Date(msg.timestamp).toLocaleDateString([], { weekday: 'long', month: 'long', day: 'numeric' })}
+                    </span>
+                  </div>
+                )}
+                <ChatMessage
+                  message={msg}
+                  showStatus={msg.sender.role === 'assistant'}
+                  model={selectedModel}
+                  reasoningEffort={reasoningEffort}
+                />
+              </React.Fragment>
             ))}
             {/* Streaming message */}
             {isStreaming && streamingContent && (

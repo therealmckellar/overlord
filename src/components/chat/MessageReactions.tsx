@@ -5,7 +5,7 @@ import { SmilePlus, Pin, PinOff } from 'lucide-react';
 import { useMessageStore } from '@/stores/messageStore';
 import { Tooltip } from '@/components/ui/Tooltip';
 
-const QUICK_REACTIONS = ['👍', '👎', '❤️', '😂', '😮', '😢', '🔥', '👀'];
+const QUICK_REACTIONS = ['👍', '❤️', '😂', '🤔', '👀'];
 
 interface MessageReactionsProps {
   messageId: string;
