@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import { persist } from 'zustand/middleware';
 import { getAllAgents, type AgentConfig } from '@/lib/model-graph';
 
 export type AgentStatus = 'active' | 'idle' | 'error';
@@ -21,14 +22,35 @@ export interface Agent {
   messages: { role: 'user' | 'assistant'; content: string; timestamp: string }[];
 }
 
+export interface AgentPreset {
+  id: string;
+  name: string;
+  config: {
+    name: string;
+    role: string;
+    model: string;
+    systemPrompt: string;
+    tools: string[];
+    outputFormat: string;
+    temperature: number;
+    maxTokens: number;
+  };
+  createdAt: number;
+}
+
 interface AgentState {
   agents: Agent[];
   selectedAgentId: string | null;
+  presets: AgentPreset[];
   spawnAgent: (name: string, role: string, model: string) => void;
   killAgent: (id: string) => void;
   pauseAgent: (id: string) => void;
   restartAgent: (id: string) => void;
   selectAgent: (id: string | null) => void;
+  savePreset: (preset: AgentPreset) => void;
+  loadPreset: (id: string) => AgentPreset | undefined;
+  deletePreset: (id: string) => void;
+  deployAgent: (config: AgentPreset['config']) => Promise<string>;
 }
 
 const ROLE_COLORS: Record<string, string> = {
@@ -98,35 +120,78 @@ function buildAgentsFromGraph(): Agent[] {
 
 const AGENTS = buildAgentsFromGraph();
 
-export const useAgentStore = create<AgentState>((set) => ({
-  agents: AGENTS,
-  selectedAgentId: null,
-  spawnAgent: (name, role, model) => set((state) => ({
-    agents: [
-      ...state.agents,
-      {
-        id: Math.random().toString(36).substr(2, 9),
-        name,
-        role,
-        status: 'active',
-        model,
-        lastActivity: 'Just now',
-        tokensUsed: 0,
-        color: '#'+Math.floor(Math.random()*16777215).toString(16),
-        skills: ['General Purpose'],
-        logs: [{ timestamp: new Date().toLocaleTimeString(), message: 'Agent spawned', type: 'info' }],
-        messages: [],
-      }
-    ]
-  })),
-  killAgent: (id) => set((state) => ({
-    agents: state.agents.map(a => a.id === id ? { ...a, status: 'error' } : a)
-  })),
-  pauseAgent: (id) => set((state) => ({
-    agents: state.agents.map(a => a.id === id ? { ...a, status: 'idle' } : a)
-  })),
-  restartAgent: (id) => set((state) => ({
-    agents: state.agents.map(a => a.id === id ? { ...a, status: 'active' } : a)
-  })),
-  selectAgent: (id) => set({ selectedAgentId: id }),
-}));
+export const useAgentStore = create<AgentState>()(
+  persist(
+    (set, get) => ({
+      agents: AGENTS,
+      selectedAgentId: null,
+      presets: [],
+      spawnAgent: (name: string, role: string, model: string) =>
+        set((state) => ({
+          agents: [
+            ...state.agents,
+            {
+              id: Math.random().toString(36).substr(2, 9),
+              name,
+              role,
+              status: 'active' as const,
+              model,
+              provider: 'openrouter',
+              agentFlag: 'custom',
+              maxTokens: 8192,
+              lastActivity: 'Just now',
+              tokensUsed: 0,
+              color: '#' + Math.floor(Math.random() * 16777215).toString(16),
+              skills: ['General Purpose'],
+              allowedTasks: [],
+              logs: [{ timestamp: new Date().toLocaleTimeString(), message: 'Agent spawned', type: 'info' as const }],
+              messages: [],
+            },
+          ],
+        })),
+      killAgent: (id: string) =>
+        set((state) => ({
+          agents: state.agents.map((a) => (a.id === id ? { ...a, status: 'error' as const } : a)),
+        })),
+      pauseAgent: (id: string) =>
+        set((state) => ({
+          agents: state.agents.map((a) => (a.id === id ? { ...a, status: 'idle' as const } : a)),
+        })),
+      restartAgent: (id: string) =>
+        set((state) => ({
+          agents: state.agents.map((a) => (a.id === id ? { ...a, status: 'active' as const } : a)),
+        })),
+      selectAgent: (id: string | null) => set({ selectedAgentId: id }),
+      savePreset: (preset: AgentPreset) =>
+        set((state) => ({
+          presets: [...state.presets, preset],
+        })),
+      loadPreset: (id: string) => get().presets.find((p) => p.id === id),
+      deletePreset: (id: string) =>
+        set((state) => ({
+          presets: state.presets.filter((p) => p.id !== id),
+        })),
+      deployAgent: async (config: AgentPreset['config']) => {
+        try {
+          const response = await fetch('/api/agents/spawn', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ type: 'agent', config }),
+          });
+          const data = await response.json();
+          if (data.success) {
+            get().spawnAgent(config.name, config.role, config.model);
+          }
+          return data.id || data.agent || 'deployed';
+        } catch {
+          get().spawnAgent(config.name, config.role, config.model);
+          return 'deployed-local';
+        }
+      },
+    }),
+    {
+      name: 'overlord-agents',
+      partialize: (state) => ({ presets: state.presets }),
+    }
+  )
+);

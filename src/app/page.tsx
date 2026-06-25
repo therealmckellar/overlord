@@ -19,6 +19,7 @@ import { StudioView } from '@/components/studio/StudioView';
 import { ResearchMultiFormat } from '@/components/research/ResearchMultiFormat';
 import { ContentStudio } from '@/components/substack/SubstackAutomation';
 import { AgentPanel } from '@/components/agent/AgentPanel';
+import { AgentDesigner } from '@/components/agent/AgentDesigner';
 import { Dashboard } from '@/components/dashboard/Dashboard';
 import { Sidebar } from '@/components/dashboard/Sidebar';
 import { PERSONAS } from '@/lib/personas';
@@ -31,7 +32,7 @@ import { useChatStream } from '@/hooks/useChatStream';
 import { JarvisPanel } from '@/components/JarvisPanel';
 
 
-type Panel = 'dashboard' | 'chat' | 'pipeline' | 'memory' | 'loop' | 'studio' | 'research' | 'substack' | 'agent' | 'jarvis';
+type Panel = 'dashboard' | 'chat' | 'pipeline' | 'memory' | 'loop' | 'studio' | 'research' | 'substack' | 'agent' | 'jarvis' | 'designer';
 
 export default function Home() {
   const { isAuthenticated, isLoading } = useAuthCheck();
@@ -158,6 +159,7 @@ export default function Home() {
             {activePanel === 'substack' && 'Content Studio'}
             {activePanel === 'agent' && 'Agent Roster'}
             {activePanel === 'jarvis' && 'Jarvis — Voice Agent'}
+            {activePanel === 'designer' && 'Agent Designer'}
           </h1>
 
           {/* Persona Selector */}
@@ -212,6 +214,7 @@ export default function Home() {
           )}
           {activePanel === 'agent' && <AgentPanel />}
           {activePanel === 'jarvis' && <JarvisPanel />}
+          {activePanel === 'designer' && <AgentDesigner />}
         </main>
 
         {/* Status Bar */}

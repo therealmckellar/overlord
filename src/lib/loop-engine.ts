@@ -1,74 +1,90 @@
-/**
- * Loop Engineering: track build outcomes, calculate success rates
- */
+import { create } from 'zustand';
+import { persist } from 'zustand/middleware';
 
-export interface BuildRecord {
-  agent: string;
-  task: string;
-  success: boolean;
+export interface LoopResult {
+  iteration: number;
+  model: string;
+  score: number;
+  output: string;
+  duration: number;
   timestamp: number;
-  duration: number; // ms
 }
 
-const STORAGE_KEY = 'ol-loop-data';
-const MAX_RECORDS = 100;
-
-function getStorage(): BuildRecord[] {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    return raw ? JSON.parse(raw) : [];
-  } catch {
-    return [];
-  }
-}
-
-function saveStorage(records: BuildRecord[]) {
-  try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(records.slice(-MAX_RECORDS)));
-  } catch { /* ignore */ }
-}
-
-export function recordBuild(agent: string, task: string, success: boolean, duration: number) {
-  const records = getStorage();
-  records.push({ agent, task: task.slice(0, 100), success, timestamp: Date.now(), duration });
-  saveStorage(records);
-}
-
-export function getAgentStats(agent: string): { total: number; successes: number; rate: number; avgDuration: number } {
-  const records = getStorage().filter(r => r.agent === agent);
-  const successes = records.filter(r => r.success).length;
-  const avgDuration = records.length > 0
-    ? records.reduce((sum, r) => sum + r.duration, 0) / records.length
-    : 0;
-  return {
-    total: records.length,
-    successes,
-    rate: records.length > 0 ? successes / records.length : 0,
-    avgDuration,
+export interface LoopTask {
+  id: string;
+  name: string;
+  description: string;
+  status: 'idle' | 'running' | 'complete' | 'error';
+  iterations: number;
+  maxIterations: number;
+  currentScore: number;
+  bestScore: number;
+  bestModel: string;
+  results: LoopResult[];
+  createdAt: number;
+  config: {
+    model: string;
+    prompt: string;
   };
 }
 
-export function getAllStats(): Record<string, ReturnType<typeof getAgentStats>> {
-  const records = getStorage();
-  const agents = [...new Set(records.map(r => r.agent))];
-  const result: Record<string, ReturnType<typeof getAgentStats>> = {};
-  for (const agent of agents) {
-    result[agent] = getAgentStats(agent);
-  }
-  return result;
+interface LoopState {
+  loops: LoopTask[];
+  startLoop: (task: LoopTask) => Promise<void>;
+  stopLoop: (id: string) => void;
+  updateLoop: (id: string, changes: Partial<LoopTask>) => void;
+  removeLoop: (id: string) => void;
 }
 
-export function getOverallHealth(): number {
-  const records = getStorage();
-  if (records.length === 0) return 1;
-  const successes = records.filter(r => r.success).length;
-  return successes / records.length;
-}
+export const useLoopStore = create<LoopState>()(
+  persist(
+    (set, get) => ({
+      loops: [],
+      startLoop: async (task) => {
+        const id = task.id || Math.random().toString(36).substr(2, 9);
+        const updatedTask = { ...task, id, status: 'running' as const, iterations: 0, results: [] };
+        
+        set((state) => ({
+          loops: [...state.loops.filter(l => l.id !== id), updatedTask]
+        }));
 
-export function getRecentBuilds(limit = 20): BuildRecord[] {
-  return getStorage().slice(-limit).reverse();
-}
+        try {
+          const response = await fetch('/api/agents/spawn', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              type: 'loop',
+              config: {
+                name: updatedTask.name,
+                description: updatedTask.description,
+                model: updatedTask.config.model,
+                maxIterations: updatedTask.maxIterations,
+                prompt: updatedTask.config.prompt
+              }
+            })
+          });
 
-export function clearHistory() {
-  localStorage.removeItem(STORAGE_KEY);
-}
+          if (!response.ok) throw new Error('Failed to spawn loop');
+          
+          const { jobId } = await response.json();
+          // The real wiring to SSE would happen in the component using this jobId
+        } catch (e) {
+          set((state) => ({
+            loops: state.loops.map(l => l.id === id ? { ...l, status: 'error' } : l)
+          }));
+          throw e;
+        }
+      },
+      stopLoop: (id) => set((state) => ({
+        loops: state.loops.map(l => l.id === id ? { ...l, status: 'idle' } : l)
+      })),
+      updateLoop: (id, changes) => set((state) => ({
+        loops: state.loops.map(l => l.id === id ? { ...l, ...changes } : l)
+      })),
+      removeLoop: (id) => set((state) => ({
+        loops: state.loops.filter(l => l.id !== id)
+      })),
+    }),
+    { name: 'ol-loop-store' }
+  )
+);

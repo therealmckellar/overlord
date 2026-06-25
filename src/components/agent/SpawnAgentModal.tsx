@@ -1,7 +1,8 @@
 'use client';
 
 import React, { useState } from 'react';
-import { AgentRole, AgentModel } from '@/stores/agentStore';
+export type AgentRole = 'Researcher' | 'Executor' | 'Analyst' | 'Writer' | 'Coder' | 'Specialist';
+export type AgentModel = 'Claude' | 'GPT-4' | 'Gemini' | 'Local';
 
 interface SpawnAgentModalProps {
   isOpen: boolean;
