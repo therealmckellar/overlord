@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createUser, findByEmail, toSafeUser } from '@/lib/auth/users';
 import { signTokenPair } from '@/lib/auth/jwt';
+import { createSession } from '@/lib/auth/sessions';
 import { serialize } from 'cookie';
 
 export async function POST(req: NextRequest) {
@@ -32,26 +33,28 @@ export async function POST(req: NextRequest) {
     }
 
     const user = await createUser({ email, name, password });
-    const tokens = signTokenPair({
+    const tokens = await signTokenPair({
       id: user.id,
       email: user.email,
       name: user.name,
       role: user.role,
     });
 
+    await createSession(user.id, tokens.refreshToken, 60 * 60 * 24 * 7);
+
     const accessTokenCookie = serialize('accessToken', tokens.accessToken, {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
-      sameSite: 'strict',
+      sameSite: 'lax',
       path: '/',
-      maxAge: 3600, // 1 hour
+      maxAge: 15 * 60, // 15 minutes
     });
 
     const refreshTokenCookie = serialize('refreshToken', tokens.refreshToken, {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
-      sameSite: 'strict',
-      path: '/api/auth/refresh',
+      sameSite: 'lax',
+      path: '/',
       maxAge: 60 * 60 * 24 * 7, // 7 days
     });
 

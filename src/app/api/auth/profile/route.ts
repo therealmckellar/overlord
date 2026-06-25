@@ -10,7 +10,7 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const payload = verifyToken(token);
+    const payload = await verifyToken(token);
     const user = await findById(payload.userId);
     if (!user) {
       return NextResponse.json({ error: 'User not found' }, { status: 404 });
@@ -32,7 +32,7 @@ export async function PATCH(req: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const payload = verifyToken(token);
+    const payload = await verifyToken(token);
     const body = await req.json();
     const { name, currentPassword, newPassword } = body;
 

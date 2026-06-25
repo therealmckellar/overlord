@@ -6,6 +6,7 @@ const PUBLIC_PATHS = [
   '/api/auth/login',
   '/api/auth/register',
   '/api/auth/logout',
+  '/api/auth/refresh',
   '/api/health',
   '/_next',
   '/favicon.ico',
@@ -32,7 +33,7 @@ function isProtectedApi(pathname: string): boolean {
   return PROTECTED_API_PREFIXES.some((p) => pathname.startsWith(p));
 }
 
-export function middleware(req: NextRequest) {
+export async function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl;
 
   // Allow public paths
@@ -64,14 +65,14 @@ export function middleware(req: NextRequest) {
     }
 
     try {
-      const payload = verifyToken(token);
+      const payload = await verifyToken(token);
       // Attach user info to request headers for downstream use
       const response = NextResponse.next();
       response.headers.set('x-user-id', payload.userId);
       response.headers.set('x-user-email', payload.email);
       response.headers.set('x-user-role', payload.role);
       return response;
-    } catch {
+    } catch (error: any) {
       // Token expired or invalid — clear cookie and 401
       const response = NextResponse.json(
         { error: 'Invalid or expired token' },

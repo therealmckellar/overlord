@@ -1,14 +1,15 @@
-import jwt, { JwtPayload } from 'jsonwebtoken';
+import * as jose from 'jose';
 
-const JWT_SECRET: string = process.env.JWT_SECRET || 'dev-secret-change-in-production';
-const JWT_EXPIRES_IN: string = process.env.JWT_EXPIRES_IN || '1h';
-const REFRESH_EXPIRES_IN: string = process.env.REFRESH_EXPIRES_IN || '7d';
+const JWT_SECRET = new TextEncoder().encode(process.env.JWT_SECRET || 'dev-secret-change-in-production');
+const ACCESS_TOKEN_EXPIRY = '15m';
+const REFRESH_TOKEN_EXPIRY = '7d';
 
-export interface TokenPayload extends JwtPayload {
+export interface TokenPayload extends jose.JWTPayload {
   userId: string;
   email: string;
   name: string;
   role: string;
+  exp?: number;
 }
 
 export interface TokenPair {
@@ -17,37 +18,44 @@ export interface TokenPair {
   expiresAt: number;
 }
 
-export function signAccessToken(payload: Omit<TokenPayload, 'iat' | 'exp'>): string {
-  return jwt.sign(payload, JWT_SECRET, { expiresIn: JWT_EXPIRES_IN } as jwt.SignOptions);
+export async function signAccessToken(payload: Omit<TokenPayload, 'iat' | 'exp'>): Promise<string> {
+  return await new jose.SignJWT(payload)
+    .setProtectedHeader({ alg: 'HS256' })
+    .setExpirationTime(ACCESS_TOKEN_EXPIRY)
+    .sign(JWT_SECRET);
 }
 
-export function signRefreshToken(payload: { userId: string }): string {
-  return jwt.sign(payload, JWT_SECRET, { expiresIn: REFRESH_EXPIRES_IN } as jwt.SignOptions);
+export async function signRefreshToken(payload: { userId: string }): Promise<string> {
+  return await new jose.SignJWT(payload)
+    .setProtectedHeader({ alg: 'HS256' })
+    .setExpirationTime(REFRESH_TOKEN_EXPIRY)
+    .sign(JWT_SECRET);
 }
 
-export function verifyToken(token: string): TokenPayload {
-  return jwt.verify(token, JWT_SECRET) as TokenPayload;
+export async function verifyToken(token: string): Promise<TokenPayload> {
+  const { payload } = await jose.jwtVerify(token, JWT_SECRET);
+  return payload as unknown as TokenPayload;
 }
 
 export function decodeToken(token: string): TokenPayload | null {
   try {
-    return jwt.decode(token) as TokenPayload;
+    return jose.decodeJwt(token) as TokenPayload;
   } catch {
     return null;
   }
 }
 
-export function signTokenPair(user: { id: string; email: string; name: string; role: string }): TokenPair {
-  const accessToken = signAccessToken({
+export async function signTokenPair(user: { id: string; email: string; name: string; role: string }): Promise<TokenPair> {
+  const accessToken = await signAccessToken({
     userId: user.id,
     email: user.email,
     name: user.name,
     role: user.role,
   });
-  const refreshToken = signRefreshToken({ userId: user.id });
+  const refreshToken = await signRefreshToken({ userId: user.id });
 
   const decoded = decodeToken(accessToken);
-  const expiresAt = decoded?.exp ? decoded.exp * 1000 : Date.now() + 3600000;
+  const expiresAt = decoded?.exp ? decoded.exp * 1000 : Date.now() + 15 * 60 * 1000;
 
   return { accessToken, refreshToken, expiresAt };
 }
