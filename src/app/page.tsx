@@ -26,6 +26,11 @@ import MissionControl from '@/components/MissionControl';
 import KanbanBoard from '@/components/KanbanBoard';
 import AgentDeploymentPanel from '@/components/AgentDeploymentPanel';
 import SkillsPanel from '@/components/SkillsPanel';
+import GoalsPanel from '@/components/GoalsPanel';
+import JournalPanel from '@/components/JournalPanel';
+import AnalyticsDashboard from '@/components/AnalyticsDashboard';
+import MemoryPanel from '@/components/MemoryPanel';
+import SessionHistoryPanel from '@/components/SessionHistoryPanel';
 import { PERSONAS } from '@/lib/personas';
 import { StatusBar } from '@/components/status/StatusBar';
 import { Breadcrumbs } from '@/components/ui/Breadcrumbs';
@@ -36,7 +41,7 @@ import { useChatStream } from '@/hooks/useChatStream';
 import { JarvisPanel } from '@/components/JarvisPanel';
 
 
-type Panel = 'dashboard' | 'chat' | 'pipeline' | 'memory' | 'loop' | 'studio' | 'research' | 'substack' | 'agent' | 'jarvis' | 'designer' | 'mission' | 'kanban' | 'deploy' | 'skills';
+type Panel = 'dashboard' | 'chat' | 'pipeline' | 'memory' | 'loop' | 'studio' | 'research' | 'substack' | 'agent' | 'jarvis' | 'designer' | 'mission' | 'kanban' | 'deploy' | 'skills' | 'goals' | 'journal' | 'analytics' | 'session';
 
 export default function Home() {
   const { isAuthenticated, isLoading } = useAuthCheck();
@@ -168,6 +173,10 @@ export default function Home() {
             {activePanel === 'kanban' && 'Task Board'}
             {activePanel === 'deploy' && 'Deployments'}
             {activePanel === 'skills' && 'Skills & Playbooks'}
+            {activePanel === 'goals' && 'Goals'}
+            {activePanel === 'journal' && 'Daily Journal'}
+            {activePanel === 'analytics' && 'Analytics'}
+            {activePanel === 'session' && 'Session History'}
           </h1>
 
           {/* Persona Selector */}
@@ -227,6 +236,10 @@ export default function Home() {
           {activePanel === 'kanban' && <KanbanBoard />}
           {activePanel === 'deploy' && <AgentDeploymentPanel />}
           {activePanel === 'skills' && <SkillsPanel />}
+          {activePanel === 'goals' && <GoalsPanel />}
+          {activePanel === 'journal' && <JournalPanel />}
+          {activePanel === 'analytics' && <AnalyticsDashboard />}
+          {activePanel === 'session' && <SessionHistoryPanel />}
         </main>
 
         {/* Status Bar */}

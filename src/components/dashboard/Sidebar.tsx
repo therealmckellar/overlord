@@ -28,6 +28,7 @@ const navGroups = [
       { id: 'kanban', label: 'Task Board', icon: '📋', panel: 'kanban' },
       { id: 'deploy', label: 'Deployments', icon: '🚀', panel: 'deploy' },
       { id: 'loop', label: 'Loops', icon: '🔄', panel: 'loop' },
+      { id: 'goals', label: 'Goals', icon: '🎯', panel: 'goals' },
     ],
   },
   {
@@ -37,6 +38,15 @@ const navGroups = [
       { id: 'memory', label: 'Memory', icon: '🧠', panel: 'memory' },
       { id: 'studio', label: 'Studio', icon: '🎨', panel: 'studio' },
       { id: 'skills', label: 'Skills', icon: '⚡', panel: 'skills' },
+      { id: 'session', label: 'Sessions', icon: '💬', panel: 'session' },
+    ],
+  },
+  {
+    id: 'insight',
+    label: 'INSIGHT',
+    items: [
+      { id: 'analytics', label: 'Analytics', icon: '📈', panel: 'analytics' },
+      { id: 'journal', label: 'Journal', icon: '📓', panel: 'journal' },
     ],
   },
   {
