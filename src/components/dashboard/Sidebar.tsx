@@ -21,12 +21,22 @@ const navGroups = [
     ],
   },
   {
+    id: 'operate',
+    label: 'OPERATE',
+    items: [
+      { id: 'mission', label: 'Mission Control', icon: '🛸', panel: 'mission' },
+      { id: 'kanban', label: 'Task Board', icon: '📋', panel: 'kanban' },
+      { id: 'deploy', label: 'Deployments', icon: '🚀', panel: 'deploy' },
+      { id: 'loop', label: 'Loops', icon: '🔄', panel: 'loop' },
+    ],
+  },
+  {
     id: 'observe',
     label: 'OBSERVE',
     items: [
       { id: 'memory', label: 'Memory', icon: '🧠', panel: 'memory' },
-      { id: 'loop', label: 'Loops', icon: '🔄', panel: 'loop' },
       { id: 'studio', label: 'Studio', icon: '🎨', panel: 'studio' },
+      { id: 'skills', label: 'Skills', icon: '⚡', panel: 'skills' },
     ],
   },
   {

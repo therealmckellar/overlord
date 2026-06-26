@@ -22,6 +22,10 @@ import { AgentPanel } from '@/components/agent/AgentPanel';
 import { AgentDesigner } from '@/components/agent/AgentDesigner';
 import { Dashboard } from '@/components/dashboard/Dashboard';
 import { Sidebar } from '@/components/dashboard/Sidebar';
+import MissionControl from '@/components/MissionControl';
+import KanbanBoard from '@/components/KanbanBoard';
+import AgentDeploymentPanel from '@/components/AgentDeploymentPanel';
+import SkillsPanel from '@/components/SkillsPanel';
 import { PERSONAS } from '@/lib/personas';
 import { StatusBar } from '@/components/status/StatusBar';
 import { Breadcrumbs } from '@/components/ui/Breadcrumbs';
@@ -32,7 +36,7 @@ import { useChatStream } from '@/hooks/useChatStream';
 import { JarvisPanel } from '@/components/JarvisPanel';
 
 
-type Panel = 'dashboard' | 'chat' | 'pipeline' | 'memory' | 'loop' | 'studio' | 'research' | 'substack' | 'agent' | 'jarvis' | 'designer';
+type Panel = 'dashboard' | 'chat' | 'pipeline' | 'memory' | 'loop' | 'studio' | 'research' | 'substack' | 'agent' | 'jarvis' | 'designer' | 'mission' | 'kanban' | 'deploy' | 'skills';
 
 export default function Home() {
   const { isAuthenticated, isLoading } = useAuthCheck();
@@ -160,6 +164,10 @@ export default function Home() {
             {activePanel === 'agent' && 'Agent Roster'}
             {activePanel === 'jarvis' && 'Jarvis — Voice Agent'}
             {activePanel === 'designer' && 'Agent Designer'}
+            {activePanel === 'mission' && 'Mission Control'}
+            {activePanel === 'kanban' && 'Task Board'}
+            {activePanel === 'deploy' && 'Deployments'}
+            {activePanel === 'skills' && 'Skills & Playbooks'}
           </h1>
 
           {/* Persona Selector */}
@@ -215,6 +223,10 @@ export default function Home() {
           {activePanel === 'agent' && <AgentPanel />}
           {activePanel === 'jarvis' && <JarvisPanel />}
           {activePanel === 'designer' && <AgentDesigner />}
+          {activePanel === 'mission' && <MissionControl />}
+          {activePanel === 'kanban' && <KanbanBoard />}
+          {activePanel === 'deploy' && <AgentDeploymentPanel />}
+          {activePanel === 'skills' && <SkillsPanel />}
         </main>
 
         {/* Status Bar */}
