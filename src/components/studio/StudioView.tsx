@@ -1,13 +1,14 @@
 'use client';
 
-import React, { useState } from 'react';
-import { Code, Terminal, FolderGit2, Play } from 'lucide-react';
+import React, { useState, useCallback } from 'react';
+import { Code, Terminal, FolderGit2, Play, ImageIcon, Download } from 'lucide-react';
 import { CodeEditor } from './CodeEditor';
 import { TerminalEmulator } from './TerminalEmulator';
 import { FileBrowser } from './FileBrowser';
 import { PipelineRunner } from './PipelineRunner';
+import { ImageGenerator } from './ImageGenerator';
 
-type StudioTab = 'code' | 'terminal' | 'files' | 'pipeline';
+type StudioTab = 'code' | 'terminal' | 'files' | 'pipeline' | 'imagegen';
 
 interface StudioViewProps {
   isOpen: boolean;
@@ -23,6 +24,7 @@ export function StudioView({ isOpen, onClose }: StudioViewProps) {
     { id: 'code', label: 'Code', icon: Code },
     { id: 'terminal', label: 'Terminal', icon: Terminal },
     { id: 'files', label: 'Files', icon: FolderGit2 },
+    { id: 'imagegen', label: 'Image Gen', icon: ImageIcon },
     { id: 'pipeline', label: 'Pipeline', icon: Play },
   ];
 
@@ -65,6 +67,7 @@ export function StudioView({ isOpen, onClose }: StudioViewProps) {
         {activeTab === 'code' && <CodeEditor isOpen={true} onClose={() => onClose()} />}
         {activeTab === 'terminal' && <TerminalEmulator isOpen={true} onClose={() => onClose()} />}
         {activeTab === 'files' && <FileBrowser isOpen={true} onClose={() => onClose()} />}
+        {activeTab === 'imagegen' && <ImageGenerator />}
         {activeTab === 'pipeline' && <PipelineRunner isOpen={true} onClose={() => onClose()} />}
       </div>
     </div>

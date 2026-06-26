@@ -62,8 +62,8 @@ interface UIState {
   setBreadcrumbs: (crumbs: { label: string; href?: string }[]) => void;
 
   // Connection status
-  connectionStatus: 'connected' | 'disconnected' | 'reconnecting' | 'offline';
-  setConnectionStatus: (status: 'connected' | 'disconnected' | 'reconnecting' | 'offline') => void;
+  connectionStatus: 'connected' | 'disconnected' | 'connecting' | 'reconnecting' | 'offline';
+  setConnectionStatus: (status: 'connected' | 'disconnected' | 'connecting' | 'reconnecting' | 'offline') => void;
   reconnectChat: () => void;
 
   // Keyboard shortcuts help

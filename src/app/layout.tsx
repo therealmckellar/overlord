@@ -4,6 +4,13 @@ import "./globals.css";
 export const metadata: Metadata = {
   title: "Agent OS — Overlord",
   description: "Unified agent control plane for Rich's businesses",
+  manifest: "/manifest.json",
+  themeColor: "#6366f1",
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "black-translucent",
+    title: "Overlord",
+  },
 };
 
 const criticalCSS = `

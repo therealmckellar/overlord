@@ -6,6 +6,8 @@ import { StatsGrid } from './StatsGrid';
 import { ActivityTimeline } from './ActivityTimeline';
 import { QuickActions } from './QuickActions';
 import { SystemHealth } from './SystemHealth';
+import { usePWAInstall } from '@/hooks/usePWAInstall';
+import { Download, X } from 'lucide-react';
 
 interface DashboardStats {
   activeSessions: number;
@@ -18,6 +20,8 @@ interface DashboardStats {
 }
 
 export function Dashboard() {
+  const { isInstallable, install } = usePWAInstall();
+  const [showBanner, setShowBanner] = useState(true);
   const connectionStatus = useUIStore((s) => s.connectionStatus);
   const sessions = useSessionStore((s) => s.sessions);
   const activeSessionId = useSessionStore((s) => s.activeSessionId);
@@ -61,6 +65,21 @@ export function Dashboard() {
   return (
     <div className="flex-1 overflow-y-auto p-6">
       <div className="max-w-6xl mx-auto space-y-6">
+        {/* PWA Install Banner */}
+        {isInstallable && showBanner && (
+          <div className="flex items-center justify-between px-4 py-2.5 rounded-xl bg-[var(--accent)]/10 border border-[var(--accent)]/20">
+            <div className="flex items-center gap-3">
+              <Download className="w-4 h-4 text-[var(--accent)]" />
+              <span className="text-xs text-[var(--text)]">Install Overlord as an app on your device</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <button onClick={install} className="px-3 py-1 text-xs rounded-lg bg-[var(--accent)] text-white hover:opacity-90 transition-opacity">Install</button>
+              <button onClick={() => setShowBanner(false)} className="p-1 text-[var(--text-muted)] hover:text-[var(--text)]">
+                <X className="w-3.5 h-3.5" />
+              </button>
+            </div>
+          </div>
+        )}
         {/* Header */}
         <div className="flex items-center justify-between">
           <div>

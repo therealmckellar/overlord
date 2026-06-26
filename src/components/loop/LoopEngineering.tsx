@@ -4,9 +4,10 @@ import React, { useState, useCallback } from 'react';
 import { useLoopStore, type LoopTask } from '@/stores/loopStore';
 import { useUIStore } from '@/stores/uiStore';
 import { UNIQUE_MODELS } from '@/lib/model-graph';
+import { LOOP_TEMPLATES, type LoopStep, type LoopTemplate } from '@/lib/loop-templates';
 import {
   RefreshCw, Trophy, TrendingUp, Play, Pause, Square, BarChart3,
-  Clock, Zap, CheckCircle2, XCircle, Loader2, Plus, Pencil, Trash2, X
+  Clock, Zap, CheckCircle2, XCircle, Loader2, Plus, Pencil, Trash2, X, LayoutTemplate, ArrowRight, ChevronUp, ChevronDown
 } from 'lucide-react';
 
 interface LoopEngineeringProps {
@@ -24,6 +25,7 @@ export function LoopEngineering({ isOpen, onClose }: LoopEngineeringProps) {
 
   const [selectedLoopId, setSelectedLoopId] = useState<string | null>(null);
   const [showForm, setShowForm] = useState(false);
+  const [showTemplates, setShowTemplates] = useState(false);
   const [editingLoopId, setEditingLoopId] = useState<string | null>(null);
 
   // New loop form state
@@ -132,6 +134,12 @@ export function LoopEngineering({ isOpen, onClose }: LoopEngineeringProps) {
               </button>
             )}
             <button
+              onClick={() => setShowTemplates(!showTemplates)}
+              className="px-2 py-1 text-xs rounded-md bg-[var(--bg-tertiary)] text-[var(--text-secondary)] hover:text-[var(--text)] transition-colors flex items-center gap-1"
+            >
+              <LayoutTemplate className="w-3 h-3" /> Templates
+            </button>
+            <button
               onClick={() => setShowForm(true)}
               className="px-2 py-1 text-xs rounded-md bg-[var(--accent)] text-white hover:bg-[var(--accent-hover)] transition-colors flex items-center gap-1"
             >
@@ -225,7 +233,15 @@ export function LoopEngineering({ isOpen, onClose }: LoopEngineeringProps) {
 
       {/* Right panel — Detail or Form */}
       <div className="flex-1 flex flex-col overflow-hidden">
-        {showForm ? (
+        {showTemplates ? (
+          <TemplatesGallery onSelectTemplate={(template) => {
+            setFormName(template.name);
+            setFormDescription(template.description);
+            setFormPrompt(template.steps.map((s) => `Step: ${s.name}\nModel: ${s.model}\nPrompt: ${s.prompt}\nOutput: {{${s.outputVar}}}`).join('\n\n'));
+            setShowTemplates(false);
+            setShowForm(true);
+          }} onClose={() => setShowTemplates(false)} />
+        ) : showForm ? (
           <NewLoopForm
             name={formName}
             setName={setFormName}
@@ -559,5 +575,98 @@ function LoopDetail({ loop, onStart, onStop }: { loop: LoopTask; onStart: () => 
         </div>
       </div>
     </div>
+  );
+}
+
+/* ─── Templates Gallery ─── */
+function TemplatesGallery({ onSelectTemplate, onClose }: { onSelectTemplate: (t: LoopTemplate) => void; onClose: () => void }) {
+  return (
+    <div className="flex-1 flex flex-col overflow-hidden">
+      <div className="px-6 py-4 border-b border-[var(--border)] flex items-center justify-between">
+        <h3 className="text-lg font-semibold text-[var(--text)] flex items-center gap-2">
+          <LayoutTemplate className="w-5 h-5 text-[var(--accent)]" /> Loop Templates
+        </h3>
+        <button onClick={onClose} className="p-1 rounded hover:bg-[var(--bg-tertiary)] text-[var(--text-muted)]">
+          <X className="w-4 h-4" />
+        </button>
+      </div>
+      <div className="flex-1 overflow-y-auto p-6">
+        <div className="grid grid-cols-2 gap-4">
+          {LOOP_TEMPLATES.map((template) => (
+            <div key={template.id} className="rounded-xl border border-[var(--border)] bg-[var(--bg-secondary)] hover:border-[var(--accent)]/50 transition-colors overflow-hidden group">
+              <div className="p-4">
+                <div className="flex items-center gap-2 mb-2">
+                  <span className="text-lg">{template.icon}</span>
+                  <h4 className="text-sm font-semibold text-[var(--text)]">{template.name}</h4>
+                </div>
+                <p className="text-xs text-[var(--text-muted)] mb-3">{template.description}</p>
+                
+                {/* Mini flowchart */}
+                <div className="mb-3">
+                  <FlowchartPreview steps={template.steps} />
+                </div>
+
+                {/* Tags */}
+                <div className="flex flex-wrap gap-1 mb-3">
+                  {template.tags.map((tag) => (
+                    <span key={tag} className="text-[9px] px-1.5 py-0.5 rounded-full bg-[var(--bg-tertiary)] text-[var(--text-muted)]">{tag}</span>
+                  ))}
+                </div>
+
+                <button
+                  onClick={() => onSelectTemplate(template)}
+                  className="w-full px-3 py-2 text-xs rounded-lg bg-[var(--accent)] text-white hover:opacity-90 transition-opacity flex items-center justify-center gap-1 opacity-0 group-hover:opacity-100"
+                >
+                  Use Template <ArrowRight className="w-3 h-3" />
+                </button>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ─── SVG Flowchart Preview ─── */
+function FlowchartPreview({ steps }: { steps: LoopStep[] }) {
+  const boxWidth = 120;
+  const boxHeight = 36;
+  const gap = 24;
+  const totalWidth = steps.length * boxWidth + (steps.length - 1) * gap;
+  const svgHeight = boxHeight + 20;
+
+  return (
+    <svg width="100%" height={svgHeight} viewBox={`0 0 ${totalWidth} ${svgHeight}`} className="overflow-visible">
+      {steps.map((step, i) => {
+        const x = i * (boxWidth + gap);
+        const y = 10;
+        const isLast = i === steps.length - 1;
+        return (
+          <g key={step.id}>
+            {/* Box */}
+            <rect
+              x={x} y={y} width={boxWidth} height={boxHeight}
+              rx={6} fill="var(--bg-tertiary)" stroke={isLast ? "var(--accent)" : "var(--border)"} strokeWidth={1}
+            />
+            {/* Step label */}
+            <text x={x + boxWidth / 2} y={y + boxHeight / 2 + 1} textAnchor="middle" dominantBaseline="middle" fill="var(--text)" fontSize={9} fontFamily="system-ui">
+              {step.name}
+            </text>
+            {/* Arrow to next */}
+            {i < steps.length - 1 && (
+              <>
+                <line x1={x + boxWidth} y1={y + boxHeight / 2} x2={x + boxWidth + gap} y2={y + boxHeight / 2} stroke="var(--text-muted)" strokeWidth={1} />
+                <polygon points={`${x + boxWidth + gap - 4},${y + boxHeight / 2 - 3} ${x + boxWidth + gap},${y + boxHeight / 2} ${x + boxWidth + gap - 4},${y + boxHeight / 2 + 3}`} fill="var(--text-muted)" />
+              </>
+            )}
+            {/* Output var label */}
+            <text x={x + boxWidth / 2} y={y + boxHeight + 10} textAnchor="middle" fill="var(--accent)" fontSize={7} fontFamily="monospace">
+              {`{{${step.outputVar}}}`}
+            </text>
+          </g>
+        );
+      })}
+    </svg>
   );
 }

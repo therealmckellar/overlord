@@ -42,9 +42,10 @@ import { AuthGate } from '@/components/auth/AuthGate';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { useChatStream } from '@/hooks/useChatStream';
 import { JarvisPanel } from '@/components/JarvisPanel';
+import { SpacesPanel } from '@/components/spaces/SpacesPanel';
 
 
-type Panel = 'dashboard' | 'chat' | 'pipeline' | 'memory' | 'loop' | 'studio' | 'research' | 'researchQueue' | 'substack' | 'agent' | 'jarvis' | 'designer' | 'mission' | 'kanban' | 'deploy' | 'skills' | 'goals' | 'journal' | 'analytics' | 'session' | 'failureLogs' | 'insights';
+type Panel = 'dashboard' | 'chat' | 'pipeline' | 'memory' | 'loop' | 'studio' | 'research' | 'researchQueue' | 'substack' | 'agent' | 'jarvis' | 'designer' | 'spaces' | 'mission' | 'kanban' | 'deploy' | 'skills' | 'goals' | 'journal' | 'analytics' | 'session' | 'failureLogs' | 'insights';
 
 export default function Home() {
   const { isAuthenticated, isLoading } = useAuthCheck();
@@ -81,6 +82,16 @@ export default function Home() {
   // Wire keyboard shortcuts
   useKeyboardShortcuts();
 
+  // Listen for Jarvis navigation commands
+  useEffect(() => {
+    const handleNav = (e: Event) => {
+      const detail = (e as CustomEvent).detail;
+      if (detail) setActivePanel(detail as Panel);
+    };
+    window.addEventListener('overlord-navigate', handleNav);
+    return () => window.removeEventListener('overlord-navigate', handleNav);
+  }, []);
+
   // Handle command palette selection
   const handleCommandSelect = useCallback((command: string) => {
     addToast({
@@ -93,17 +104,7 @@ export default function Home() {
   // Get current persona for system prompt display
   const currentPersona = PERSONAS[activePersona as keyof typeof PERSONAS] || PERSONAS.david;
 
-  // Handle chat send — real SSE streaming to OpenRouter
-  const { sendMessage: sendChatMessage, reconnect: reconnectChat } = useChatStream({
-    sessionId: activeSession,
-    persona: currentPersona.slug,
-    model: selectedModel,
-  });
-
-  const handleSend = useCallback((message: string) => {
-    if (!message.trim()) return;
-    sendChatMessage(message);
-  }, [sendChatMessage]);
+  // Chat is now self-contained in ChatWindow — no send handler needed here
 
   // Show loading spinner while checking auth
   if (isLoading) {
@@ -172,6 +173,7 @@ export default function Home() {
             {activePanel === 'agent' && 'Agent Roster'}
             {activePanel === 'jarvis' && 'Jarvis — Voice Agent'}
             {activePanel === 'designer' && 'Agent Designer'}
+            {activePanel === 'spaces' && 'Spaces'}
             {activePanel === 'mission' && 'Mission Control'}
             {activePanel === 'kanban' && 'Task Board'}
             {activePanel === 'deploy' && 'Deployments'}
@@ -211,12 +213,7 @@ export default function Home() {
         <main className="flex-1 flex flex-col overflow-hidden">
           <Breadcrumbs />
           {activePanel === 'dashboard' && <Dashboard />}
-          {activePanel === 'chat' && (
-            <>
-              <ChatWindow />
-              <ChatComposer onSend={handleSend} />
-            </>
-          )}
+          {activePanel === 'chat' && <ChatWindow />}
           {activePanel === 'pipeline' && (
             <PipelineView isOpen={true} onClose={() => setActivePanel('dashboard')} />
           )}
@@ -238,6 +235,7 @@ export default function Home() {
           {activePanel === 'agent' && <AgentPanel />}
           {activePanel === 'jarvis' && <JarvisPanel />}
           {activePanel === 'designer' && <AgentDesigner />}
+          {activePanel === 'spaces' && <SpacesPanel />}
           {activePanel === 'mission' && <MissionControl />}
           {activePanel === 'kanban' && <KanbanBoard />}
           {activePanel === 'deploy' && <AgentDeploymentPanel />}

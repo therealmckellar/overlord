@@ -9,10 +9,10 @@ import { Mic, MicOff, Volume2, VolumeX, MessageSquare, History } from 'lucide-re
 
 const SUGGESTED_COMMANDS = [
   { label: 'Create agent', command: 'create new agent' },
-  { label: 'Check status', command: 'what is the status' },
+  { label: 'Check missions', command: 'check missions' },
   { label: 'New chat', command: 'open new chat' },
+  { label: 'Daily briefing', command: 'give me my daily briefing' },
   { label: 'Show dashboard', command: 'show dashboard' },
-  { label: 'Export session', command: 'export session' },
 ];
 
 interface JarvisMessage {
@@ -42,6 +42,53 @@ export function JarvisPanel() {
       { id: `user-${Date.now()}`, type: 'user', text: command, timestamp: new Date() },
     ]);
 
+    // J2: Command routing — navigate panels on voice commands
+    const lowerCmd = command.toLowerCase();
+
+    if (lowerCmd.includes('dashboard') || lowerCmd.includes('home')) {
+      window.dispatchEvent(new CustomEvent('overlord-navigate', { detail: 'dashboard' }));
+      setMessages(prev => [...prev, { id: `jarvis-${Date.now()}`, type: 'jarvis', text: 'Navigating to Dashboard.', timestamp: new Date() }]);
+      return;
+    }
+    if (lowerCmd.includes('mission') || lowerCmd.includes('status')) {
+      window.dispatchEvent(new CustomEvent('overlord-navigate', { detail: 'mission' }));
+      setMessages(prev => [...prev, { id: `jarvis-${Date.now()}`, type: 'jarvis', text: 'Opening Mission Control.', timestamp: new Date() }]);
+      return;
+    }
+    if (lowerCmd.includes('chat') || lowerCmd.includes('message')) {
+      window.dispatchEvent(new CustomEvent('overlord-navigate', { detail: 'chat' }));
+      setMessages(prev => [...prev, { id: `jarvis-${Date.now()}`, type: 'jarvis', text: 'Opening Chat.', timestamp: new Date() }]);
+      return;
+    }
+    if (lowerCmd.includes('agent') || lowerCmd.includes('designer')) {
+      window.dispatchEvent(new CustomEvent('overlord-navigate', { detail: 'designer' }));
+      setMessages(prev => [...prev, { id: `jarvis-${Date.now()}`, type: 'jarvis', text: 'Opening Agent Designer.', timestamp: new Date() }]);
+      return;
+    }
+    if (lowerCmd.includes('kanban') || lowerCmd.includes('task') || lowerCmd.includes('board')) {
+      window.dispatchEvent(new CustomEvent('overlord-navigate', { detail: 'kanban' }));
+      setMessages(prev => [...prev, { id: `jarvis-${Date.now()}`, type: 'jarvis', text: 'Opening Task Board.', timestamp: new Date() }]);
+      return;
+    }
+    if (lowerCmd.includes('space')) {
+      window.dispatchEvent(new CustomEvent('overlord-navigate', { detail: 'spaces' }));
+      setMessages(prev => [...prev, { id: `jarvis-${Date.now()}`, type: 'jarvis', text: 'Opening Spaces.', timestamp: new Date() }]);
+      return;
+    }
+
+    // J3: Daily briefing — read today's journal + goals
+    if (lowerCmd.includes('briefing') || lowerCmd.includes('daily') || lowerCmd.includes('morning')) {
+      const briefingPrompt = `Give me a concise daily briefing. Consider: (1) What are the top priorities today? (2) What's the current status of ongoing work? (3) What should I focus on first? Be specific and actionable.`;
+      addToast({ type: 'info', message: 'Generating daily briefing...', duration: 2000 });
+      try {
+        await sendChatMessage(briefingPrompt);
+      } catch {
+        setMessages(prev => [...prev, { id: `jarvis-${Date.now()}`, type: 'jarvis', text: 'Sorry, I had an issue generating the briefing.', timestamp: new Date() }]);
+      }
+      return;
+    }
+
+    // Default: send to AI
     addToast({ type: 'info', message: 'Jarvis processing...', duration: 1500 });
 
     try {

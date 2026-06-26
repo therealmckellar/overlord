@@ -18,6 +18,7 @@ const navGroups = [
       { id: 'chat', label: 'Chat', icon: '💬', panel: 'chat' },
       { id: 'pipeline', label: 'Pipeline', icon: '⚡', panel: 'pipeline' },
       { id: 'designer', label: 'Designer', icon: '🧬', panel: 'designer' },
+      { id: 'spaces', label: 'Spaces', icon: '📁', panel: 'spaces' },
     ],
   },
   {

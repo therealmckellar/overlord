@@ -1,0 +1,38 @@
+{
+  "name": "Overlord — Agent OS",
+  "short_name": "Overlord",
+  "description": "Multi-agent operating system for revenue generation across merch, funding, consulting, and real estate",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#09090b",
+  "theme_color": "#6366f1",
+  "orientation": "any",
+  "scope": "/",
+  "icons": [
+    {
+      "src": "/icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "categories": ["business", "productivity", "utilities"],
+  "shortcuts": [
+    {
+      "name": "Chat",
+      "url": "/?panel=chat",
+      "icons": [{"src": "/icons/icon-192.png", "sizes": "192x192"}]
+    },
+    {
+      "name": "Mission Control",
+      "url": "/?panel=mission",
+      "icons": [{"src": "/icons/icon-192.png", "sizes": "192x512"}]
+    }
+  ]
+}

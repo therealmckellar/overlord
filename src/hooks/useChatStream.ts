@@ -9,18 +9,12 @@ interface SendMessageOptions {
   sessionId: string;
   persona: string;
   model: string;
+  systemPrompt?: string;
 }
 
-const MAX_RECONNECT_ATTEMPTS = 10;
-const BASE_RECONNECT_DELAY_MS = 1000;
-const RECONNECT_DELAY_CAP_MS = 30000;
+const MAX_RECONNECT_ATTEMPTS = 3;
 
-function getReconnectDelay(attempt: number): number {
-  // Exponential backoff: 1s, 2s, 4s, 8s, 16s (capped at 30s)
-  return Math.min(BASE_RECONNECT_DELAY_MS * Math.pow(2, attempt), RECONNECT_DELAY_CAP_MS);
-}
-
-export function useChatStream({ sessionId, persona, model }: SendMessageOptions) {
+export function useChatStream({ sessionId, persona, model, systemPrompt }: SendMessageOptions) {
   const addMessage = useMessageStore((s) => s.addMessage);
   const setStreamingContent = useMessageStore((s) => s.setStreamingContent);
   const setIsStreaming = useMessageStore((s) => s.setIsStreaming);
@@ -30,171 +24,113 @@ export function useChatStream({ sessionId, persona, model }: SendMessageOptions)
   const updateSession = useSessionStore((s) => s.updateSession);
 
   const abortRef = useRef<AbortController | null>(null);
-  const reconnectAttempts = useRef(0);
-  const lastMessageId = useRef<string | null>(null);
-
-  const doFetch = useCallback(async (
-    messages: { sender: { role: string }; content: string }[],
-    session: { id: string },
-    signal: AbortSignal,
-  ): Promise<{ success: boolean; assistantContent: string }> => {
-    let assistantContent = '';
-
-    const res = await fetch('/api/chat', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-persona': persona,
-        'x-model': model,
-        ...(lastMessageId.current ? { 'x-resume-from': lastMessageId.current } : {}),
-      },
-      body: JSON.stringify({ messages, session }),
-      signal,
-    });
-
-    if (!res.ok) {
-      const text = await res.text().catch(() => '');
-      throw new Error(`Chat error ${res.status}: ${text}`);
-    }
-
-    const reader = res.body?.getReader();
-    if (!reader) throw new Error('No response body');
-
-    const decoder = new TextDecoder();
-    let buf = '';
-
-    while (true) {
-      const { done, value } = await reader.read();
-      if (done) break;
-
-      buf += decoder.decode(value, { stream: true });
-
-      while (true) {
-        const eventEnd = buf.indexOf('\n\n');
-        if (eventEnd === -1) break;
-
-        const eventBlock = buf.slice(0, eventEnd);
-        buf = buf.slice(eventEnd + 2);
-
-        let eventType = '';
-        let dataStr = '';
-        for (const line of eventBlock.split('\n')) {
-          if (line.startsWith('event: ')) eventType = line.slice(7).trim();
-          else if (line.startsWith('data: ')) dataStr = line.slice(6);
-        }
-
-        if (!eventType || !dataStr) continue;
-
-        let parsed: { content: string; id?: string };
-        try {
-          parsed = JSON.parse(dataStr);
-        } catch {
-          parsed = { content: dataStr };
-        }
-
-        if (eventType === 'chunk') {
-          assistantContent += parsed.content;
-          appendStreamChunk(parsed.content);
-          // Track last message ID for resume
-          if (parsed.id) lastMessageId.current = parsed.id;
-        } else if (eventType === 'done') {
-          if (assistantContent.trim()) {
-            addMessage(sessionId, assistantContent, {
-              id: 'assistant',
-              name: persona.charAt(0).toUpperCase() + persona.slice(1),
-              role: 'assistant',
-            });
-          }
-          return { success: true, assistantContent };
-        } else if (eventType === 'error') {
-          throw new Error(parsed.content || 'Stream error');
-        }
-      }
-    }
-
-    // Stream ended without done event
-    if (assistantContent.trim()) {
-      addMessage(sessionId, assistantContent, {
-        id: 'assistant',
-        name: persona.charAt(0).toUpperCase() + persona.slice(1),
-        role: 'assistant',
-      });
-    }
-    return { success: true, assistantContent };
-  }, [sessionId, persona, model, addMessage, appendStreamChunk]);
 
   const sendMessage = useCallback(async (content: string) => {
+    // Abort any in-flight request
     if (abortRef.current) {
       abortRef.current.abort();
     }
     const controller = new AbortController();
     abortRef.current = controller;
 
+    // Add user message
     addMessage(sessionId, content, {
       id: 'user',
       name: 'You',
       role: 'user',
     });
 
+    setIsStreaming(true);
+    setStreamingContent('');
+    setConnectionStatus('connecting');
+
+    // Build message history (last 20 messages)
     const allMessages = useMessageStore.getState().messagesBySession[sessionId] || [];
     const recentMessages = allMessages.slice(-20).map((m) => ({
       sender: { role: m.sender.role },
       content: m.content,
     }));
 
-    setIsStreaming(true);
-    setStreamingContent('');
-    setConnectionStatus('connected');
-    reconnectAttempts.current = 0;
+    let assistantContent = '';
 
-    const trySend = async (): Promise<string> => {
-      try {
-        const result = await doFetch(
-          recentMessages,
-          { id: sessionId },
-          controller.signal,
-        );
-        reconnectAttempts.current = 0;
-        setConnectionStatus('connected');
-        return result.assistantContent;
-      } catch (err) {
-        if (err instanceof Error && err.name === 'AbortError') {
-          throw err; // Don't reconnect on user abort
-        }
+    try {
+      const res = await fetch('/api/chat', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-persona': persona,
+          'x-model': model,
+        },
+        body: JSON.stringify({
+          messages: recentMessages,
+          model,
+          systemPrompt: systemPrompt || undefined,
+        }),
+        signal: controller.signal,
+      });
 
-        // Attempt reconnect with exponential backoff
-        if (reconnectAttempts.current < MAX_RECONNECT_ATTEMPTS) {
-          const attempt = reconnectAttempts.current;
-          reconnectAttempts.current = attempt + 1;
-          setConnectionStatus('reconnecting');
+      if (!res.ok) {
+        const text = await res.text().catch(() => '');
+        throw new Error(`Chat error ${res.status}: ${text.slice(0, 200)}`);
+      }
 
-          addToast({
-            type: 'warning',
-            message: `Connection lost. Reconnecting (${attempt + 1}/${MAX_RECONNECT_ATTEMPTS})…`,
-            duration: 3000,
-          });
+      setConnectionStatus('connected');
 
-          const delay = getReconnectDelay(attempt);
-          await new Promise((resolve) => setTimeout(resolve, delay));
+      const reader = res.body?.getReader();
+      if (!reader) throw new Error('No response body');
 
-          if (!controller.signal.aborted) {
-            return trySend();
+      const decoder = new TextDecoder();
+      let buf = '';
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        buf += decoder.decode(value, { stream: true });
+
+        // Parse SSE events
+        while (true) {
+          const eventEnd = buf.indexOf('\n\n');
+          if (eventEnd === -1) break;
+
+          const eventBlock = buf.slice(0, eventEnd);
+          buf = buf.slice(eventEnd + 2);
+
+          let eventType = '';
+          let dataStr = '';
+          for (const line of eventBlock.split('\n')) {
+            if (line.startsWith('event: ')) eventType = line.slice(7).trim();
+            else if (line.startsWith('data: ')) dataStr = line.slice(6);
+          }
+
+          if (!eventType || !dataStr) continue;
+
+          let parsed: { content?: string; id?: string };
+          try {
+            parsed = JSON.parse(dataStr);
+          } catch {
+            parsed = {};
+          }
+
+          if (eventType === 'chunk' && parsed.content) {
+            assistantContent += parsed.content;
+            appendStreamChunk(parsed.content);
+          } else if (eventType === 'done') {
+            // Stream complete
+          } else if (eventType === 'error') {
+            throw new Error(parsed.content || 'Stream error');
           }
         }
-
-        setConnectionStatus('offline');
-        addToast({
-          type: 'error',
-          message: 'Connection lost. Click Reconnect to try again.',
-          duration: 0, // persists until dismissed
-        });
-        throw err;
       }
-    };
 
-    let assistantContent = '';
-    try {
-      assistantContent = await trySend();
+      // Save the final assistant message
+      if (assistantContent.trim()) {
+        addMessage(sessionId, assistantContent, {
+          id: 'assistant',
+          name: persona.charAt(0).toUpperCase() + persona.slice(1),
+          role: 'assistant',
+        });
+      }
 
       updateSession(sessionId, {
         updatedAt: Date.now(),
@@ -206,7 +142,7 @@ export function useChatStream({ sessionId, persona, model }: SendMessageOptions)
       });
     } catch (err) {
       if (err instanceof Error && err.name === 'AbortError') {
-        // Save partial content on abort
+        // User cancelled — save partial content
         const partial = useMessageStore.getState().streamingContent;
         if (partial.trim()) {
           addMessage(sessionId, partial, {
@@ -217,6 +153,7 @@ export function useChatStream({ sessionId, persona, model }: SendMessageOptions)
         }
       } else {
         const message = err instanceof Error ? err.message : 'Chat failed';
+        setConnectionStatus('offline');
         addToast({ type: 'error', message, duration: 5000 });
         addMessage(sessionId, `⚠️ ${message}`, {
           id: 'system',
@@ -229,7 +166,7 @@ export function useChatStream({ sessionId, persona, model }: SendMessageOptions)
       setStreamingContent('');
       abortRef.current = null;
     }
-  }, [sessionId, persona, model, addMessage, setStreamingContent, setIsStreaming, appendStreamChunk, addToast, setConnectionStatus, updateSession, doFetch]);
+  }, [sessionId, persona, model, systemPrompt, addMessage, setStreamingContent, setIsStreaming, appendStreamChunk, addToast, setConnectionStatus, updateSession]);
 
   const cancelStream = useCallback(() => {
     abortRef.current?.abort();
@@ -238,8 +175,6 @@ export function useChatStream({ sessionId, persona, model }: SendMessageOptions)
 
   const reconnect = useCallback(() => {
     setConnectionStatus('reconnecting');
-    reconnectAttempts.current = 0;
-    // Re-trigger send with last user message if available
     const allMsgs = useMessageStore.getState().messagesBySession[sessionId];
     const lastUserMsg = allMsgs?.filter((m) => m.sender.role === 'user').slice(-1)[0];
     if (lastUserMsg) {
