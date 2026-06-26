@@ -1,12 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { spawn } from 'child_process';
 import { logEvent } from '@/lib/event-bus';
-
-// Reference to the ideas store from the main route
-// In production this would be a DB query
-declare global {
-  var __pipeline_ideas: Map<string, PipelineIdea> | undefined;
-}
+import fs from 'fs';
+import path from 'path';
 
 interface PipelineIdea {
   id: string;
@@ -19,11 +15,38 @@ interface PipelineIdea {
   updatedAt: number;
 }
 
-const ideas = globalThis.__pipeline_ideas || new Map<string, PipelineIdea>();
-globalThis.__pipeline_ideas = ideas;
+const DATA_FILE = '/home/rmckellar/overlord/.data/pipeline.json';
+
+function ensureDataDir() {
+  const dir = path.dirname(DATA_FILE);
+  if (!fs.existsSync(dir)) {
+    fs.mkdirSync(dir, { recursive: true });
+  }
+}
+
+function readIdeas(): Map<string, PipelineIdea> {
+  ensureDataDir();
+  try {
+    if (fs.existsSync(DATA_FILE)) {
+      const raw = fs.readFileSync(DATA_FILE, 'utf-8');
+      const arr: PipelineIdea[] = JSON.parse(raw);
+      return new Map(arr.map((i) => [i.id, i]));
+    }
+  } catch {
+    // corrupted file, start fresh
+  }
+  return new Map();
+}
+
+function writeIdeas(ideas: Map<string, PipelineIdea>) {
+  ensureDataDir();
+  const arr = Array.from(ideas.values());
+  fs.writeFileSync(DATA_FILE, JSON.stringify(arr, null, 2));
+}
 
 export async function GET(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
+  const ideas = readIdeas();
   const idea = ideas.get(id);
   if (!idea) {
     return NextResponse.json({ error: 'Not found' }, { status: 404 });
@@ -33,6 +56,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
 
 export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
+  const ideas = readIdeas();
   const idea = ideas.get(id);
   if (!idea) {
     return NextResponse.json({ error: 'Not found' }, { status: 404 });
@@ -73,15 +97,20 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
       });
 
       builder.on('exit', (code) => {
-        if (code === 0) {
-          idea.status = 'review';
-          logEvent('success', `Build:${idea.title}`, 'Build completed — ready for review');
-        } else {
-          idea.status = 'rejected';
-          logEvent('error', `Build:${idea.title}`, `Build failed with code ${code}`);
+        const updated = readIdeas();
+        const currentIdea = updated.get(id);
+        if (currentIdea) {
+          if (code === 0) {
+            currentIdea.status = 'review';
+            logEvent('success', `Build:${currentIdea.title}`, 'Build completed — ready for review');
+          } else {
+            currentIdea.status = 'rejected';
+            logEvent('error', `Build:${currentIdea.title}`, `Build failed with code ${code}`);
+          }
+          currentIdea.updatedAt = Date.now();
+          updated.set(id, currentIdea);
+          writeIdeas(updated);
         }
-        idea.updatedAt = Date.now();
-        ideas.set(id, idea);
       });
     } else {
       idea.status = 'draft';
@@ -90,14 +119,17 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
   }
 
   ideas.set(id, idea);
+  writeIdeas(ideas);
   return NextResponse.json({ idea });
 }
 
 export async function DELETE(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
+  const ideas = readIdeas();
   if (!ideas.has(id)) {
     return NextResponse.json({ error: 'Not found' }, { status: 404 });
   }
   ideas.delete(id);
+  writeIdeas(ideas);
   return NextResponse.json({ success: true });
 }

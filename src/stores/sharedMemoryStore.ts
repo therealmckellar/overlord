@@ -61,6 +61,8 @@ export interface SharedMemoryState {
 
   // Journal
   addJournal: (entry: Omit<JournalEntry, 'id' | 'timestamp'>) => void;
+  updateJournal: (id: string, updates: Partial<JournalEntry>) => void;
+  deleteJournal: (id: string) => void;
   getJournalByDate: (date: string) => JournalEntry[];
   getRecentJournal: (days: number) => JournalEntry[];
 
@@ -159,6 +161,16 @@ export const useSharedMemoryStore = create<SharedMemoryState>()(
         set((state) => ({
           journal: [{ ...entry, id: generateId(), timestamp: Date.now() }, ...state.journal],
         }));
+      },
+      updateJournal: (id, updates) => {
+        set((state) => ({
+          journal: state.journal.map((j) =>
+            j.id === id ? { ...j, ...updates } : j
+          ),
+        }));
+      },
+      deleteJournal: (id) => {
+        set((state) => ({ journal: state.journal.filter((j) => j.id !== id) }));
       },
       getJournalByDate: (date) => get().journal.filter((j) => j.date === date),
       getRecentJournal: (days) => {
