@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
+import { LoopPattern, estimateMonthlyCost, getReadinessScore } from '@/lib/loop-patterns';
 
 export interface LoopResult {
   iteration: number;
@@ -23,12 +24,20 @@ export interface LoopTask {
   bestScore: number;
   bestModel: string;
   createdAt: number;
+  // Pattern Template integration
+  patternId?: string;           // ID of the LoopPattern this task was created from
+  lane?: string;                // business lane
+  cadence?: string;             // e.g. '1d', '2h'
+  estimatedMonthlyCost?: number; // USD
+  readinessScore?: number;      // 0-100
+  riskLevel?: 'low' | 'medium' | 'high';
 }
 
 interface LoopState {
   loops: LoopTask[];
   activeAbortControllers: Map<string, AbortController>;
   createLoop: (loop: Omit<LoopTask, 'id' | 'status' | 'currentIteration' | 'results' | 'bestScore' | 'bestModel' | 'createdAt'>) => string;
+  createLoopFromPattern: (pattern: LoopPattern, model?: string) => string;
   startLoop: (id: string) => Promise<void>;
   stopLoop: (id: string) => void;
   updateLoop: (id: string, changes: Partial<LoopTask>) => void;
@@ -52,6 +61,32 @@ export const useLoopStore = create<LoopState>()(
           bestScore: 0,
           bestModel: loopConfig.model,
           createdAt: Date.now(),
+        };
+        set((state) => ({ loops: [...state.loops, newLoop] }));
+        return id;
+      },
+
+      createLoopFromPattern: (pattern, model) => {
+        const id = 'loop_' + Math.random().toString(36).substr(2, 9);
+        const newLoop: LoopTask = {
+          id,
+          name: pattern.name,
+          description: pattern.description,
+          model: model || 'openrouter/owl-alpha',
+          maxIterations: pattern.maxIterations,
+          prompt: pattern.prompt,
+          status: 'idle',
+          currentIteration: 0,
+          results: [],
+          bestScore: 0,
+          bestModel: model || 'openrouter/owl-alpha',
+          createdAt: Date.now(),
+          patternId: pattern.id,
+          lane: pattern.lane,
+          cadence: pattern.cadence,
+          estimatedMonthlyCost: estimateMonthlyCost(pattern),
+          readinessScore: getReadinessScore(pattern),
+          riskLevel: pattern.riskLevel,
         };
         set((state) => ({ loops: [...state.loops, newLoop] }));
         return id;
