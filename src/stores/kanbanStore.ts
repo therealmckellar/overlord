@@ -1,13 +1,14 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 
-export type TaskStatus = 'backlog' | 'todo' | 'in_progress' | 'review' | 'done';
+export type TaskStatus = 'backlog' | 'todo' | 'in_progress' | 'paused' | 'review' | 'done';
 export type TaskPriority = 'low' | 'medium' | 'high' | 'urgent';
 
 export interface KanbanTask {
   id: string;
   title: string;
   description: string;
+  context: string;
   status: TaskStatus;
   priority: TaskPriority;
   assignee: string | null; // agent name or 'Rich'
@@ -18,12 +19,13 @@ export interface KanbanTask {
   tags: string[];
 }
 
-const COLUMNS: TaskStatus[] = ['backlog', 'todo', 'in_progress', 'review', 'done'];
+const COLUMNS: TaskStatus[] = ['backlog', 'todo', 'in_progress', 'paused', 'review', 'done'];
 
 const COLUMN_LABELS: Record<TaskStatus, string> = {
   backlog: 'Backlog',
   todo: 'To Do',
   in_progress: 'In Progress',
+  paused: 'Paused',
   review: 'Review',
   done: 'Done',
 };
@@ -32,6 +34,7 @@ const COLUMN_COLORS: Record<TaskStatus, string> = {
   backlog: '#6b7280',
   todo: '#3b82f6',
   in_progress: '#f59e0b',
+  paused: '#8b5cf6',
   review: '#8b5cf6',
   done: '#10b981',
 };
@@ -47,6 +50,7 @@ const SEED_TASKS: KanbanTask[] = [
     id: 'task_seed_1',
     title: 'Wire up Loop Engine cancel/edit controls',
     description: 'Add stop/cancel buttons per loop, stop-all in header, edit modal for name/model/iterations',
+    context: 'Review existing LoopStore implementation before adding controls.',
     status: 'done',
     priority: 'urgent',
     assignee: 'Builder',
@@ -60,6 +64,7 @@ const SEED_TASKS: KanbanTask[] = [
     id: 'task_seed_2',
     title: 'Build Agent Designer panel',
     description: 'Full form: name, role, model, system prompt, tools, output format, temperature. Save presets. Deploy.',
+    context: 'Refer to AGENTS.md for current model graph requirements.',
     status: 'done',
     priority: 'urgent',
     assignee: 'Builder',
@@ -73,6 +78,7 @@ const SEED_TASKS: KanbanTask[] = [
     id: 'task_seed_3',
     title: 'Create Studio with code editor + terminal',
     description: 'Monaco-like editor with syntax highlighting, file browser, terminal emulator, pipeline runner',
+    context: 'Need to ensure PTY is correctly handled for terminal emulator.',
     status: 'done',
     priority: 'high',
     assignee: 'Builder',
@@ -86,6 +92,7 @@ const SEED_TASKS: KanbanTask[] = [
     id: 'task_seed_4',
     title: 'Implement Mission Control dashboard',
     description: 'Live agent monitoring: status, health, activity feed, cancel/restart controls',
+    context: 'Use Zustand stores for real-time updates of agent status.',
     status: 'in_progress',
     priority: 'high',
     assignee: 'Builder',
@@ -99,6 +106,7 @@ const SEED_TASKS: KanbanTask[] = [
     id: 'task_seed_5',
     title: 'Build Agent Deployment Pipeline',
     description: 'Deploy agents from Designer, track status, view logs, rollback deployments',
+    context: 'Coordinate with deployStore for state management.',
     status: 'todo',
     priority: 'high',
     assignee: 'Builder',
@@ -112,6 +120,7 @@ const SEED_TASKS: KanbanTask[] = [
     id: 'task_seed_6',
     title: 'Skills & Playbooks system',
     description: 'Skill library, playbook builder, attach skills to agents at deployment',
+    context: 'Integrated with useSkillsStore for availability checks.',
     status: 'todo',
     priority: 'medium',
     assignee: 'Builder',
@@ -125,6 +134,7 @@ const SEED_TASKS: KanbanTask[] = [
     id: 'task_seed_7',
     title: 'Audit vs Julian Goldie Agent OS',
     description: 'Compare current state to goldie.com, document gaps, prioritize fixes',
+    context: 'Focus on UX flow and "Control Room" concepts.',
     status: 'backlog',
     priority: 'medium',
     assignee: 'Rich',
@@ -138,6 +148,7 @@ const SEED_TASKS: KanbanTask[] = [
     id: 'task_seed_8',
     title: 'Replace TUI completely with Overlord',
     description: 'Ensure all CLI functions are available in UI. No TUI dependency remaining.',
+    context: 'Critical path for decommissioning legacy TUI.',
     status: 'backlog',
     priority: 'high',
     assignee: 'Rich',

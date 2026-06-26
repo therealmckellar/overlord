@@ -47,6 +47,8 @@ const navGroups = [
     items: [
       { id: 'analytics', label: 'Analytics', icon: '📈', panel: 'analytics' },
       { id: 'journal', label: 'Journal', icon: '📓', panel: 'journal' },
+      { id: 'failureLogs', label: 'Failure Logs', icon: '🔥', panel: 'failureLogs' },
+      { id: 'insights', label: 'Insights', icon: '💡', panel: 'insights' },
     ],
   },
   {
@@ -54,6 +56,7 @@ const navGroups = [
     label: 'AUTOMATE',
     items: [
       { id: 'research', label: 'Research', icon: '📊', panel: 'research' },
+      { id: 'researchQueue', label: 'Research Queue', icon: '🔬', panel: 'researchQueue' },
       { id: 'substack', label: 'Content', icon: '✨', panel: 'substack' },
     ],
   },

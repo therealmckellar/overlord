@@ -31,6 +31,9 @@ import JournalPanel from '@/components/JournalPanel';
 import AnalyticsDashboard from '@/components/AnalyticsDashboard';
 import MemoryPanel from '@/components/MemoryPanel';
 import SessionHistoryPanel from '@/components/SessionHistoryPanel';
+import FailureLogsPanel from '@/components/FailureLogsPanel';
+import InsightsPanel from '@/components/InsightsPanel';
+import ResearchQueuePanel from '@/components/ResearchQueuePanel';
 import { PERSONAS } from '@/lib/personas';
 import { StatusBar } from '@/components/status/StatusBar';
 import { Breadcrumbs } from '@/components/ui/Breadcrumbs';
@@ -41,7 +44,7 @@ import { useChatStream } from '@/hooks/useChatStream';
 import { JarvisPanel } from '@/components/JarvisPanel';
 
 
-type Panel = 'dashboard' | 'chat' | 'pipeline' | 'memory' | 'loop' | 'studio' | 'research' | 'substack' | 'agent' | 'jarvis' | 'designer' | 'mission' | 'kanban' | 'deploy' | 'skills' | 'goals' | 'journal' | 'analytics' | 'session';
+type Panel = 'dashboard' | 'chat' | 'pipeline' | 'memory' | 'loop' | 'studio' | 'research' | 'researchQueue' | 'substack' | 'agent' | 'jarvis' | 'designer' | 'mission' | 'kanban' | 'deploy' | 'skills' | 'goals' | 'journal' | 'analytics' | 'session' | 'failureLogs' | 'insights';
 
 export default function Home() {
   const { isAuthenticated, isLoading } = useAuthCheck();
@@ -177,6 +180,9 @@ export default function Home() {
             {activePanel === 'journal' && 'Daily Journal'}
             {activePanel === 'analytics' && 'Analytics'}
             {activePanel === 'session' && 'Session History'}
+            {activePanel === 'researchQueue' && 'Research Queue'}
+            {activePanel === 'failureLogs' && 'Failure Logs'}
+            {activePanel === 'insights' && 'System Insights'}
           </h1>
 
           {/* Persona Selector */}
@@ -207,7 +213,7 @@ export default function Home() {
           {activePanel === 'dashboard' && <Dashboard />}
           {activePanel === 'chat' && (
             <>
-              <ChatWindow sessionId="default" onReconnect={reconnectChat} />
+              <ChatWindow />
               <ChatComposer onSend={handleSend} />
             </>
           )}
@@ -240,6 +246,9 @@ export default function Home() {
           {activePanel === 'journal' && <JournalPanel />}
           {activePanel === 'analytics' && <AnalyticsDashboard />}
           {activePanel === 'session' && <SessionHistoryPanel />}
+          {activePanel === 'researchQueue' && <ResearchQueuePanel />}
+          {activePanel === 'failureLogs' && <FailureLogsPanel />}
+          {activePanel === 'insights' && <InsightsPanel />}
         </main>
 
         {/* Status Bar */}

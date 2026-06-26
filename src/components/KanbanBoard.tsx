@@ -19,7 +19,7 @@ const PRIORITY_COLORS: Record<TaskPriority, string> = {
   urgent: '#ef4444',
 };
 
-const STATUS_OPTIONS: TaskStatus[] = ['backlog', 'todo', 'in_progress', 'review', 'done'];
+const STATUS_OPTIONS: TaskStatus[] = ['backlog', 'todo', 'in_progress', 'paused', 'review', 'done'];
 
 export default function KanbanBoard() {
   const tasks = useKanbanStore((s) => s.tasks);
@@ -33,6 +33,7 @@ export default function KanbanBoard() {
   const [editingTask, setEditingTask] = useState<KanbanTask | null>(null);
   const [newTitle, setNewTitle] = useState('');
   const [newDesc, setNewDesc] = useState('');
+  const [newContext, setNewContext] = useState('');
   const [newStatus, setNewStatus] = useState<TaskStatus>('todo');
   const [newPriority, setNewPriority] = useState<TaskPriority>('medium');
   const [newAssignee, setNewAssignee] = useState<string>('Rich');
@@ -43,6 +44,7 @@ export default function KanbanBoard() {
     addTask({
       title: newTitle,
       description: newDesc,
+      context: newContext,
       status: newStatus,
       priority: newPriority,
       assignee: newAssignee,
@@ -52,6 +54,7 @@ export default function KanbanBoard() {
     });
     setNewTitle('');
     setNewDesc('');
+    setNewContext('');
     setNewStatus('todo');
     setNewPriority('medium');
     setShowNewTask(false);
@@ -307,8 +310,14 @@ export default function KanbanBoard() {
                       fontWeight: 600,
                       color: '#f1f5f9',
                       marginBottom: '4px',
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      alignItems: 'flex-start',
                     }}>
-                      {task.title}
+                      <span style={{ flex: 1 }}>{task.title}</span>
+                      {task.context && (
+                        <span style={{ fontSize: '10px', color: '#8b5cf6', marginLeft: '4px', flexShrink: 0 }} title={task.context}>📌</span>
+                      )}
                     </div>
                     {task.description && (
                       <div style={{
@@ -325,16 +334,36 @@ export default function KanbanBoard() {
                       justifyContent: 'space-between',
                       alignItems: 'center',
                     }}>
-                      <span style={{
-                        fontSize: '10px',
-                        fontWeight: 600,
-                        color: PRIORITY_COLORS[task.priority],
-                        background: `${PRIORITY_COLORS[task.priority]}15`,
-                        padding: '2px 6px',
-                        borderRadius: '3px',
-                      }}>
-                        {task.priority.toUpperCase()}
-                      </span>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                        <span style={{
+                          fontSize: '10px',
+                          fontWeight: 600,
+                          color: PRIORITY_COLORS[task.priority],
+                          background: `${PRIORITY_COLORS[task.priority]}15`,
+                          padding: '2px 6px',
+                          borderRadius: '3px',
+                        }}>
+                          {task.priority.toUpperCase()}
+                        </span>
+                        {task.status === 'in_progress' && (
+                          <button
+                            onClick={(e) => { e.stopPropagation(); moveTask(task.id, 'paused'); }}
+                            style={{ border: 'none', background: '#8b5cf622', color: '#8b5cf6', borderRadius: '3px', padding: '1px 5px', fontSize: '10px', cursor: 'pointer' }}
+                            title="Pause task"
+                          >
+                            ⏸ Pause
+                          </button>
+                        )}
+                        {task.status === 'paused' && (
+                          <button
+                            onClick={(e) => { e.stopPropagation(); moveTask(task.id, 'in_progress'); }}
+                            style={{ border: 'none', background: '#10b98122', color: '#10b981', borderRadius: '3px', padding: '1px 5px', fontSize: '10px', cursor: 'pointer' }}
+                            title="Resume task"
+                          >
+                            ▶ Resume
+                          </button>
+                        )}
+                      </div>
                       <span style={{
                         fontSize: '10px',
                         color: '#64748b',
@@ -407,6 +436,26 @@ export default function KanbanBoard() {
                 boxSizing: 'border-box',
               }}
             />
+            <div style={{ marginBottom: '12px' }}>
+              <label style={{ fontSize: '10px', fontWeight: 600, color: '#64748b', textTransform: 'uppercase', display: 'block', marginBottom: '4px' }}>Context (notes, links, instructions)</label>
+              <textarea
+                value={editingTask.context || ''}
+                onChange={(e) => setEditingTask({ ...editingTask, context: e.target.value })}
+                rows={2}
+                placeholder="Additional context for this task..."
+                style={{
+                  width: '100%',
+                  padding: '8px 12px',
+                  borderRadius: '6px',
+                  border: '1px solid #334155',
+                  background: '#0f172a',
+                  color: '#f1f5f9',
+                  fontSize: '12px',
+                  resize: 'vertical',
+                  boxSizing: 'border-box',
+                }}
+              />
+            </div>
             <div style={{ display: 'flex', gap: '8px', marginBottom: '12px' }}>
               <select
                 value={editingTask.status}
@@ -497,6 +546,7 @@ export default function KanbanBoard() {
                   updateTask(editingTask.id, {
                     title: editingTask.title,
                     description: editingTask.description,
+                    context: editingTask.context,
                     status: editingTask.status,
                     priority: editingTask.priority,
                     assignee: editingTask.assignee,

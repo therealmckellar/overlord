@@ -17,6 +17,7 @@ export interface Agent {
   tokensUsed: number;
   color: string;
   skills: string[];
+  assignedSkillIds: string[];
   allowedTasks: string[];
   logs: { timestamp: string; message: string; type: 'info' | 'warn' | 'error' }[];
   messages: { role: 'user' | 'assistant'; content: string; timestamp: string }[];
@@ -47,6 +48,7 @@ interface AgentState {
   pauseAgent: (id: string) => void;
   restartAgent: (id: string) => void;
   selectAgent: (id: string | null) => void;
+  updateAgent: (id: string, updates: Partial<Agent>) => void;
   savePreset: (preset: AgentPreset) => void;
   loadPreset: (id: string) => AgentPreset | undefined;
   deletePreset: (id: string) => void;
@@ -110,6 +112,7 @@ function buildAgentsFromGraph(): Agent[] {
     tokensUsed: idx < 3 ? Math.floor(Math.random() * 50000) : Math.floor(Math.random() * 10000),
     color: ROLE_COLORS[config.role] || '#64748B',
     skills: ROLE_SKILLS[config.role] || ['General Purpose'],
+    assignedSkillIds: [] as string[],
     allowedTasks: config.allowedTasks,
     logs: [
       { timestamp: new Date().toLocaleTimeString(), message: `Agent initialized — ${config.model}`, type: 'info' },
@@ -143,6 +146,7 @@ export const useAgentStore = create<AgentState>()(
               tokensUsed: 0,
               color: '#' + Math.floor(Math.random() * 16777215).toString(16),
               skills: ['General Purpose'],
+              assignedSkillIds: [] as string[],
               allowedTasks: [],
               logs: [{ timestamp: new Date().toLocaleTimeString(), message: 'Agent spawned', type: 'info' as const }],
               messages: [],
@@ -162,6 +166,10 @@ export const useAgentStore = create<AgentState>()(
           agents: state.agents.map((a) => (a.id === id ? { ...a, status: 'active' as const } : a)),
         })),
       selectAgent: (id: string | null) => set({ selectedAgentId: id }),
+      updateAgent: (id: string, updates: Partial<Agent>) =>
+        set((state) => ({
+          agents: state.agents.map((a) => (a.id === id ? { ...a, ...updates } : a)),
+        })),
       savePreset: (preset: AgentPreset) =>
         set((state) => ({
           presets: [...state.presets, preset],

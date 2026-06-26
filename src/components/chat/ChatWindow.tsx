@@ -1,136 +1,134 @@
-import React, { useRef, useEffect } from 'react';
-import { useMessageStore } from '@/stores/messageStore';
-import { useUIStore } from '@/stores/uiStore';
+import React, { useState, useEffect, useRef } from 'react';
+import { useAgentStore } from '@/stores/agentStore';
+import { useSharedMemoryStore } from '@/stores/sharedMemoryStore';
 import { ChatMessage } from './ChatMessage';
+import { ChatComposer } from './ChatComposer';
 import { TypingIndicator } from './TypingIndicator';
 import { ScrollControls } from './ScrollControls';
-import { MessageListSkeleton } from '../skeletons/Skeleton';
-import { isSameDay } from '@/lib/time';
 
-const EMPTY_MESSAGES: never[] = [];
-
-interface ChatWindowProps {
-  sessionId: string;
-  isLoading?: boolean;
-  onReconnect?: () => void;
-}
-
-export function ChatWindow({ sessionId, isLoading, onReconnect }: ChatWindowProps) {
-  const messages = useMessageStore((s) => s.messagesBySession[sessionId] ?? EMPTY_MESSAGES);
-  const streamingContent = useMessageStore((s) => s.streamingContent);
-  const isStreaming = useMessageStore((s) => s.isStreaming);
-  const selectedModel = useUIStore((s) => s.selectedModel);
-  const reasoningEffort = useUIStore((s) => s.reasoningEffort);
-  const activePersona = useUIStore((s) => s.activePersona);
-  const connectionStatus = useUIStore((s) => s.connectionStatus);
-  const reconnectChat = useUIStore((s) => s.reconnectChat);
+export const ChatWindow = () => {
+  const { selectedAgentId, agents } = useAgentStore();
+  const { sessions, addSession } = useSharedMemoryStore();
+  const [messages, setMessages] = useState<any[]>([]);
+  const [isTyping, setIsTyping] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
-  const bottomRef = useRef<HTMLDivElement>(null);
 
-  // Auto-scroll to bottom on new messages
+  const selectedAgent = agents.find(a => a.id === selectedAgentId);
+
   useEffect(() => {
-    if (bottomRef.current) {
-      bottomRef.current.scrollIntoView({ behavior: 'smooth' });
+    if (selectedAgent) {
+      const agentSessions = sessions.filter(s => s.agentName === selectedAgent.name);
+      setMessages(agentSessions.map(s => ({
+        id: s.id,
+        role: s.role,
+        content: s.content,
+        timestamp: s.timestamp,
+        agentName: s.agentName
+      })));
     }
-  }, [messages.length, streamingContent]);
+  }, [selectedAgentId, selectedAgent, sessions]);
 
-  if (isLoading) {
-    return (
-      <div className="flex-1 overflow-y-auto p-4">
-        <div className="max-w-3xl mx-auto space-y-4">
-          <MessageListSkeleton />
-        </div>
-      </div>
-    );
-  }
+  useEffect(() => {
+    if (scrollRef.current) {
+      scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
+    }
+  }, [messages, isTyping]);
+
+  const sendMessage = async (text: string) => {
+    if (!selectedAgent) return;
+
+    const userMsg = {
+      id: Date.now().toString(),
+      role: 'user',
+      content: text,
+      timestamp: Date.now(),
+      agentName: 'Rich'
+    };
+
+    setMessages(prev => [...prev, userMsg]);
+    addSession({ agentName: selectedAgent.name, role: 'user', content: text, topic: 'chat' });
+    
+    setIsTyping(true);
+
+    try {
+      const response = await fetch('/api/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ message: text, agentId: selectedAgent.id }),
+      });
+
+      if (!response.body) throw new Error('No response body');
+      
+      const reader = response.body.getReader();
+      const decoder = new TextDecoder();
+      let assistantText = '';
+      
+      const assistantMsgId = Date.now().toString();
+      setMessages(prev => [...prev, {
+        id: assistantMsgId,
+        role: 'assistant',
+        content: '',
+        timestamp: Date.now(),
+        agentName: selectedAgent.name
+      }]);
+
+      while (true) {
+        const { value, done } = await reader.read();
+        if (done) break;
+
+        const chunk = decoder.decode(value);
+        const lines = chunk.split('\n\n');
+
+        for (const line of lines) {
+          if (line.startsWith('data: ')) {
+            const data = JSON.parse(line.slice(6));
+            if (data.type === 'done') {
+              setIsTyping(false);
+            } else if (data.text) {
+              assistantText += data.text;
+              setMessages(prev => prev.map(m => 
+                m.id === assistantMsgId ? { ...m, content: assistantText } : m
+              ));
+            }
+          }
+        }
+      }
+
+      addSession({ agentName: selectedAgent.name, role: 'assistant', content: assistantText, topic: 'chat' });
+
+    } catch (err) {
+      console.error('Chat error:', err);
+      setIsTyping(false);
+    }
+  };
 
   return (
-    <div ref={scrollRef} className="flex-1 overflow-y-auto p-4 relative">
-      {/* Connection lost banner */}
-      {connectionStatus === 'offline' && (
-        <div className="sticky top-0 z-20 mb-4 bg-[var(--error)]/10 border border-[var(--error)]/30 rounded-lg px-4 py-3 flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <span className="w-2 h-2 rounded-full bg-[var(--error)] animate-pulse" />
-            <span className="text-sm text-[var(--text)]">Connection lost. Stream interrupted.</span>
+    <div className="flex flex-col h-full bg-slate-900 text-slate-100 border-l border-slate-800">
+      <div className="p-4 border-b border-slate-800 flex justify-between items-center bg-slate-900/50 backdrop-blur-md sticky top-0 z-10">
+        <div className="flex items-center gap-3">
+          <div className="w-3 h-3 rounded-full bg-green-500 animate-pulse" />
+          <h3 className="font-bold text-sm uppercase tracking-wider text-slate-400">
+            {selectedAgent ? `${selectedAgent.name} // Session` : 'Select Agent'}
+          </h3>
+        </div>
+        <ScrollControls containerRef={scrollRef} />
+      </div>
+
+      <div ref={scrollRef} className="flex-1 overflow-y-auto p-4 space-y-4 scroll-smooth">
+        {messages.length === 0 && (
+          <div className="h-full flex items-center justify-center text-slate-500 text-sm italic">
+            No messages in this session. Start a conversation.
           </div>
-          <button
-            onClick={onReconnect || reconnectChat}
-            className="text-xs font-medium px-3 py-1 rounded-md bg-[var(--accent)] text-white hover:opacity-90 transition-opacity"
-          >
-            Reconnect
-          </button>
-        </div>
-      )}
-      <div className="max-w-3xl mx-auto space-y-4">
-        {messages.length === 0 && !streamingContent ? (
-          <EmptyState />
-        ) : (
-          <>
-            {messages.map((msg, i) => (
-              <React.Fragment key={msg.id}>
-                {i > 0 && !isSameDay(messages[i - 1].timestamp, msg.timestamp) && (
-                  <div className="flex justify-center my-6">
-                    <span className="text-[10px] font-bold uppercase tracking-wider text-[var(--text-muted)] bg-[var(--bg-tertiary)] px-2 py-1 rounded-full border border-[var(--border)]">
-                      {new Date(msg.timestamp).toLocaleDateString([], { weekday: 'long', month: 'long', day: 'numeric' })}
-                    </span>
-                  </div>
-                )}
-                <ChatMessage
-                  message={msg}
-                  showStatus={msg.sender.role === 'assistant'}
-                  model={selectedModel}
-                  reasoningEffort={reasoningEffort}
-                />
-              </React.Fragment>
-            ))}
-            {/* Streaming message */}
-            {isStreaming && streamingContent && (
-              <ChatMessage
-                message={{
-                  id: 'streaming',
-                  sessionId,
-                  content: streamingContent,
-                  sender: { id: 'assistant', name: 'Assistant', role: 'assistant' as const },
-                  timestamp: Date.now(),
-                  isStreaming: true,
-                }}
-                showStatus={false}
-              />
-            )}
-            {/* Typing indicator — shown when streaming but no content yet */}
-            {isStreaming && !streamingContent && (
-              <TypingIndicator agentName={activePersona.charAt(0).toUpperCase() + activePersona.slice(1)} persona={activePersona} />
-            )}
-          </>
         )}
-        <div ref={bottomRef} />
+        {messages.map((msg) => (
+          <ChatMessage key={msg.id} message={msg} />
+        ))}
+        {isTyping && <TypingIndicator />}
       </div>
-      <ScrollControls containerRef={scrollRef} />
-    </div>
-  );
-}
 
-function EmptyState() {
-  return (
-    <div className="text-center py-8 space-y-4">
-      <div className="w-16 h-16 mx-auto rounded-2xl bg-[var(--accent)] flex items-center justify-center shadow-lg">
-        <span className="text-3xl">⚡</span>
+      <div className="p-4 bg-slate-900 border-t border-slate-800">
+        <ChatComposer onSend={sendMessage} />
       </div>
-      <h2 className="text-2xl font-bold text-[var(--text)]">
-        Overlord
-      </h2>
-      <p className="text-[var(--text-secondary)] leading-relaxed max-w-md mx-auto">
-        Ask anything. Your agents are ready.
-      </p>
     </div>
   );
-}
-
-function FeatureCard({ emoji, title, desc }: { emoji: string; title: string; desc: string }) {
-  return (
-    <div className="p-3 rounded-lg bg-[var(--bg-secondary)] border border-[var(--border)] text-left">
-      <div className="font-bold text-sm mb-1">{emoji} {title}</div>
-      <div className="text-[var(--text-muted)]">{desc}</div>
-    </div>
-  );
-}
+};
