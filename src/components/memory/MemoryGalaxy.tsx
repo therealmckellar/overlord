@@ -121,6 +121,8 @@ export function MemoryGalaxy({ isOpen, onClose }: MemoryGalaxyProps) {
   const [fileToWikiCategory, setFileToWikiCategory] = useState('shared');
   const [fileToWikiTitle, setFileToWikiTitle] = useState('');
   const [showFileForm, setShowFileForm] = useState(false);
+  const [autoFileRunning, setAutoFileRunning] = useState(false);
+  const [autoFileResults, setAutoFileResults] = useState<{filed: number; errors: number; pending: number} | null>(null);
 
   const addToast = useUIStore((s) => s.addToast);
 
@@ -194,6 +196,23 @@ export function MemoryGalaxy({ isOpen, onClose }: MemoryGalaxyProps) {
       }
     } catch { /* file failed */ }
   }, [fileToWikiContent, fileToWikiTitle, fileToWikiCategory, addToast]);
+
+  const handleAutoFile = useCallback(async (dryRun: boolean) => {
+    setAutoFileRunning(true);
+    try {
+      const res = await fetch('/api/wiki/auto-file', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ dryRun }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        setAutoFileResults({ filed: data.filed, errors: data.errors, pending: data.processed - data.filed });
+        addToast({ type: 'success', message: dryRun ? `Auto-file preview: ${data.processed} items` : `Filed ${data.filed} items` });
+      }
+    } catch { /* auto-file failed */ }
+    setAutoFileRunning(false);
+  }, [addToast]);
 
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
@@ -938,6 +957,49 @@ export function MemoryGalaxy({ isOpen, onClose }: MemoryGalaxyProps) {
                       </div>
                     )}
                   </div>
+                </div>
+
+                {/* Auto-File Loop */}
+                <div>
+                  <h3 className="text-sm font-semibold text-[var(--text)] flex items-center gap-2 mb-3">
+                    <RefreshCw className="w-4 h-4 text-[#8b5cf6]" />
+                    Auto-File Loop
+                  </h3>
+                  <p className="text-[10px] text-[var(--text-muted)] mb-2">
+                    Scan ~/wiki/queries/ for unfiled content and auto-file into the wiki vault
+                  </p>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => handleAutoFile(true)}
+                      disabled={autoFileRunning}
+                      className="px-4 py-2 text-xs rounded-lg border border-[var(--border)] text-[var(--text)] hover:bg-[var(--bg-tertiary)] disabled:opacity-50 transition-colors"
+                    >
+                      {autoFileRunning ? 'Running...' : 'Preview'}
+                    </button>
+                    <button
+                      onClick={() => handleAutoFile(false)}
+                      disabled={autoFileRunning}
+                      className="px-4 py-2 text-xs rounded-lg bg-[#8b5cf6] text-white hover:opacity-80 disabled:opacity-50 transition-colors"
+                    >
+                      Run Auto-File
+                    </button>
+                  </div>
+                  {autoFileResults && (
+                    <div className="mt-2 p-3 rounded-lg bg-[var(--bg-secondary)] border border-[var(--border)] grid grid-cols-3 gap-2 text-center">
+                      <div>
+                        <p className="text-sm font-bold text-[var(--text)]">{autoFileResults.filed}</p>
+                        <p className="text-[10px] text-[var(--text-muted)]">Filed</p>
+                      </div>
+                      <div>
+                        <p className="text-sm font-bold text-[#f59e0b]">{autoFileResults.pending}</p>
+                        <p className="text-[10px] text-[var(--text-muted)]">Skipped</p>
+                      </div>
+                      <div>
+                        <p className="text-sm font-bold text-[var(--error)]">{autoFileResults.errors}</p>
+                        <p className="text-[10px] text-[var(--text-muted)]">Errors</p>
+                      </div>
+                    </div>
+                  )}
                 </div>
               </div>
             </div>
