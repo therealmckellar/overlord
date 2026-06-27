@@ -43,9 +43,10 @@ import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { useChatStream } from '@/hooks/useChatStream';
 import { JarvisPanel } from '@/components/JarvisPanel';
 import { SpacesPanel } from '@/components/spaces/SpacesPanel';
+import SettingsPanel from '@/components/SettingsPanel';
 
 
-type Panel = 'dashboard' | 'chat' | 'pipeline' | 'memory' | 'loop' | 'devtools' | 'research' | 'researchQueue' | 'substack' | 'agent' | 'jarvis' | 'designer' | 'spaces' | 'mission' | 'taskboard' | 'deploy' | 'skills' | 'goals' | 'journal' | 'analytics' | 'session' | 'failureLogs' | 'insights';
+type Panel = 'dashboard' | 'chat' | 'pipeline' | 'memory' | 'loop' | 'devtools' | 'research' | 'researchQueue' | 'substack' | 'agent' | 'jarvis' | 'designer' | 'spaces' | 'mission' | 'taskboard' | 'deploy' | 'skills' | 'goals' | 'journal' | 'analytics' | 'session' | 'failureLogs' | 'insights' | 'settings';
 
 export default function Home() {
   const { isAuthenticated, isLoading } = useAuthCheck();
@@ -185,6 +186,7 @@ export default function Home() {
             {activePanel === 'researchQueue' && 'Research Queue'}
             {activePanel === 'failureLogs' && 'Failure Logs'}
             {activePanel === 'insights' && 'System Insights'}
+            {activePanel === 'settings' && 'Settings'}
           </h1>
 
           {/* Persona Selector */}
@@ -247,6 +249,7 @@ export default function Home() {
           {activePanel === 'researchQueue' && <ResearchQueuePanel />}
           {activePanel === 'failureLogs' && <FailureLogsPanel />}
           {activePanel === 'insights' && <InsightsPanel />}
+          {activePanel === 'settings' && <SettingsPanel />}
         </main>
 
         {/* Status Bar */}

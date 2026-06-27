@@ -1,25 +1,94 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { useMemoryStore, type Memory } from '@/stores/memoryStore';
 import { useUIStore } from '@/stores/uiStore';
 import {
   Brain, Search, Plus, Trash2, Pin, Tag, Filter,
-  X, Sparkles, ChevronDown, ChevronUp
+  X, Sparkles, ChevronDown, ChevronUp, Network,
+  RefreshCw, Link2, Eye
 } from 'lucide-react';
+
+// ─── Types ──────────────────────────────────────────────────────────────────
+
+interface VaultMemory {
+  id: string;
+  filename: string;
+  source: string;
+  type: string;
+  tags: string[];
+  content: string;
+  createdAt: string | null;
+}
+
+interface GraphNode {
+  id: string;
+  label: string;
+  type: 'memory' | 'tag' | 'source';
+  color: string;
+  x: number;
+  y: number;
+  connections: number;
+}
+
+interface GraphEdge {
+  source: string;
+  target: string;
+  label?: string;
+}
+
+interface GraphData {
+  nodes: GraphNode[];
+  edges: GraphEdge[];
+}
+
+// ─── Colors ─────────────────────────────────────────────────────────────────
+
+const TYPE_COLORS: Record<string, string> = {
+  fact: '#3b82f6',
+  insight: '#8b5cf6',
+  decision: '#10b981',
+  todo: '#f59e0b',
+  context: '#64748b',
+  memory: '#8b5cf6',
+  tag: '#f59e0b',
+  source: '#3b82f6',
+};
+
+const SOURCE_COLORS: Record<string, string> = {
+  steve: '#8b5cf6',
+  david: '#3b82f6',
+  josh: '#10b981',
+  fathom: '#f59e0b',
+  system: '#64748b',
+  Rich: '#ec4899',
+};
+
+// ─── Props ──────────────────────────────────────────────────────────────────
 
 interface MemoryGalaxyProps {
   isOpen: boolean;
   onClose: () => void;
 }
 
+type ViewMode = 'list' | 'graph' | 'cognee';
+
+// ─── Component ──────────────────────────────────────────────────────────────
+
 export function MemoryGalaxy({ isOpen, onClose }: MemoryGalaxyProps) {
+  const [viewMode, setViewMode] = useState<ViewMode>('list');
   const [showForm, setShowForm] = useState(false);
   const [content, setContent] = useState('');
   const [tags, setTags] = useState('');
   const [source, setSource] = useState('steve');
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [showFilters, setShowFilters] = useState(false);
+  const [vaultMemories, setVaultMemories] = useState<VaultMemory[]>([]);
+  const [graphData, setGraphData] = useState<GraphData | null>(null);
+  const [isLoadingGraph, setIsLoadingGraph] = useState(false);
+  const [selectedGraphNode, setSelectedGraphNode] = useState<string | null>(null);
+
+  const canvasRef = useRef<HTMLCanvasElement>(null);
 
   const {
     searchQuery, setSearchQuery,
@@ -36,18 +105,204 @@ export function MemoryGalaxy({ isOpen, onClose }: MemoryGalaxyProps) {
   const allTags = getAllTags();
   const allSources = getAllSources();
 
-  const handleAdd = () => {
+  // ─── Vault sync ────────────────────────────────────────────────────────────
+
+  const syncFromVault = useCallback(async () => {
+    try {
+      const res = await fetch('/api/memory');
+      const data = await res.json();
+      if (data.success) {
+        setVaultMemories(data.memories);
+        return data.memories as VaultMemory[];
+      }
+    } catch {
+      // Vault not available yet
+    }
+    return [];
+  }, []);
+
+  // ─── Graph generation ─────────────────────────────────────────────────────
+
+  const generateGraphData = useCallback((memories: VaultMemory[]): GraphData => {
+    const nodes: GraphNode[] = [];
+    const edges: GraphEdge[] = [];
+    const tagNodes = new Map<string, number>();
+    const sourceNodes = new Map<string, number>();
+
+    // Create memory nodes
+    memories.forEach((mem, i) => {
+      const angle = (i / memories.length) * Math.PI * 2;
+      const radius = 150 + Math.random() * 100;
+      const color = TYPE_COLORS[mem.type] || TYPE_COLORS.memory;
+
+      nodes.push({
+        id: mem.id,
+        label: mem.content.slice(0, 40) + (mem.content.length > 40 ? '...' : ''),
+        type: 'memory',
+        color,
+        x: 400 + Math.cos(angle) * radius,
+        y: 300 + Math.sin(angle) * radius,
+        connections: 0,
+      });
+
+      // Create tag nodes
+      mem.tags.forEach((tag) => {
+        if (!tagNodes.has(tag)) {
+          const tagAngle = Math.random() * Math.PI * 2;
+          const tagRadius = 80 + Math.random() * 60;
+          tagNodes.set(tag, nodes.length);
+          nodes.push({
+            id: `tag:${tag}`,
+            label: `#${tag}`,
+            type: 'tag',
+            color: TYPE_COLORS.tag,
+            x: 400 + Math.cos(tagAngle) * tagRadius,
+            y: 300 + Math.sin(tagAngle) * tagRadius,
+            connections: 0,
+          });
+        }
+        edges.push({ source: mem.id, target: `tag:${tag}`, label: 'tagged' });
+      });
+
+      // Create source nodes
+      const src = mem.source || 'overlord';
+      if (!sourceNodes.has(src)) {
+        sourceNodes.set(src, nodes.length);
+        nodes.push({
+          id: `source:${src}`,
+          label: src,
+          type: 'source',
+          color: SOURCE_COLORS[src] || TYPE_COLORS.source,
+          x: 400 + (Math.random() - 0.5) * 300,
+          y: 300 + (Math.random() - 0.5) * 300,
+          connections: 0,
+        });
+      }
+      edges.push({ source: mem.id, target: `source:${src}`, label: 'from' });
+    });
+
+    // Count connections
+    edges.forEach((edge) => {
+      const srcNode = nodes.find(n => n.id === edge.source);
+      const tgtNode = nodes.find(n => n.id === edge.target);
+      if (srcNode) srcNode.connections++;
+      if (tgtNode) tgtNode.connections++;
+    });
+
+    return { nodes, edges };
+  }, []);
+
+  // ─── Load graph data ──────────────────────────────────────────────────────
+
+  const loadGraph = useCallback(async () => {
+    setIsLoadingGraph(true);
+    const mems = await syncFromVault();
+    if (mems.length > 0) {
+      const data = generateGraphData(mems);
+      setGraphData(data);
+    }
+    setIsLoadingGraph(false);
+  }, [syncFromVault, generateGraphData]);
+
+  useEffect(() => {
+    if (isOpen && viewMode === 'graph') {
+      loadGraph();
+    }
+  }, [isOpen, viewMode, loadGraph]);
+
+  // ─── Canvas rendering ─────────────────────────────────────────────────────
+
+  useEffect(() => {
+    if (viewMode !== 'graph' || !graphData || !canvasRef.current) return;
+
+    const canvas = canvasRef.current;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+
+    const dpr = window.devicePixelRatio || 1;
+    const rect = canvas.getBoundingClientRect();
+    canvas.width = rect.width * dpr;
+    canvas.height = rect.height * dpr;
+    ctx.scale(dpr, dpr);
+
+    // Clear
+    ctx.fillStyle = '#0d0d0d';
+    ctx.fillRect(0, 0, rect.width, rect.height);
+
+    // Draw edges
+    graphData.edges.forEach((edge) => {
+      const src = graphData.nodes.find(n => n.id === edge.source);
+      const tgt = graphData.nodes.find(n => n.id === edge.target);
+      if (!src || !tgt) return;
+
+      ctx.beginPath();
+      ctx.moveTo(src.x, src.y);
+      ctx.lineTo(tgt.x, tgt.y);
+      ctx.strokeStyle = 'rgba(100, 116, 139, 0.2)';
+      ctx.lineWidth = 1;
+      ctx.stroke();
+    });
+
+    // Draw nodes
+    graphData.nodes.forEach((node) => {
+      const isSelected = selectedGraphNode === node.id;
+      const radius = node.type === 'memory' ? 6 + node.connections : 5;
+
+      // Glow
+      if (isSelected) {
+        ctx.beginPath();
+        ctx.arc(node.x, node.y, radius + 8, 0, Math.PI * 2);
+        ctx.fillStyle = node.color + '30';
+        ctx.fill();
+      }
+
+      // Node
+      ctx.beginPath();
+      ctx.arc(node.x, node.y, radius, 0, Math.PI * 2);
+      ctx.fillStyle = node.color;
+      ctx.fill();
+
+      // Label
+      ctx.font = node.type === 'memory' ? '10px Inter' : '9px Inter';
+      ctx.fillStyle = isSelected ? '#f1f5f9' : '#94a3b8';
+      ctx.textAlign = 'center';
+      ctx.fillText(node.label, node.x, node.y + radius + 12);
+    });
+  }, [viewMode, graphData, selectedGraphNode]);
+
+  // ─── Handlers ─────────────────────────────────────────────────────────────
+
+  const handleAdd = async () => {
     if (!content.trim()) return;
     const tagList = tags.split(',').map((t) => t.trim()).filter(Boolean);
     addMemory({ content: content.trim(), tags: tagList, source, pinned: false });
     setContent('');
     setTags('');
     setShowForm(false);
-    addToast({ type: 'success', message: 'Memory saved to galaxy' });
+    addToast({ type: 'success', message: 'Memory saved to galaxy + Obsidian vault' });
+
+    // Sync to vault via API
+    try {
+      await fetch('/api/memory', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ content, source, type: 'fact', tags: tagList }),
+      });
+    } catch {
+      // Will sync next time
+    }
   };
 
   const togglePin = (mem: Memory) => {
     updateMemory(mem.id, { pinned: !mem.pinned });
+  };
+
+  const handleDelete = async (id: string) => {
+    deleteMemory(id);
+    addToast({ type: 'info', message: 'Memory deleted' });
+    try {
+      await fetch(`/api/memory?id=${id}`, { method: 'DELETE' });
+    } catch { /* ok */ }
   };
 
   if (!isOpen) return null;
@@ -64,6 +319,24 @@ export function MemoryGalaxy({ isOpen, onClose }: MemoryGalaxyProps) {
           <button onClick={onClose} className="p-1 rounded hover:bg-[var(--bg-tertiary)] text-[var(--text-muted)]">
             <X className="w-4 h-4" />
           </button>
+        </div>
+
+        {/* View mode toggle */}
+        <div className="flex border-b border-[var(--border)]">
+          {(['list', 'graph', 'cognee'] as ViewMode[]).map((mode) => (
+            <button
+              key={mode}
+              onClick={() => setViewMode(mode)}
+              className={`flex-1 py-2 text-[10px] font-medium uppercase tracking-wider transition-colors ${
+                viewMode === mode
+                  ? 'text-[var(--accent)] border-b-2 border-[var(--accent)] bg-[var(--accent)]/5'
+                  : 'text-[var(--text-muted)] hover:text-[var(--text)]'
+              }`}
+            >
+              {mode === 'graph' ? <Network className="w-3 h-3 mx-auto mb-0.5" /> : null}
+              {mode}
+            </button>
+          ))}
         </div>
 
         {/* Search */}
@@ -94,7 +367,6 @@ export function MemoryGalaxy({ isOpen, onClose }: MemoryGalaxyProps) {
 
         {showFilters && (
           <div className="p-3 border-b border-[var(--border)] space-y-3">
-            {/* Tag filter */}
             <div>
               <label className="text-[10px] uppercase tracking-wider text-[var(--text-muted)] mb-1 block">Tag</label>
               <select
@@ -108,7 +380,6 @@ export function MemoryGalaxy({ isOpen, onClose }: MemoryGalaxyProps) {
                 ))}
               </select>
             </div>
-            {/* Source filter */}
             <div>
               <label className="text-[10px] uppercase tracking-wider text-[var(--text-muted)] mb-1 block">Source</label>
               <select
@@ -133,9 +404,26 @@ export function MemoryGalaxy({ isOpen, onClose }: MemoryGalaxyProps) {
           </div>
         )}
 
+        {/* Vault sync button */}
+        <div className="p-3 border-b border-[var(--border)]">
+          <button
+            onClick={loadGraph}
+            className="w-full flex items-center justify-center gap-2 px-3 py-1.5 text-xs rounded bg-[var(--bg-tertiary)] border border-[var(--border)] text-[var(--text-muted)] hover:text-[var(--text)] transition-colors"
+          >
+            <RefreshCw className={`w-3 h-3 ${isLoadingGraph ? 'animate-spin' : ''}`} />
+            Sync from Vault
+          </button>
+          {vaultMemories.length > 0 && (
+            <p className="text-[10px] text-[var(--text-muted)] mt-1 text-center">
+              {vaultMemories.length} files in Obsidian
+            </p>
+          )}
+        </div>
+
         {/* Stats */}
         <div className="mt-auto px-4 py-3 border-t border-[var(--border)] text-[10px] text-[var(--text-muted)]">
           {filtered.length} memory{filtered.length !== 1 ? 'ies' : ''} · {allTags.length} tags · {allSources.length} sources
+          {graphData && ` · ${graphData.nodes.length} graph nodes`}
         </div>
       </div>
 
@@ -144,15 +432,28 @@ export function MemoryGalaxy({ isOpen, onClose }: MemoryGalaxyProps) {
         {/* Header */}
         <div className="px-6 py-3 border-b border-[var(--border)] flex items-center justify-between">
           <h3 className="text-sm font-medium text-[var(--text)]">
-            {searchQuery ? `Results for "${searchQuery}"` : 'All Memories'}
+            {viewMode === 'list' && (searchQuery ? `Results for "${searchQuery}"` : 'All Memories')}
+            {viewMode === 'graph' && 'Memory Graph'}
+            {viewMode === 'cognee' && 'Cognee Knowledge Graph'}
           </h3>
-          <button
-            onClick={() => setShowForm(true)}
-            className="flex items-center gap-1.5 px-3 py-1.5 text-xs rounded-lg bg-[var(--accent)] text-white hover:bg-[var(--accent-hover)] transition-colors"
-          >
-            <Plus className="w-3.5 h-3.5" />
-            Add Memory
-          </button>
+          <div className="flex items-center gap-2">
+            {viewMode === 'graph' && (
+              <button
+                onClick={loadGraph}
+                className="flex items-center gap-1.5 px-3 py-1.5 text-xs rounded-lg bg-[var(--bg-tertiary)] border border-[var(--border)] text-[var(--text-muted)] hover:text-[var(--text)] transition-colors"
+              >
+                <RefreshCw className="w-3 h-3" />
+                Refresh
+              </button>
+            )}
+            <button
+              onClick={() => setShowForm(true)}
+              className="flex items-center gap-1.5 px-3 py-1.5 text-xs rounded-lg bg-[var(--accent)] text-white hover:bg-[var(--accent-hover)] transition-colors"
+            >
+              <Plus className="w-3.5 h-3.5" />
+              Add Memory
+            </button>
+          </div>
         </div>
 
         {/* Add form */}
@@ -199,35 +500,122 @@ export function MemoryGalaxy({ isOpen, onClose }: MemoryGalaxyProps) {
                 Cancel
               </button>
             </div>
+            <p className="text-[10px] text-[var(--text-muted)]">
+              <Link2 className="w-3 h-3 inline mr-1" />
+              Auto-saved to Obsidian vault → cognified into knowledge graph
+            </p>
           </div>
         )}
 
-        {/* Memory list */}
-        <div className="flex-1 overflow-y-auto p-6 space-y-3">
-          {filtered.length === 0 ? (
-            <div className="text-center py-12">
-              <Sparkles className="w-12 h-12 mx-auto text-[var(--text-muted)] opacity-20 mb-3" />
-              <p className="text-sm text-[var(--text-muted)]">
-                {searchQuery ? 'No memories match your search' : 'No memories yet. Add one to start building the knowledge base.'}
-              </p>
+        {/* Content area */}
+        <div className="flex-1 overflow-hidden">
+          {viewMode === 'list' && (
+            <div className="h-full overflow-y-auto p-6 space-y-3">
+              {filtered.length === 0 ? (
+                <div className="text-center py-12">
+                  <Sparkles className="w-12 h-12 mx-auto text-[var(--text-muted)] opacity-20 mb-3" />
+                  <p className="text-sm text-[var(--text-muted)]">
+                    {searchQuery ? 'No memories match your search' : 'No memories yet. Add one to start building the knowledge base.'}
+                  </p>
+                </div>
+              ) : (
+                filtered.map((mem) => (
+                  <MemoryCard
+                    key={mem.id}
+                    memory={mem}
+                    expanded={expandedId === mem.id}
+                    onToggle={() => setExpandedId(expandedId === mem.id ? null : mem.id)}
+                    onPin={() => togglePin(mem)}
+                    onDelete={() => handleDelete(mem.id)}
+                  />
+                ))
+              )}
             </div>
-          ) : (
-            filtered.map((mem) => (
-              <MemoryCard
-                key={mem.id}
-                memory={mem}
-                expanded={expandedId === mem.id}
-                onToggle={() => setExpandedId(expandedId === mem.id ? null : mem.id)}
-                onPin={() => togglePin(mem)}
-                onDelete={() => { deleteMemory(mem.id); addToast({ type: 'info', message: 'Memory deleted' }); }}
-              />
-            ))
+          )}
+
+          {viewMode === 'graph' && (
+            <div className="h-full relative">
+              {isLoadingGraph ? (
+                <div className="flex items-center justify-center h-full">
+                  <RefreshCw className="w-8 h-8 text-[var(--accent)] animate-spin" />
+                </div>
+              ) : graphData && graphData.nodes.length > 0 ? (
+                <>
+                  <canvas
+                    ref={canvasRef}
+                    className="w-full h-full"
+                    onClick={(e) => {
+                      const rect = canvasRef.current?.getBoundingClientRect();
+                      if (!rect) return;
+                      const x = e.clientX - rect.left;
+                      const y = e.clientY - rect.top;
+                      const clicked = graphData.nodes.find(
+                        n => Math.hypot(n.x - x, n.y - y) < 15
+                      );
+                      setSelectedGraphNode(clicked?.id || null);
+                    }}
+                  />
+                  {selectedGraphNode && (
+                    <div className="absolute bottom-4 left-4 right-4 p-3 rounded-lg bg-[var(--bg-secondary)] border border-[var(--border)]">
+                      {(() => {
+                        const node = graphData.nodes.find(n => n.id === selectedGraphNode);
+                        if (!node) return null;
+                        const connectedEdges = graphData.edges.filter(
+                          e => e.source === node.id || e.target === node.id
+                        );
+                        const connectedNodes = connectedEdges.map(e => {
+                          const otherId = e.source === node.id ? e.target : e.source;
+                          return graphData.nodes.find(n => n.id === otherId);
+                        }).filter(Boolean);
+                        return (
+                          <div>
+                            <p className="text-sm text-[var(--text)] font-medium">{node.label}</p>
+                            <p className="text-[10px] text-[var(--text-muted)] mt-1">
+                              {connectedNodes.length} connections · Type: {node.type}
+                            </p>
+                            <div className="flex gap-1 mt-1 flex-wrap">
+                              {connectedNodes.slice(0, 8).map(n => (
+                                <span key={n!.id} className="text-[9px] px-1.5 py-0.5 rounded bg-[var(--bg-tertiary)] text-[var(--text-muted)]">
+                                  {n!.label}
+                                </span>
+                              ))}
+                            </div>
+                          </div>
+                        );
+                      })()}
+                    </div>
+                  )}
+                  <div className="absolute top-4 right-4 flex gap-2 text-[10px] text-[var(--text-muted)]">
+                    <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-[#8b5cf6]" /> Memory</span>
+                    <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-[#f59e0b]" /> Tag</span>
+                    <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-[#3b82f6]" /> Source</span>
+                  </div>
+                </>
+              ) : (
+                <div className="flex flex-col items-center justify-center h-full text-center">
+                  <Network className="w-12 h-12 text-[var(--text-muted)] opacity-20 mb-3" />
+                  <p className="text-sm text-[var(--text-muted)] mb-2">No graph data yet</p>
+                  <button
+                    onClick={loadGraph}
+                    className="px-4 py-2 text-xs rounded-lg bg-[var(--accent)] text-white hover:bg-[var(--accent-hover)] transition-colors"
+                  >
+                    Load from Obsidian Vault
+                  </button>
+                </div>
+              )}
+            </div>
+          )}
+
+          {viewMode === 'cognee' && (
+            <CogneeGraphPanel />
           )}
         </div>
       </div>
     </div>
   );
 }
+
+// ─── Memory Card ────────────────────────────────────────────────────────────
 
 function MemoryCard({
   memory,
@@ -287,6 +675,104 @@ function MemoryCard({
           </button>
         </div>
       )}
+    </div>
+  );
+}
+
+// ─── Cognee Graph Panel ─────────────────────────────────────────────────────
+
+function CogneeGraphPanel() {
+  const [stats, setStats] = useState<{ nodes: number; edges: number; data: number; memories: number } | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
+
+  const loadStats = useCallback(async () => {
+    setIsLoading(true);
+    try {
+      // Query cognee_db directly via API
+      const res = await fetch('/api/memory/stats');
+      const data = await res.json();
+      if (data.success) {
+        setStats(data);
+      }
+    } catch {
+      // Stats not available
+    }
+    setIsLoading(false);
+  }, []);
+
+  useEffect(() => {
+    loadStats();
+  }, [loadStats]);
+
+  return (
+    <div className="h-full overflow-y-auto p-6">
+      <div className="max-w-2xl mx-auto space-y-6">
+        <div className="text-center">
+          <Eye className="w-10 h-10 mx-auto text-[var(--accent)] opacity-40 mb-2" />
+          <h3 className="text-lg font-semibold text-[var(--text)]">Cognee Knowledge Graph</h3>
+          <p className="text-xs text-[var(--text-muted)] mt-1">
+            Unified view: Obsidian memories + codebase structure + business context
+          </p>
+        </div>
+
+        {isLoading ? (
+          <div className="text-center py-8">
+            <RefreshCw className="w-6 h-6 text-[var(--accent)] animate-spin mx-auto" />
+          </div>
+        ) : stats ? (
+          <div className="grid grid-cols-2 gap-4">
+            <div className="p-4 rounded-lg bg-[var(--bg-secondary)] border border-[var(--border)]">
+              <p className="text-2xl font-bold text-[var(--accent)]">{stats.nodes}</p>
+              <p className="text-[10px] text-[var(--text-muted)] uppercase tracking-wider">Graph Nodes</p>
+            </div>
+            <div className="p-4 rounded-lg bg-[var(--bg-secondary)] border border-[var(--border)]">
+              <p className="text-2xl font-bold text-[#10b981]">{stats.edges}</p>
+              <p className="text-[10px] text-[var(--text-muted)] uppercase tracking-wider">Relationships</p>
+            </div>
+            <div className="p-4 rounded-lg bg-[var(--bg-secondary)] border border-[var(--border)]">
+              <p className="text-2xl font-bold text-[#3b82f6]">{stats.data}</p>
+              <p className="text-[10px] text-[var(--text-muted)] uppercase tracking-wider">Data Items</p>
+            </div>
+            <div className="p-4 rounded-lg bg-[var(--bg-secondary)] border border-[var(--border)]">
+              <p className="text-2xl font-bold text-[#f59e0b]">{stats.memories}</p>
+              <p className="text-[10px] text-[var(--text-muted)] uppercase tracking-wider">Vault Files</p>
+            </div>
+          </div>
+        ) : (
+          <div className="text-center py-8">
+            <p className="text-sm text-[var(--text-muted)]">Stats unavailable. Run cognify first.</p>
+          </div>
+        )}
+
+        <div className="p-4 rounded-lg bg-[var(--bg-secondary)] border border-[var(--border)]">
+          <h4 className="text-sm font-medium text-[var(--text)] mb-2">Pipeline</h4>
+          <div className="space-y-2 text-xs text-[var(--text-muted)]">
+            <div className="flex items-center gap-2">
+              <span className="w-2 h-2 rounded-full bg-[#10b981]" />
+              Overlord agents create memories → auto-saved to Obsidian vault
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="w-2 h-2 rounded-full bg-[#3b82f6]" />
+              Cognee cognifies vault files → extracts entities + relationships
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="w-2 h-2 rounded-full bg-[#8b5cf6]" />
+              Graph nodes = entities (people, companies, concepts, decisions)
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="w-2 h-2 rounded-full bg-[#f59e0b]" />
+              Graph edges = relationships (works-at, decided-on, tagged-with)
+            </div>
+          </div>
+        </div>
+
+        <button
+          onClick={loadStats}
+          className="w-full py-2 text-xs rounded-lg bg-[var(--bg-tertiary)] border border-[var(--border)] text-[var(--text-muted)] hover:text-[var(--text)] transition-colors"
+        >
+          Refresh Stats
+        </button>
+      </div>
     </div>
   );
 }

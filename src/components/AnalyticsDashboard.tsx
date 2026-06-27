@@ -3,8 +3,8 @@
 import React from 'react';
 import { useSharedMemoryStore } from '@/stores/sharedMemoryStore';
 import { useKanbanStore } from '@/stores/kanbanStore';
-import { useMissionStore } from '@/stores/missionStore';
 import { useDeploymentStore } from '@/stores/deploymentStore';
+import { useSpaceStore } from '@/stores/spaceStore';
 
 export default function AnalyticsDashboard() {
   const memory = useSharedMemoryStore((s) => s.memory);
@@ -12,8 +12,8 @@ export default function AnalyticsDashboard() {
   const journal = useSharedMemoryStore((s) => s.journal);
   const sessions = useSharedMemoryStore((s) => s.sessions);
   const tasks = useKanbanStore((s) => s.tasks);
-  const agents = useMissionStore((s) => s.agents);
   const deployments = useDeploymentStore((s) => s.deployments);
+  const spaces = useSpaceStore((s) => s.spaces);
 
   // Compute analytics
   const totalTasks = tasks.length;
@@ -25,13 +25,15 @@ export default function AnalyticsDashboard() {
   const completedGoals = goals.filter((g) => g.status === 'completed').length;
   const avgGoalProgress = goals.length > 0 ? Math.round(goals.reduce((sum, g) => sum + g.progress, 0) / goals.length) : 0;
 
-  const runningAgents = agents.filter((a) => a.status === 'running').length;
-  const totalAgents = agents.length;
-  const avgAgentProgress = agents.length > 0 ? Math.round(agents.reduce((sum, a) => sum + a.progress, 0) / agents.length) : 0;
-
+  // Agent counts derived from deployments (source of truth), not missionStore
   const liveDeployments = deployments.filter((d) => d.status === 'live').length;
+  const buildingDeployments = deployments.filter((d) => d.status === 'building' || d.status === 'deploying').length;
   const failedDeployments = deployments.filter((d) => d.status === 'failed').length;
   const deploySuccessRate = deployments.length > 0 ? Math.round((liveDeployments / deployments.length) * 100) : 0;
+
+  // Running agents = live deployments (these are actually active)
+  const runningAgents = liveDeployments;
+  const totalAgents = deployments.length;
 
   const totalSessions = sessions.length;
   const recentJournal = journal.filter((j) => j.timestamp > Date.now() - 86400000 * 7).length;
@@ -72,7 +74,7 @@ export default function AnalyticsDashboard() {
           {[
             { label: 'Task Completion', value: `${taskCompletionRate}%`, sub: `${completedTasks}/${totalTasks}`, color: '#10b981' },
             { label: 'Goal Progress', value: `${avgGoalProgress}%`, sub: `${activeGoals} active`, color: '#3b82f6' },
-            { label: 'Agent Activity', value: `${runningAgents}/${totalAgents}`, sub: `${avgAgentProgress}% avg progress`, color: '#f59e0b' },
+            { label: 'Agent Activity', value: `${runningAgents}/${totalAgents}`, sub: `${buildingDeployments} building · ${failedDeployments} failed`, color: '#f59e0b' },
             { label: 'Deploy Success', value: `${deploySuccessRate}%`, sub: `${liveDeployments} live`, color: '#8b5cf6' },
           ].map((stat) => (
             <div key={stat.label} style={{
@@ -177,7 +179,7 @@ export default function AnalyticsDashboard() {
             </div>
           </div>
 
-          {/* Agent Performance */}
+          {/* Deployment Status */}
           <div style={{
             padding: '14px',
             borderRadius: '8px',
@@ -185,10 +187,10 @@ export default function AnalyticsDashboard() {
             border: '1px solid #1e293b',
           }}>
             <div style={{ fontSize: '13px', fontWeight: 600, color: '#e2e8f0', marginBottom: '12px' }}>
-              🤖 Agent Performance
+              🚀 Deployment Status
             </div>
-            {agents.map((agent) => (
-              <div key={agent.id} style={{
+            {deployments.map((deploy) => (
+              <div key={deploy.id} style={{
                 display: 'flex',
                 alignItems: 'center',
                 gap: '10px',
@@ -198,32 +200,18 @@ export default function AnalyticsDashboard() {
                   width: '8px',
                   height: '8px',
                   borderRadius: '50%',
-                  background: agent.status === 'running' ? '#10b981' : agent.status === 'error' ? '#ef4444' : '#6b7280',
+                  background: deploy.status === 'live' ? '#10b981' : deploy.status === 'failed' ? '#ef4444' : deploy.status === 'building' || deploy.status === 'deploying' ? '#f59e0b' : '#8b5cf6',
                 }} />
-                <span style={{ flex: 1, fontSize: '12px', color: '#e2e8f0' }}>{agent.name}</span>
+                <span style={{ flex: 1, fontSize: '12px', color: '#e2e8f0' }}>{deploy.agentName}</span>
                 <span style={{
                   fontSize: '11px',
                   fontWeight: 600,
-                  color: agent.status === 'running' ? '#10b981' : '#64748b',
+                  color: deploy.status === 'live' ? '#10b981' : deploy.status === 'failed' ? '#ef4444' : '#f59e0b',
                 }}>
-                  {agent.status}
+                  {deploy.status.toUpperCase()}
                 </span>
-                <div style={{
-                  width: '60px',
-                  height: '4px',
-                  background: '#1e293b',
-                  borderRadius: '2px',
-                  overflow: 'hidden',
-                }}>
-                  <div style={{
-                    height: '100%',
-                    width: `${agent.progress}%`,
-                    background: '#3b82f6',
-                    borderRadius: '2px',
-                  }} />
-                </div>
-                <span style={{ fontSize: '10px', color: '#64748b', width: '30px', textAlign: 'right' }}>
-                  {Math.round(agent.progress)}%
+                <span style={{ fontSize: '10px', color: '#64748b' }}>
+                  {deploy.environment}
                 </span>
               </div>
             ))}
@@ -246,9 +234,9 @@ export default function AnalyticsDashboard() {
             }}>
               {[
                 { label: 'Memory Entries', value: memory.length, color: '#8b5cf6' },
-                { label: 'Session Messages', value: totalSessions, color: '#3b82f6' },
-                { label: 'Active Goals', value: activeGoals, color: '#10b981' },
-                { label: 'Deployments', value: deployments.length, color: '#f59e0b' },
+                { label: 'Live Deploys', value: liveDeployments, color: '#10b981' },
+                { label: 'Active Goals', value: activeGoals, color: '#3b82f6' },
+                { label: 'Spaces', value: spaces.length, color: '#f59e0b' },
               ].map((item) => (
                 <div key={item.label} style={{
                   padding: '10px',

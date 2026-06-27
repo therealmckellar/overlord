@@ -1,8 +1,7 @@
 'use client';
 
-import React, { useState, useCallback, useRef } from 'react';
-import { useSpaceStore, type Space, type SpaceThread, type SpaceFile, type SpaceMember } from '@/stores/spaceStore';
-import { useSessionStore } from '@/stores/sessionStore';
+import React, { useState, useCallback, useRef, useEffect } from 'react';
+import { useSpaceStore, type Space, type SpaceThread, type SpaceThreadMessage } from '@/stores/spaceStore';
 import { useUIStore } from '@/stores/uiStore';
 import {
   Plus,
@@ -13,18 +12,30 @@ import {
   FileText,
   Users,
   Settings2,
-  Pin,
-  PinOff,
   Trash2,
   Upload,
   UserPlus,
   Send,
   Bot,
   ChevronRight,
+  ArrowLeft,
 } from 'lucide-react';
 import { InlineModelSelector } from '@/components/ui/InlineModelSelector';
 
 type SpaceTab = 'threads' | 'files' | 'instructions' | 'members';
+
+// ── Summarize helper: takes first message and creates a short title ──
+function summarizeTitle(content: string): string {
+  const cleaned = content.replace(/\n/g, ' ').trim();
+  if (cleaned.length <= 50) return cleaned;
+  // Try to break at a sentence boundary
+  const firstSentence = cleaned.match(/^(.{10,50}?[.!?])\s/);
+  if (firstSentence) return firstSentence[1];
+  // Break at word boundary
+  const truncated = cleaned.slice(0, 47);
+  const lastSpace = truncated.lastIndexOf(' ');
+  return truncated.slice(0, lastSpace > 20 ? lastSpace : 47) + '...';
+}
 
 export function SpacesPanel() {
   const spaces = useSpaceStore((s) => s.spaces);
@@ -166,8 +177,11 @@ export function SpacesPanel() {
 
 function SpaceDetail({ space }: { space: Space }) {
   const [activeTab, setActiveTab] = useState<SpaceTab>('threads');
-  const setCustomInstructions = useSpaceStore((s) => s.setCustomInstructions);
   const setSpaceModel = useSpaceStore((s) => s.setSpaceModel);
+  const activeThreadId = useSpaceStore((s) => s.activeThreadId);
+
+  // If a thread is active, show the chat view instead of tabs
+  const activeThread = activeThreadId ? space.threads.find((t) => t.id === activeThreadId) : null;
 
   const handleModelChange = (modelValue: string) => {
     setSpaceModel(space.id, modelValue);
@@ -197,29 +211,161 @@ function SpaceDetail({ space }: { space: Space }) {
         </div>
       </div>
 
-      {/* Tabs */}
-      <div className="flex border-b border-[var(--border)] bg-[var(--bg)]">
-        {tabs.map((tab) => (
-          <button
-            key={tab.id}
-            onClick={() => setActiveTab(tab.id)}
-            className={`px-3 py-2 text-xs font-medium flex items-center gap-1.5 transition-colors ${
-              activeTab === tab.id
-                ? 'text-[var(--accent)] border-b-2 border-[var(--accent)]'
-                : 'text-[var(--text-muted)] hover:text-[var(--text)]'
-            }`}
-          >
-            {tab.icon} {tab.label}
-          </button>
-        ))}
+      {/* Thread chat view or tab content */}
+      {activeThread ? (
+        <ThreadChatView space={space} thread={activeThread} />
+      ) : (
+        <>
+          {/* Tabs */}
+          <div className="flex border-b border-[var(--border)] bg-[var(--bg)]">
+            {tabs.map((tab) => (
+              <button
+                key={tab.id}
+                onClick={() => setActiveTab(tab.id)}
+                className={`px-3 py-2 text-xs font-medium flex items-center gap-1.5 transition-colors ${
+                  activeTab === tab.id
+                    ? 'text-[var(--accent)] border-b-2 border-[var(--accent)]'
+                    : 'text-[var(--text-muted)] hover:text-[var(--text)]'
+                }`}
+              >
+                {tab.icon} {tab.label}
+              </button>
+            ))}
+          </div>
+
+          {/* Tab content */}
+          <div className="flex-1 overflow-y-auto">
+            {activeTab === 'threads' && <ThreadsTab space={space} />}
+            {activeTab === 'files' && <FilesTab space={space} />}
+            {activeTab === 'instructions' && <InstructionsTab space={space} />}
+            {activeTab === 'members' && <MembersTab space={space} />}
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
+
+// ── Thread Chat View ────────────────────────────────────────────────────
+
+function ThreadChatView({ space, thread }: { space: Space; thread: SpaceThread }) {
+  const setActiveThread = useSpaceStore((s) => s.setActiveThread);
+  const addThreadMessage = useSpaceStore((s) => s.addThreadMessage);
+  const updateThreadTitle = useSpaceStore((s) => s.updateThreadTitle);
+  const [input, setInput] = useState('');
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  // Auto-scroll on new messages
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [thread.messages.length]);
+
+  const handleSend = () => {
+    if (!input.trim()) return;
+
+    // Add user message
+    addThreadMessage(space.id, thread.id, { role: 'user', content: input.trim() });
+
+    // Auto-title on first user message
+    if (thread.messageCount === 0) {
+      const title = summarizeTitle(input.trim());
+      updateThreadTitle(space.id, thread.id, title);
+    }
+
+    setInput('');
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      handleSend();
+    }
+  };
+
+  return (
+    <div className="flex flex-col h-full">
+      {/* Thread header */}
+      <div className="px-4 py-2 border-b border-[var(--border)] bg-[var(--bg-secondary)] flex items-center gap-3">
+        <button
+          onClick={() => setActiveThread(null)}
+          className="p-1 rounded-md hover:bg-[var(--bg-tertiary)] text-[var(--text-muted)] hover:text-[var(--text)] transition-colors"
+        >
+          <ArrowLeft className="w-4 h-4" />
+        </button>
+        <div className="flex-1 min-w-0">
+          <h3 className="text-xs font-semibold text-[var(--text)] truncate">{thread.title}</h3>
+          <p className="text-[10px] text-[var(--text-muted)]">{thread.messageCount} messages</p>
+        </div>
+        <InlineModelSelector value={space.model} onChange={(v) => useSpaceStore.getState().setSpaceModel(space.id, v)} />
       </div>
 
-      {/* Tab content */}
-      <div className="flex-1 overflow-y-auto">
-        {activeTab === 'threads' && <ThreadsTab space={space} />}
-        {activeTab === 'files' && <FilesTab space={space} />}
-        {activeTab === 'instructions' && <InstructionsTab space={space} />}
-        {activeTab === 'members' && <MembersTab space={space} />}
+      {/* Messages */}
+      <div className="flex-1 overflow-y-auto p-4 space-y-3">
+        {/* Show master prompt as system message if set */}
+        {space.masterPrompt.trim() && thread.messages.length === 0 && (
+          <div className="px-3 py-2 rounded-lg bg-[var(--accent)]/5 border border-[var(--accent)]/20 max-w-[80%]">
+            <div className="flex items-center gap-1.5 mb-1">
+              <Bot className="w-3 h-3 text-[var(--accent)]" />
+              <span className="text-[10px] font-semibold text-[var(--accent)] uppercase tracking-wider">System</span>
+            </div>
+            <p className="text-xs text-[var(--text-secondary)]">{space.masterPrompt}</p>
+          </div>
+        )}
+
+        {thread.messages.map((msg) => (
+          <div key={msg.id} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
+            <div className={`max-w-[80%] px-3 py-2 rounded-lg text-xs ${
+              msg.role === 'user'
+                ? 'bg-[var(--accent)] text-white'
+                : msg.role === 'system'
+                ? 'bg-[var(--accent)]/5 border border-[var(--accent)]/20 text-[var(--text-secondary)]'
+                : 'bg-[var(--bg-secondary)] border border-[var(--border)] text-[var(--text)]'
+            }`}>
+              {msg.role !== 'user' && msg.role !== 'system' && (
+                <div className="flex items-center gap-1 mb-1">
+                  <Bot className="w-3 h-3 text-[var(--accent)]" />
+                  <span className="text-[10px] font-medium text-[var(--accent)]">Assistant</span>
+                </div>
+              )}
+              <p className="whitespace-pre-wrap">{msg.content}</p>
+              <p className={`text-[9px] mt-1 ${msg.role === 'user' ? 'text-white/60' : 'text-[var(--text-muted)]'}`}>
+                {new Date(msg.timestamp).toLocaleTimeString()}
+              </p>
+            </div>
+          </div>
+        ))}
+
+        {thread.messages.length === 0 && !space.masterPrompt.trim() && (
+          <div className="flex-1 flex items-center justify-center h-full">
+            <div className="text-center">
+              <MessageSquare className="w-8 h-8 text-[var(--text-muted)] mx-auto mb-2" />
+              <p className="text-xs text-[var(--text-muted)]">Start a conversation</p>
+            </div>
+          </div>
+        )}
+
+        <div ref={messagesEndRef} />
+      </div>
+
+      {/* Input */}
+      <div className="px-4 py-3 border-t border-[var(--border)] bg-[var(--bg-secondary)]">
+        <div className="flex items-end gap-2">
+          <textarea
+            value={input}
+            onChange={(e) => setInput(e.target.value)}
+            onKeyDown={handleKeyDown}
+            placeholder="Type a message... (Enter to send, Shift+Enter for new line)"
+            rows={1}
+            className="flex-1 bg-[var(--bg)] border border-[var(--border)] rounded-lg px-3 py-2 text-sm text-[var(--text)] placeholder:text-[var(--text-muted)]/50 focus:outline-none focus:ring-1 focus:ring-[var(--accent)] resize-none min-h-[36px] max-h-[120px]"
+          />
+          <button
+            onClick={handleSend}
+            disabled={!input.trim()}
+            className="p-2 rounded-lg bg-[var(--accent)] text-white hover:opacity-90 disabled:opacity-50 transition-opacity"
+          >
+            <Send className="w-4 h-4" />
+          </button>
+        </div>
       </div>
     </div>
   );
@@ -230,6 +376,7 @@ function SpaceDetail({ space }: { space: Space }) {
 function ThreadsTab({ space }: { space: Space }) {
   const addThread = useSpaceStore((s) => s.addThread);
   const removeThread = useSpaceStore((s) => s.removeThread);
+  const setActiveThread = useSpaceStore((s) => s.setActiveThread);
   const setCustomInstructions = useSpaceStore((s) => s.setCustomInstructions);
 
   const handleNewThread = () => {
@@ -239,9 +386,9 @@ function ThreadsTab({ space }: { space: Space }) {
     }
     addThread(space.id, {
       title: 'New Chat',
-      mode: 'ask',
       lastActivity: Date.now(),
       messageCount: 0,
+      messages: [],
     });
   };
 
@@ -275,14 +422,24 @@ function ThreadsTab({ space }: { space: Space }) {
       ) : (
         <div className="space-y-1">
           {space.threads.map((thread) => (
-            <div key={thread.id} className="flex items-center gap-2 px-3 py-2 rounded-lg bg-[var(--bg-secondary)] border border-[var(--border)] hover:border-[var(--accent)]/30 transition-colors group">
-              <MessageSquare className="w-3.5 h-3.5 text-[var(--text-muted)]" />
+            <button
+              key={thread.id}
+              onClick={() => setActiveThread(thread.id)}
+              className="w-full flex items-center gap-2 px-3 py-2 rounded-lg bg-[var(--bg-secondary)] border border-[var(--border)] hover:border-[var(--accent)]/30 transition-colors group text-left"
+            >
+              <MessageSquare className="w-3.5 h-3.5 text-[var(--text-muted)] flex-shrink-0" />
               <div className="flex-1 min-w-0">
                 <p className="text-xs text-[var(--text)] truncate">{thread.title}</p>
-                <p className="text-[10px] text-[var(--text-muted)]">{thread.messageCount} msgs</p>
+                <p className="text-[10px] text-[var(--text-muted)]">{thread.messageCount} msgs · {new Date(thread.lastActivity).toLocaleDateString()}</p>
               </div>
-              <ChevronRight className="w-3 h-3 text-[var(--text-muted)]" />
-            </div>
+              <button
+                onClick={(e) => { e.stopPropagation(); removeThread(space.id, thread.id); }}
+                className="p-0.5 text-[var(--text-muted)] hover:text-red-400 opacity-0 group-hover:opacity-100 transition-opacity"
+              >
+                <Trash2 className="w-3 h-3" />
+              </button>
+              <ChevronRight className="w-3 h-3 text-[var(--text-muted)] flex-shrink-0" />
+            </button>
           ))}
         </div>
       )}
@@ -321,7 +478,6 @@ function FilesTab({ space }: { space: Space }) {
         url: URL.createObjectURL(file),
       });
     }
-    // Reset input
     if (fileInputRef.current) fileInputRef.current.value = '';
   }, [space.id, addFile]);
 

@@ -50,12 +50,19 @@ export interface SpaceMember {
   avatar?: string;
 }
 
+export interface SpaceThreadMessage {
+  id: string;
+  role: 'user' | 'assistant' | 'system';
+  content: string;
+  timestamp: number;
+}
+
 export interface SpaceThread {
   id: string;
   title: string;
-  mode: 'ask' | 'computer';   // ask = chat, computer = agent task
   lastActivity: number;
   messageCount: number;
+  messages: SpaceThreadMessage[];
 }
 
 export interface Space {
@@ -106,8 +113,12 @@ interface SpaceState {
   setCustomInstructions: (spaceId: string, instructions: string) => void;
 
   // Threads
+  activeThreadId: string | null;
   addThread: (spaceId: string, thread: Omit<SpaceThread, 'id'>) => void;
   removeThread: (spaceId: string, threadId: string) => void;
+  setActiveThread: (threadId: string | null) => void;
+  addThreadMessage: (spaceId: string, threadId: string, message: Omit<SpaceThreadMessage, 'id' | 'timestamp'>) => void;
+  updateThreadTitle: (spaceId: string, threadId: string, title: string) => void;
 
   // Files
   addFile: (spaceId: string, file: Omit<SpaceFile, 'id' | 'uploadedAt'>) => void;
@@ -143,6 +154,7 @@ export const useSpaceStore = create<SpaceState>()(
     (set, get) => ({
       spaces: [],
       activeSpaceId: null,
+      activeThreadId: null,
 
       createSpace: (name, description, masterPrompt) => {
         const space: Space = {
@@ -220,13 +232,14 @@ export const useSpaceStore = create<SpaceState>()(
         })),
 
       addThread: (spaceId, thread) => {
-        const newThread = { ...thread, id: generateId() };
+        const newThread = { ...thread, id: generateId(), messages: thread.messages || [] };
         set((state) => ({
           spaces: state.spaces.map((s) =>
             s.id === spaceId
               ? { ...s, threads: [...s.threads, newThread], updatedAt: Date.now() }
               : s
           ),
+          activeThreadId: newThread.id,
         }));
       },
 
@@ -237,7 +250,45 @@ export const useSpaceStore = create<SpaceState>()(
               ? { ...s, threads: s.threads.filter((t) => t.id !== threadId), updatedAt: Date.now() }
               : s
           ),
+          activeThreadId: state.activeThreadId === threadId ? null : state.activeThreadId,
         })),
+
+      setActiveThread: (threadId) => set({ activeThreadId: threadId }),
+
+      addThreadMessage: (spaceId, threadId, message) => {
+        const newMsg: SpaceThreadMessage = { ...message, id: generateId(), timestamp: Date.now() };
+        set((state) => ({
+          spaces: state.spaces.map((s) =>
+            s.id === spaceId
+              ? {
+                  ...s,
+                  threads: s.threads.map((t) =>
+                    t.id === threadId
+                      ? { ...t, messages: [...t.messages, newMsg], messageCount: t.messageCount + 1, lastActivity: Date.now() }
+                      : t
+                  ),
+                  updatedAt: Date.now(),
+                }
+              : s
+          ),
+        }));
+      },
+
+      updateThreadTitle: (spaceId, threadId, title) => {
+        set((state) => ({
+          spaces: state.spaces.map((s) =>
+            s.id === spaceId
+              ? {
+                  ...s,
+                  threads: s.threads.map((t) =>
+                    t.id === threadId ? { ...t, title, lastActivity: Date.now() } : t
+                  ),
+                  updatedAt: Date.now(),
+                }
+              : s
+          ),
+        }));
+      },
 
       addFile: (spaceId, file) => {
         const newFile: SpaceFile = { ...file, id: generateId(), uploadedAt: Date.now() };
