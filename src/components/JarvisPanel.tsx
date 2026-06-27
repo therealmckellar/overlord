@@ -27,7 +27,6 @@ interface JarvisMessage {
 const JARVIS_SESSION = 'jarvis-voice';
 
 export function JarvisPanel() {
-  const addToast = useUIStore((s) => s.addToast);
   const selectedModel = useUIStore((s) => s.selectedModel);
   const [messages, setMessages] = useState<JarvisMessage[]>([]);
   const [isThinking, setIsThinking] = useState(false);
@@ -90,7 +89,6 @@ export function JarvisPanel() {
     // J3: Daily briefing — read today's journal + goals
     if (lowerCmd.includes('briefing') || lowerCmd.includes('daily') || lowerCmd.includes('morning')) {
       const briefingPrompt = `Give me a concise daily briefing. Consider: (1) What are the top priorities today? (2) What is the current status of ongoing work? (3) What should I focus on first? Be specific and actionable.`;
-      addToast({ type: 'info', message: 'Generating daily briefing...', duration: 2000 });
       setIsThinking(true);
       try {
         await sendChatMessage(briefingPrompt);
@@ -115,7 +113,7 @@ export function JarvisPanel() {
     } finally {
       setIsThinking(false);
     }
-  }, [addToast, sendChatMessage]);
+  }, [sendChatMessage]);
 
   // Watch message store for Jarvis responses — count-based so follow-ups work
   useEffect(() => {
