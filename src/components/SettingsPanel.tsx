@@ -81,19 +81,22 @@ export default function SettingsPanel() {
 
   // Seed from server config on first load
   const seedFromServer = useConnectorStore((s) => s.seedFromServer);
+  const [oauthConnections, setOauthConnections] = useState<Array<{ id: string; name: string; service: string; clientId: string; status: string; authUrl?: string; source: string }>>([]);
+  const [integrations, setIntegrations] = useState<Array<{ id: string; name: string; service: string; status: string; config: Record<string, string>; source: string }>>([]);
+
   useEffect(() => {
     const seeded = sessionStorage.getItem('overlord-config-seeded');
-    if (!seeded) {
-      fetch('/api/config')
-        .then((r) => r.json())
-        .then((data) => {
-          if (data.success && data.data) {
-            seedFromServer(data.data.apiKeys || [], data.data.mcpServers || []);
-            sessionStorage.setItem('overlord-config-seeded', 'true');
-          }
-        })
-        .catch(() => {}); // ignore errors if endpoint not available
-    }
+    fetch('/api/config')
+      .then((r) => r.json())
+      .then((data) => {
+        if (data.success && data.data) {
+          seedFromServer(data.data.apiKeys || [], data.data.mcpServers || []);
+          setOauthConnections(data.data.oauthConnections || []);
+          setIntegrations(data.data.integrations || []);
+          sessionStorage.setItem('overlord-config-seeded', 'true');
+        }
+      })
+      .catch(() => {});
   }, [seedFromServer]);
 
   // API Key form
@@ -384,6 +387,60 @@ export default function SettingsPanel() {
           </div>
         )}
 
+        {/* OAUTH CONNECTIONS SECTION */}
+        {activeSection === 'oauth' && (
+          <div>
+            <h3 style={{ margin: '0 0 4px', fontSize: '18px', fontWeight: 700, color: 'var(--text)' }}>🔐 OAuth Connections</h3>
+            <p style={{ margin: '0 0 20px', fontSize: '13px', color: 'var(--text-secondary)' }}>
+              Connect external accounts via OAuth. These are configured server-side via .env.
+            </p>
+
+            {oauthConnections.length === 0 ? (
+              <div style={emptyStateStyle}>
+                <p style={{ marginBottom: '8px' }}>No OAuth connections configured.</p>
+                <p style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
+                  Add client IDs and secrets to .env to enable Google, GitHub, Discord, Slack, or X connections.
+                </p>
+                <div style={{ marginTop: '16px', display: 'flex', gap: '8px', flexWrap: 'wrap', justifyContent: 'center' }}>
+                  {['Google', 'GitHub', 'Discord', 'Slack', 'X'].map((s) => (
+                    <span key={s} style={{ padding: '4px 10px', borderRadius: '4px', background: 'var(--bg-tertiary)', border: '1px solid var(--border)', fontSize: '11px', color: 'var(--text-muted)' }}>{s}</span>
+                  ))}
+                </div>
+              </div>
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                {oauthConnections.map((conn) => (
+                  <div key={conn.id} style={{ ...cardStyle, border: '1px solid var(--accent)' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                      <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: conn.status === 'configured' ? 'var(--success)' : 'var(--error)', flexShrink: 0 }} />
+                      <div style={{ flex: 1 }}>
+                        <div style={{ fontSize: '14px', fontWeight: 600, color: 'var(--text)', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                          {conn.name}
+                          <span style={{ fontSize: '10px', padding: '2px 6px', borderRadius: '3px', background: 'var(--accent)', color: '#fff', fontWeight: 500 }}>env</span>
+                        </div>
+                        <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
+                          Client ID: {conn.clientId}
+                        </div>
+                      </div>
+                      {conn.authUrl && (
+                        <button
+                          onClick={() => window.location.href = conn.authUrl!}
+                          style={{ ...btnSmallStyle, background: 'var(--success)' }}
+                        >
+                          Connect
+                        </button>
+                      )}
+                      <span style={{ fontSize: '11px', padding: '4px 8px', borderRadius: '4px', background: conn.status === 'configured' ? 'var(--success)15' : 'var(--error)15', color: conn.status === 'configured' ? 'var(--success)' : 'var(--error)', fontWeight: 600 }}>
+                        {conn.status === 'configured' ? '✓ Ready' : 'Not connected'}
+                      </span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+
         {/* MCP SERVERS SECTION */}
         {activeSection === 'mcp' && (
           <div>
@@ -490,6 +547,51 @@ export default function SettingsPanel() {
         )}
 
         {/* MODEL DEFAULTS SECTION */}
+        {/* INTEGRATIONS SECTION */}
+        {activeSection === 'integrations' && (
+          <div>
+            <h3 style={{ margin: '0 0 4px', fontSize: '18px', fontWeight: 700, color: 'var(--text)' }}>🔗 Integrations</h3>
+            <p style={{ margin: '0 0 20px', fontSize: '13px', color: 'var(--text-secondary)' }}>
+              Third-party services and platforms connected via API keys or OAuth.
+            </p>
+
+            {integrations.length === 0 ? (
+              <div style={emptyStateStyle}>
+                <p style={{ marginBottom: '8px' }}>No integrations detected from server config.</p>
+                <p style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
+                  Add API keys to .env for Cloudflare, Notion, Airtable, Firecrawl, etc.
+                </p>
+              </div>
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                {integrations.map((integ) => (
+                  <div key={integ.id} style={{ ...cardStyle, border: '1px solid var(--accent)' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                      <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: 'var(--success)', flexShrink: 0 }} />
+                      <div style={{ flex: 1 }}>
+                        <div style={{ fontSize: '14px', fontWeight: 600, color: 'var(--text)', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                          {integ.name}
+                          <span style={{ fontSize: '10px', padding: '2px 6px', borderRadius: '3px', background: 'var(--accent)', color: '#fff', fontWeight: 500 }}>env</span>
+                        </div>
+                        {Object.keys(integ.config).length > 0 && (
+                          <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '4px', display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
+                            {Object.entries(integ.config).map(([k, v]) => (
+                              <span key={k}>{k}: <code style={{ background: 'var(--bg-tertiary)', padding: '1px 4px', borderRadius: '3px' }}>{v}</code></span>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                      <span style={{ fontSize: '11px', padding: '4px 8px', borderRadius: '4px', background: 'var(--success)15', color: 'var(--success)', fontWeight: 600 }}>
+                        ✓ Configured
+                      </span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+
         {activeSection === 'models' && (
           <div>
             <h3 style={{ margin: '0 0 4px', fontSize: '18px', fontWeight: 700, color: 'var(--text)' }}>🧠 Model Configuration</h3>
