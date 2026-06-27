@@ -118,6 +118,7 @@ interface SpaceState {
   removeThread: (spaceId: string, threadId: string) => void;
   setActiveThread: (threadId: string | null) => void;
   addThreadMessage: (spaceId: string, threadId: string, message: Omit<SpaceThreadMessage, 'id' | 'timestamp'>) => void;
+  removeThreadMessage: (spaceId: string, threadId: string, messageId: string) => void;
   updateThreadTitle: (spaceId: string, threadId: string, title: string) => void;
 
   // Files
@@ -265,6 +266,24 @@ export const useSpaceStore = create<SpaceState>()(
                   threads: s.threads.map((t) =>
                     t.id === threadId
                       ? { ...t, messages: [...t.messages, newMsg], messageCount: t.messageCount + 1, lastActivity: Date.now() }
+                      : t
+                  ),
+                  updatedAt: Date.now(),
+                }
+              : s
+          ),
+        }));
+      },
+
+      removeThreadMessage: (spaceId, threadId, messageId) => {
+        set((state) => ({
+          spaces: state.spaces.map((s) =>
+            s.id === spaceId
+              ? {
+                  ...s,
+                  threads: s.threads.map((t) =>
+                    t.id === threadId
+                      ? { ...t, messages: t.messages.filter((m) => m.id !== messageId), messageCount: Math.max(0, t.messageCount - 1) }
                       : t
                   ),
                   updatedAt: Date.now(),

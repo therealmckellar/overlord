@@ -252,27 +252,175 @@ function ThreadChatView({ space, thread }: { space: Space; thread: SpaceThread }
   const setActiveThread = useSpaceStore((s) => s.setActiveThread);
   const addThreadMessage = useSpaceStore((s) => s.addThreadMessage);
   const updateThreadTitle = useSpaceStore((s) => s.updateThreadTitle);
+  const setSpaceModel = useSpaceStore((s) => s.setSpaceModel);
   const [input, setInput] = useState('');
+  const [isStreaming, setIsStreaming] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const abortRef = useRef<AbortController | null>(null);
 
   // Auto-scroll on new messages
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [thread.messages.length]);
 
-  const handleSend = () => {
-    if (!input.trim()) return;
+  // Clean up abort on unmount
+  useEffect(() => {
+    return () => { abortRef.current?.abort(); };
+  }, []);
 
-    // Add user message
-    addThreadMessage(space.id, thread.id, { role: 'user', content: input.trim() });
+  const handleSend = async () => {
+    if (!input.trim() || isStreaming) return;
+
+    const userContent = input.trim();
+    setInput('');
+    setIsStreaming(true);
+
+    // Add user message to store
+    addThreadMessage(space.id, thread.id, { role: 'user', content: userContent });
 
     // Auto-title on first user message
     if (thread.messageCount === 0) {
-      const title = summarizeTitle(input.trim());
+      const title = summarizeTitle(userContent);
       updateThreadTitle(space.id, thread.id, title);
     }
 
-    setInput('');
+    // Create a temporary assistant message ID that we'll stream into
+    const assistantMsgId = Math.random().toString(36).substr(2, 9) + Date.now().toString(36);
+    addThreadMessage(space.id, thread.id, { role: 'assistant', content: '' });
+
+    // Build system prompt from space master prompt + custom instructions
+    const systemPrompt = [space.masterPrompt.trim(), space.customInstructions.trim()].filter(Boolean).join('\n\n');
+
+    // Build message history for API
+    const allMessages = [...thread.messages, { role: 'user', content: userContent }];
+
+    // Call chat API with streaming
+    const controller = new AbortController();
+    abortRef.current = controller;
+
+    try {
+      const response = await fetch('/api/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          messages: allMessages.map((m) => ({ sender: { role: m.role }, content: m.content })),
+          model: space.model,
+          systemPrompt: systemPrompt || undefined,
+        }),
+        signal: controller.signal,
+      });
+
+      if (!response.ok) {
+        const errText = await response.text();
+        console.error('Chat API error:', response.status, errText);
+        // Update the assistant message with error
+        // (we can't easily update by ID in the store, so we add an error message)
+        addThreadMessage(space.id, thread.id, {
+          role: 'assistant',
+          content: `⚠️ Error: Failed to get response from AI (${response.status}). Please check your API key configuration.`,
+        });
+        setIsStreaming(false);
+        return;
+      }
+
+      // Read the SSE stream
+      const reader = response.body?.getReader();
+      if (!reader) {
+        addThreadMessage(space.id, thread.id, {
+          role: 'assistant',
+          content: '⚠️ Error: No response stream received.',
+        });
+        setIsStreaming(false);
+        return;
+      }
+
+      const decoder = new TextDecoder();
+      let accumulated = '';
+
+      // Stream the assistant response character by character
+      // We use a local state trick: we'll update the last message in the store
+      // by removing it and re-adding with updated content
+      const streamMessages = [...thread.messages];
+      const baseMessageCount = streamMessages.length; // includes the empty assistant msg we added
+
+      // Remove the empty assistant message — we'll re-add with content
+      useSpaceStore.getState().removeThreadMessage?.(space.id, thread.id, assistantMsgId);
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        const chunk = decoder.decode(value, { stream: true });
+        const lines = chunk.split('\n');
+
+        for (const line of lines) {
+          if (!line.startsWith('data: ')) continue;
+          const data = line.slice(6).trim();
+          if (data === '[DONE]') break;
+
+          try {
+            const parsed = JSON.parse(data);
+            if (parsed.event === 'chunk') {
+              accumulated += parsed.content;
+              // Update the store's last message by re-adding
+              // We'll just accumulate locally for performance, then flush
+              if (accumulated.length % 3 === 0 || accumulated.length < 50) {
+                // Update: remove last assistant msg and add updated one
+                const currentThread = useSpaceStore.getState().spaces
+                  .find(s => s.id === space.id)
+                  ?.threads.find(t => t.id === thread.id);
+                if (currentThread) {
+                  const msgs = currentThread.messages;
+                  // Find and update the last assistant message
+                  const lastIdx = msgs.length - 1;
+                  if (lastIdx >= 0 && msgs[lastIdx].role === 'assistant') {
+                    useSpaceStore.getState().removeThreadMessage?.(space.id, thread.id, msgs[lastIdx].id);
+                    useSpaceStore.getState().addThreadMessage(space.id, thread.id, {
+                      role: 'assistant',
+                      content: accumulated,
+                    });
+                  }
+                }
+              }
+            }
+          } catch {
+            // Skip malformed
+          }
+        }
+      }
+
+      // Final flush — ensure all accumulated content is saved
+      const currentThread = useSpaceStore.getState().spaces
+        .find(s => s.id === space.id)
+        ?.threads.find(t => t.id === thread.id);
+      if (currentThread && accumulated) {
+        const msgs = currentThread.messages;
+        const lastIdx = msgs.length - 1;
+        if (lastIdx >= 0 && msgs[lastIdx].role === 'assistant' && msgs[lastIdx].content !== accumulated) {
+          useSpaceStore.getState().removeThreadMessage?.(space.id, thread.id, msgs[lastIdx].id);
+          useSpaceStore.getState().addThreadMessage(space.id, thread.id, {
+            role: 'assistant',
+            content: accumulated,
+          });
+        }
+      }
+
+      setIsStreaming(false);
+      abortRef.current = null;
+    } catch (err: any) {
+      if (err.name === 'AbortError') return; // user cancelled
+      console.error('Stream error:', err);
+      addThreadMessage(space.id, thread.id, {
+        role: 'assistant',
+        content: '⚠️ Error: Stream interrupted. Please try again.',
+      });
+      setIsStreaming(false);
+    }
+  };
+
+  const handleStop = () => {
+    abortRef.current?.abort();
+    setIsStreaming(false);
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
@@ -287,7 +435,7 @@ function ThreadChatView({ space, thread }: { space: Space; thread: SpaceThread }
       {/* Thread header */}
       <div className="px-4 py-2 border-b border-[var(--border)] bg-[var(--bg-secondary)] flex items-center gap-3">
         <button
-          onClick={() => setActiveThread(null)}
+          onClick={() => { abortRef.current?.abort(); setActiveThread(null); }}
           className="p-1 rounded-md hover:bg-[var(--bg-tertiary)] text-[var(--text-muted)] hover:text-[var(--text)] transition-colors"
         >
           <ArrowLeft className="w-4 h-4" />
@@ -296,7 +444,7 @@ function ThreadChatView({ space, thread }: { space: Space; thread: SpaceThread }
           <h3 className="text-xs font-semibold text-[var(--text)] truncate">{thread.title}</h3>
           <p className="text-[10px] text-[var(--text-muted)]">{thread.messageCount} messages</p>
         </div>
-        <InlineModelSelector value={space.model} onChange={(v) => useSpaceStore.getState().setSpaceModel(space.id, v)} />
+        <InlineModelSelector value={space.model} onChange={(v) => setSpaceModel(space.id, v)} />
       </div>
 
       {/* Messages */}
@@ -327,7 +475,7 @@ function ThreadChatView({ space, thread }: { space: Space; thread: SpaceThread }
                   <span className="text-[10px] font-medium text-[var(--accent)]">Assistant</span>
                 </div>
               )}
-              <p className="whitespace-pre-wrap">{msg.content}</p>
+              <p className="whitespace-pre-wrap">{msg.content || (isStreaming && msg.role === 'assistant' ? '●●●' : '')}</p>
               <p className={`text-[9px] mt-1 ${msg.role === 'user' ? 'text-white/60' : 'text-[var(--text-muted)]'}`}>
                 {new Date(msg.timestamp).toLocaleTimeString()}
               </p>
@@ -339,7 +487,8 @@ function ThreadChatView({ space, thread }: { space: Space; thread: SpaceThread }
           <div className="flex-1 flex items-center justify-center h-full">
             <div className="text-center">
               <MessageSquare className="w-8 h-8 text-[var(--text-muted)] mx-auto mb-2" />
-              <p className="text-xs text-[var(--text-muted)]">Start a conversation</p>
+              <p className="text-xs text-[var(--text-muted)]">Start a conversation with {space.model}</p>
+              <p className="text-[10px] text-[var(--text-muted)] mt-1">Using {space.provider} provider</p>
             </div>
           </div>
         )}
@@ -354,18 +503,30 @@ function ThreadChatView({ space, thread }: { space: Space; thread: SpaceThread }
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={handleKeyDown}
-            placeholder="Type a message... (Enter to send, Shift+Enter for new line)"
-            rows={1}
+            placeholder="Send a message to the AI... (Enter to send, Shift+Enter for new line)"
+            rows={isStreaming ? 2 : 1}
             className="flex-1 bg-[var(--bg)] border border-[var(--border)] rounded-lg px-3 py-2 text-sm text-[var(--text)] placeholder:text-[var(--text-muted)]/50 focus:outline-none focus:ring-1 focus:ring-[var(--accent)] resize-none min-h-[36px] max-h-[120px]"
           />
-          <button
-            onClick={handleSend}
-            disabled={!input.trim()}
-            className="p-2 rounded-lg bg-[var(--accent)] text-white hover:opacity-90 disabled:opacity-50 transition-opacity"
-          >
-            <Send className="w-4 h-4" />
-          </button>
+          {isStreaming ? (
+            <button
+              onClick={handleStop}
+              className="p-2 rounded-lg bg-red-500 text-white hover:bg-red-600 transition-colors"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          ) : (
+            <button
+              onClick={handleSend}
+              disabled={!input.trim()}
+              className="p-2 rounded-lg bg-[var(--accent)] text-white hover:opacity-90 disabled:opacity-50 transition-opacity"
+            >
+              <Send className="w-4 h-4" />
+            </button>
+          )}
         </div>
+        {isStreaming && (
+          <p className="text-[10px] text-[var(--text-muted)] mt-1">Streaming response... Click ■ to stop</p>
+        )}
       </div>
     </div>
   );

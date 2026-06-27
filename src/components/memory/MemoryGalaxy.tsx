@@ -210,6 +210,34 @@ export function MemoryGalaxy({ isOpen, onClose }: MemoryGalaxyProps) {
     }
   }, [isOpen, viewMode, loadGraph]);
 
+  // ─── Slide generation ─────────────────────────────────────────────────────
+
+  const [slidingId, setSlidingId] = useState<string | null>(null);
+  const [slideUrl, setSlideUrl] = useState<string | null>(null);
+
+  const handleSlide = useCallback(async (memoryId: string) => {
+    setSlidingId(memoryId);
+    setSlideUrl(null);
+    try {
+      const res = await fetch('/api/slide', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ memoryId, format: 'html' }),
+      });
+      const data = await res.json();
+      if (data.success && data.htmlUrl) {
+        setSlideUrl(data.htmlUrl);
+        addToast({ type: 'success', message: 'Slide deck generated!' });
+      } else {
+        addToast({ type: 'error', message: data.error || 'Failed to generate slide' });
+      }
+    } catch {
+      addToast({ type: 'error', message: 'Network error generating slide' });
+    } finally {
+      setSlidingId(null);
+    }
+  }, [addToast]);
+
   // ─── Canvas rendering ─────────────────────────────────────────────────────
 
   useEffect(() => {
@@ -527,6 +555,8 @@ export function MemoryGalaxy({ isOpen, onClose }: MemoryGalaxyProps) {
                     onToggle={() => setExpandedId(expandedId === mem.id ? null : mem.id)}
                     onPin={() => togglePin(mem)}
                     onDelete={() => handleDelete(mem.id)}
+                    onSlide={() => handleSlide(mem.id)}
+                    isSliding={slidingId === mem.id}
                   />
                 ))
               )}
@@ -611,6 +641,38 @@ export function MemoryGalaxy({ isOpen, onClose }: MemoryGalaxyProps) {
           )}
         </div>
       </div>
+
+      {/* Slide Preview Modal */}
+      {slideUrl && (
+        <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm">
+          <div className="relative w-[90%] h-[85%] rounded-xl overflow-hidden bg-white shadow-2xl flex flex-col">
+            <div className="flex items-center justify-between px-4 py-2 bg-gray-100 border-b">
+              <span className="text-sm font-medium text-gray-700">🎬 Slide Preview</span>
+              <div className="flex items-center gap-2">
+                <a
+                  href={slideUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="px-3 py-1 text-xs rounded bg-[var(--accent)] text-white hover:opacity-80 transition-opacity"
+                >
+                  Open Fullscreen
+                </a>
+                <button
+                  onClick={() => setSlideUrl(null)}
+                  className="px-3 py-1 text-xs rounded bg-gray-200 text-gray-600 hover:bg-gray-300 transition-colors"
+                >
+                  Close
+                </button>
+              </div>
+            </div>
+            <iframe
+              src={slideUrl}
+              className="flex-1 w-full border-0"
+              title="Slide Preview"
+            />
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -623,12 +685,16 @@ function MemoryCard({
   onToggle,
   onPin,
   onDelete,
+  onSlide,
+  isSliding,
 }: {
   memory: Memory;
   expanded: boolean;
   onToggle: () => void;
   onPin: () => void;
   onDelete: () => void;
+  onSlide: () => void;
+  isSliding: boolean;
 }) {
   return (
     <div className={`rounded-lg border ${memory.pinned ? 'border-[var(--accent)]' : 'border-[var(--border)]'} bg-[var(--bg-secondary)] overflow-hidden`}>
@@ -659,6 +725,14 @@ function MemoryCard({
       </button>
       {expanded && (
         <div className="px-4 py-2 border-t border-[var(--border)] flex items-center justify-end gap-2">
+          <button
+            onClick={onSlide}
+            disabled={isSliding}
+            className="p-1.5 rounded hover:bg-[var(--bg-tertiary)] text-[var(--text-muted)] hover:text-[#f59e0b] transition-colors disabled:opacity-50"
+            title="Generate slide deck from this memory"
+          >
+            {isSliding ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : <span className="text-sm">🎬</span>}
+          </button>
           <button
             onClick={onPin}
             className={`p-1.5 rounded hover:bg-[var(--bg-tertiary)] transition-colors ${memory.pinned ? 'text-[var(--accent)]' : 'text-[var(--text-muted)]'}`}
