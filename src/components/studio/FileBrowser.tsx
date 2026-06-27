@@ -80,8 +80,10 @@ export function FileBrowser({ isOpen, onClose }: FileBrowserProps) {
   }, [navigateToFolder]);
 
   const navigateUp = useCallback(() => {
-    if (!currentPath || currentPath === os_homedir) return;
-    const parent = currentPath.split('/').slice(0, -1).join('/');
+    if (!currentPath) return;
+    const parts = currentPath.split('/');
+    if (parts.length <= 1) return;
+    const parent = parts.slice(0, -1).join('/');
     if (parent) {
       loadDirectory(parent || undefined);
     }
@@ -172,7 +174,7 @@ export function FileBrowser({ isOpen, onClose }: FileBrowserProps) {
           </button>
           <button
             onClick={navigateUp}
-            disabled={!currentPath || currentPath === '~'}
+            disabled={!currentPath}
             className="p-1 rounded hover:bg-[var(--bg-tertiary)] text-[var(--text-muted)] disabled:opacity-30"
             title="Go up one level"
           >
@@ -260,11 +262,6 @@ export function FileBrowser({ isOpen, onClose }: FileBrowserProps) {
 }
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
-
-function os_homedir(): string {
-  // Simple approximation for display
-  return '~';
-}
 
 function filterTree(nodes: FileNode[], query: string): FileNode[] {
   return nodes.reduce<FileNode[]>((acc, node) => {
