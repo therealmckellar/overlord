@@ -91,7 +91,7 @@ interface SpaceState {
   activeSpaceId: string | null;
 
   // Actions
-  createSpace: (name: string, description?: string) => Space;
+  createSpace: (name: string, description?: string, masterPrompt?: string) => Space;
   updateSpace: (id: string, updates: Partial<Space>) => void;
   deleteSpace: (id: string) => void;
   setActiveSpace: (id: string | null) => void;
@@ -144,12 +144,12 @@ export const useSpaceStore = create<SpaceState>()(
       spaces: [],
       activeSpaceId: null,
 
-      createSpace: (name, description) => {
+      createSpace: (name, description, masterPrompt) => {
         const space: Space = {
           id: generateId(),
           name,
           description: description || '',
-          masterPrompt: '',
+          masterPrompt: masterPrompt || '',
           customInstructions: '',
           model: '',
           provider: '',

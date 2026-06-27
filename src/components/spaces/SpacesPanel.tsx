@@ -36,6 +36,7 @@ export function SpacesPanel() {
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [newSpaceName, setNewSpaceName] = useState('');
   const [newSpaceDesc, setNewSpaceDesc] = useState('');
+  const [newSpaceMasterPrompt, setNewSpaceMasterPrompt] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
 
   const activeSpace = spaces.find((s) => s.id === activeSpaceId) || null;
@@ -46,12 +47,13 @@ export function SpacesPanel() {
 
   const handleCreate = useCallback(() => {
     if (!newSpaceName.trim()) return;
-    const space = createSpace(newSpaceName.trim(), newSpaceDesc.trim());
+    const space = createSpace(newSpaceName.trim(), newSpaceDesc.trim(), newSpaceMasterPrompt.trim());
     setActiveSpace(space.id);
     setShowCreateModal(false);
     setNewSpaceName('');
     setNewSpaceDesc('');
-  }, [newSpaceName, newSpaceDesc, createSpace, setActiveSpace]);
+    setNewSpaceMasterPrompt('');
+  }, [newSpaceName, newSpaceDesc, newSpaceMasterPrompt, createSpace, setActiveSpace]);
 
   return (
     <div className="flex h-full bg-[var(--bg)]">
@@ -145,6 +147,10 @@ export function SpacesPanel() {
               <label className="block text-xs font-medium text-[var(--text-muted)] mb-1">Description</label>
               <input type="text" value={newSpaceDesc} onChange={(e) => setNewSpaceDesc(e.target.value)} placeholder="What is this space for?" className="w-full bg-[var(--bg)] border border-[var(--border)] rounded-lg px-3 py-2 text-sm text-[var(--text)] focus:outline-none focus:ring-1 focus:ring-[var(--accent)]" />
             </div>
+            <div>
+              <label className="block text-xs font-medium text-[var(--text-muted)] mb-1">Master Prompt</label>
+              <textarea value={newSpaceMasterPrompt} onChange={(e) => setNewSpaceMasterPrompt(e.target.value)} placeholder="System prompt for every chat in this space..." rows={4} className="w-full bg-[var(--bg)] border border-[var(--border)] rounded-lg px-3 py-2 text-sm text-[var(--text)] font-mono focus:outline-none focus:ring-1 focus:ring-[var(--accent)] resize-none" />
+            </div>
             <div className="flex justify-end gap-2">
               <button onClick={() => setShowCreateModal(false)} className="px-3 py-1.5 text-xs rounded-lg bg-[var(--bg-tertiary)] text-[var(--text-secondary)] hover:text-[var(--text)]">Cancel</button>
               <button onClick={handleCreate} disabled={!newSpaceName.trim()} className="px-3 py-1.5 text-xs rounded-lg bg-[var(--accent)] text-white hover:opacity-90 disabled:opacity-50">Create</button>
@@ -224,15 +230,16 @@ function SpaceDetail({ space }: { space: Space }) {
 function ThreadsTab({ space }: { space: Space }) {
   const addThread = useSpaceStore((s) => s.addThread);
   const removeThread = useSpaceStore((s) => s.removeThread);
-  const setSelectedModel = useUIStore((s) => s.setSelectedModel);
-  const [modeFilter, setModeFilter] = useState<'all' | 'ask' | 'computer'>('all');
+  const setCustomInstructions = useSpaceStore((s) => s.setCustomInstructions);
 
-  const filtered = modeFilter === 'all' ? space.threads : space.threads.filter((t) => t.mode === modeFilter);
-
-  const handleNewThread = (mode: 'ask' | 'computer') => {
+  const handleNewThread = () => {
+    // Inject master prompt into custom instructions if set
+    if (space.masterPrompt.trim()) {
+      setCustomInstructions(space.id, space.masterPrompt.trim());
+    }
     addThread(space.id, {
-      title: mode === 'ask' ? 'New Chat' : 'New Agent Task',
-      mode,
+      title: 'New Chat',
+      mode: 'ask',
       lastActivity: Date.now(),
       messageCount: 0,
     });
@@ -240,40 +247,36 @@ function ThreadsTab({ space }: { space: Space }) {
 
   return (
     <div className="p-4 space-y-3">
+      {/* Master Prompt banner */}
+      {space.masterPrompt.trim() && (
+        <div className="px-3 py-2 rounded-lg bg-[var(--accent)]/5 border border-[var(--accent)]/20">
+          <div className="flex items-center gap-1.5 mb-1">
+            <Bot className="w-3 h-3 text-[var(--accent)]" />
+            <span className="text-[10px] font-semibold text-[var(--accent)] uppercase tracking-wider">Master Prompt</span>
+          </div>
+          <p className="text-xs text-[var(--text-secondary)] line-clamp-2">{space.masterPrompt}</p>
+        </div>
+      )}
+
       <div className="flex items-center justify-between">
-        <div className="flex gap-1">
-          {(['all', 'ask', 'computer'] as const).map((mode) => (
-            <button
-              key={mode}
-              onClick={() => setModeFilter(mode)}
-              className={`px-2 py-1 text-[10px] rounded-full transition-colors capitalize ${
-                modeFilter === mode ? 'bg-[var(--accent)] text-white' : 'bg-[var(--bg-tertiary)] text-[var(--text-muted)] hover:text-[var(--text)]'
-              }`}
-            >
-              {mode === 'ask' ? '💬 Ask' : mode === 'computer' ? '🤖 Computer' : 'All'}
-            </button>
-          ))}
-        </div>
-        <div className="flex gap-1">
-          <button onClick={() => handleNewThread('ask')} className="px-2 py-1 text-[10px] rounded-md bg-[var(--accent)] text-white hover:opacity-90 flex items-center gap-1">
-            <MessageSquare className="w-3 h-3" /> Ask
-          </button>
-          <button onClick={() => handleNewThread('computer')} className="px-2 py-1 text-[10px] rounded-md bg-[var(--bg-tertiary)] text-[var(--text-secondary)] hover:text-[var(--text)] flex items-center gap-1">
-            <Bot className="w-3 h-3" /> Computer
-          </button>
-        </div>
+        <span className="text-[10px] font-semibold text-[var(--text-muted)] uppercase tracking-wider">
+          {space.threads.length} Thread{space.threads.length !== 1 ? 's' : ''}
+        </span>
+        <button onClick={handleNewThread} className="px-2.5 py-1.5 text-[10px] rounded-md bg-[var(--accent)] text-white hover:opacity-90 flex items-center gap-1">
+          <MessageSquare className="w-3 h-3" /> New Chat
+        </button>
       </div>
 
-      {filtered.length === 0 ? (
+      {space.threads.length === 0 ? (
         <div className="text-center py-8">
           <MessageSquare className="w-6 h-6 text-[var(--text-muted)] mx-auto mb-2" />
           <p className="text-xs text-[var(--text-muted)]">No threads yet</p>
         </div>
       ) : (
         <div className="space-y-1">
-          {filtered.map((thread) => (
+          {space.threads.map((thread) => (
             <div key={thread.id} className="flex items-center gap-2 px-3 py-2 rounded-lg bg-[var(--bg-secondary)] border border-[var(--border)] hover:border-[var(--accent)]/30 transition-colors group">
-              {thread.mode === 'ask' ? <MessageSquare className="w-3.5 h-3.5 text-[var(--text-muted)]" /> : <Bot className="w-3.5 h-3.5 text-[var(--accent)]" />}
+              <MessageSquare className="w-3.5 h-3.5 text-[var(--text-muted)]" />
               <div className="flex-1 min-w-0">
                 <p className="text-xs text-[var(--text)] truncate">{thread.title}</p>
                 <p className="text-[10px] text-[var(--text-muted)]">{thread.messageCount} msgs</p>
@@ -376,38 +379,72 @@ function FilesTab({ space }: { space: Space }) {
 
 function InstructionsTab({ space }: { space: Space }) {
   const setCustomInstructions = useSpaceStore((s) => s.setCustomInstructions);
+  const setMasterPrompt = useSpaceStore((s) => s.setMasterPrompt);
   const [instructions, setInstructions] = useState(space.customInstructions);
-  const [saved, setSaved] = useState(false);
+  const [masterPrompt, setMasterPromptLocal] = useState(space.masterPrompt);
+  const [saved, setSaved] = useState<'instructions' | 'master' | null>(null);
 
-  const handleSave = () => {
+  const handleSaveInstructions = () => {
     setCustomInstructions(space.id, instructions);
-    setSaved(true);
-    setTimeout(() => setSaved(false), 2000);
+    setSaved('instructions');
+    setTimeout(() => setSaved(null), 2000);
+  };
+
+  const handleSaveMasterPrompt = () => {
+    setMasterPrompt(space.id, masterPrompt);
+    setSaved('master');
+    setTimeout(() => setSaved(null), 2000);
   };
 
   return (
-    <div className="p-4 space-y-3">
+    <div className="p-4 space-y-5">
+      {/* Master Prompt */}
       <div>
-        <h3 className="text-xs font-semibold text-[var(--text)] mb-1">Custom AI Instructions</h3>
-        <p className="text-[10px] text-[var(--text-muted)]">
-          These instructions are automatically prepended to every conversation started in this space. Use them to set the assistant&apos;s tone, domain knowledge, or reasoning style.
+        <h3 className="text-xs font-semibold text-[var(--text)] mb-1">Master Prompt</h3>
+        <p className="text-[10px] text-[var(--text-muted)] mb-2">
+          The master prompt is automatically injected at the start of every conversation in this space. It defines the assistant&apos;s role, expertise, and constraints.
         </p>
+        <textarea
+          value={masterPrompt}
+          onChange={(e) => setMasterPromptLocal(e.target.value)}
+          rows={6}
+          placeholder="e.g. You are a commercial lending expert for My Commercial Funding. Always ask about annual revenue, time in business, and use of funds before recommending a product. Never mention HELOC products. Focus on MCA, Business LOC, Equipment Financing, Working Capital, and SBA loans."
+          className="w-full bg-[var(--bg)] border border-[var(--border)] rounded-lg px-3 py-2 text-sm text-[var(--text)] font-mono focus:outline-none focus:ring-1 focus:ring-[var(--accent)] resize-none"
+        />
+        <button
+          onClick={handleSaveMasterPrompt}
+          className={`mt-1.5 px-3 py-1.5 text-xs rounded-lg flex items-center gap-1 transition-colors ${
+            saved === 'master' ? 'bg-[var(--success)] text-white' : 'bg-[var(--accent)] text-white hover:opacity-90'
+          }`}
+        >
+          {saved === 'master' ? '✓ Saved' : 'Save Master Prompt'}
+        </button>
       </div>
-      <textarea
-        value={instructions}
-        onChange={(e) => setInstructions(e.target.value)}
-        rows={10}
-        placeholder="e.g. You are a commercial lending expert. Always ask about annual revenue, time in business, and use of funds before recommending a product. Never mention HELOC products."
-        className="w-full bg-[var(--bg)] border border-[var(--border)] rounded-lg px-3 py-2 text-sm text-[var(--text)] font-mono focus:outline-none focus:ring-1 focus:ring-[var(--accent)] resize-none"
-      />
-      <button
-        onClick={handleSave}
-        className={`px-3 py-1.5 text-xs rounded-lg flex items-center gap-1 transition-colors ${
-          saved ? 'bg-[var(--success)] text-white' : 'bg-[var(--accent)] text-white hover:opacity-90'
-        }`}
-      >
-        {saved ? '✓ Saved' : 'Save Instructions'}
-      </button>
+
+      <hr className="border-[var(--border)]" />
+
+      {/* Custom Instructions */}
+      <div>
+        <h3 className="text-xs font-semibold text-[var(--text)] mb-1">Custom Instructions</h3>
+        <p className="text-[10px] text-[var(--text-muted)] mb-2">
+          Supplementary instructions appended after the master prompt. Use for additional tone, formatting, or behavioral preferences.
+        </p>
+        <textarea
+          value={instructions}
+          onChange={(e) => setInstructions(e.target.value)}
+          rows={6}
+          placeholder="e.g. Always respond in bullet points. Use short sentences. Never use emojis."
+          className="w-full bg-[var(--bg)] border border-[var(--border)] rounded-lg px-3 py-2 text-sm text-[var(--text)] font-mono focus:outline-none focus:ring-1 focus:ring-[var(--accent)] resize-none"
+        />
+        <button
+          onClick={handleSaveInstructions}
+          className={`mt-1.5 px-3 py-1.5 text-xs rounded-lg flex items-center gap-1 transition-colors ${
+            saved === 'instructions' ? 'bg-[var(--success)] text-white' : 'bg-[var(--accent)] text-white hover:opacity-90'
+          }`}
+        >
+          {saved === 'instructions' ? '✓ Saved' : 'Save Instructions'}
+        </button>
+      </div>
     </div>
   );
 }
