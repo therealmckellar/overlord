@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useCallback, useEffect } from 'react';
+import React, { useState, useCallback, useEffect, useRef } from 'react';
 import { useUIStore } from '@/stores/uiStore';
 import { useMessageStore } from '@/stores/messageStore';
 import { useChatStream } from '@/hooks/useChatStream';
@@ -30,6 +30,7 @@ export function JarvisPanel() {
   const selectedModel = useUIStore((s) => s.selectedModel);
   const [messages, setMessages] = useState<JarvisMessage[]>([]);
   const [isThinking, setIsThinking] = useState(false);
+  const processedCountRef = useRef(0);
 
   const { sendMessage: sendChatMessage } = useChatStream({
     sessionId: JARVIS_SESSION,
@@ -115,33 +116,26 @@ export function JarvisPanel() {
     }
   }, [sendChatMessage]);
 
-  // Watch message store for Jarvis responses — count-based so follow-ups work
+  // Watch message store for Jarvis responses — uses ref to avoid infinite loop
   useEffect(() => {
     const interval = setInterval(() => {
       const storeMsgs = useMessageStore.getState().messagesBySession[JARVIS_SESSION] || [];
       const assistantMsgs = storeMsgs.filter((m) => m.sender.role === 'assistant');
-      const localJarvisCount = messages.filter((m) => m.type === 'jarvis' && m.text !== 'Jarvis processing...').length;
 
-      if (assistantMsgs.length > localJarvisCount) {
-        // Find unseen assistant messages
-        const displayedContent = new Set(
-          messages.filter(m => m.type === 'jarvis').map(m => m.text)
-        );
-
-        for (let i = assistantMsgs.length - 1; i >= 0; i--) {
+      if (assistantMsgs.length > processedCountRef.current) {
+        // Find unseen assistant messages starting from last processed index
+        for (let i = processedCountRef.current; i < assistantMsgs.length; i++) {
           const msg = assistantMsgs[i];
-          if (!displayedContent.has(msg.content)) {
-            setMessages(prev => [
-              ...prev,
-              { id: `jarvis-${Date.now()}-${i}`, type: 'jarvis', text: msg.content, timestamp: new Date() },
-            ]);
-            break;
-          }
+          setMessages(prev => [
+            ...prev,
+            { id: `jarvis-${Date.now()}-${i}`, type: 'jarvis', text: msg.content, timestamp: new Date() },
+          ]);
         }
+        processedCountRef.current = assistantMsgs.length;
       }
     }, 300);
     return () => clearInterval(interval);
-  }, [messages]);
+  }, []);
 
   const { isListening, isSpeaking, isSupported, transcript, lastCommand, toggle, speak } = useJarvis(handleCommand);
 
