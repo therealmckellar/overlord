@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useUIStore } from '@/stores/uiStore';
 import { useConnectorStore, type APIKey, type MCPServer, type WebhookEndpoint } from '@/stores/connectorStore';
 import { THEME_LIST, THEME_LABELS, getThemeCSSVars } from '@/utils/themes';
@@ -74,6 +74,23 @@ export default function SettingsPanel() {
   const [showAddKey, setShowAddKey] = useState(false);
   const [showAddMCP, setShowAddMCP] = useState(false);
   const [showAddWebhook, setShowAddWebhook] = useState(false);
+
+  // Seed from server config on first load
+  const seedFromServer = useConnectorStore((s) => s.seedFromServer);
+  useEffect(() => {
+    const seeded = sessionStorage.getItem('overlord-config-seeded');
+    if (!seeded) {
+      fetch('/api/config')
+        .then((r) => r.json())
+        .then((data) => {
+          if (data.success && data.data) {
+            seedFromServer(data.data.apiKeys || [], data.data.mcpServers || []);
+            sessionStorage.setItem('overlord-config-seeded', 'true');
+          }
+        })
+        .catch(() => {}); // ignore errors if endpoint not available
+    }
+  }, [seedFromServer]);
 
   // API Key form
   const [keyName, setKeyName] = useState('');
@@ -724,17 +741,21 @@ function APIKeyCard({ apiKey, onUpdate, onDelete, onTest }: {
   onTest: () => void;
 }) {
   const dotColor = STATUS_DOT[apiKey.status] || '#6b7280';
+  const isEnv = apiKey.id.startsWith('env_');
   return (
     <div style={{
       padding: '14px 16px',
       borderRadius: '8px',
-      border: '1px solid var(--border)',
-      background: 'var(--bg-secondary)',
+      border: isEnv ? '1px solid var(--accent)' : '1px solid var(--border)',
+      background: isEnv ? 'var(--accent)5' : 'var(--bg-secondary)',
     }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
         <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: dotColor, flexShrink: 0 }} />
         <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ fontSize: '14px', fontWeight: 600, color: 'var(--text)' }}>{apiKey.name}</div>
+          <div style={{ fontSize: '14px', fontWeight: 600, color: 'var(--text)', display: 'flex', alignItems: 'center', gap: '6px' }}>
+            {apiKey.name}
+            {isEnv && <span style={{ fontSize: '10px', padding: '2px 6px', borderRadius: '3px', background: 'var(--accent)', color: '#fff', fontWeight: 500 }}>env</span>}
+          </div>
           <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
             {apiKey.service} {apiKey.model && `· ${apiKey.model}`}
           </div>
@@ -761,17 +782,21 @@ function MCPCard({ server, onUpdate, onDelete, onTest }: {
   onTest: () => void;
 }) {
   const dotColor = STATUS_DOT[server.status] || '#6b7280';
+  const isEnv = server.id.startsWith('env_mcp_');
   return (
     <div style={{
       padding: '14px 16px',
       borderRadius: '8px',
-      border: '1px solid var(--border)',
-      background: 'var(--bg-secondary)',
+      border: isEnv ? '1px solid var(--accent)' : '1px solid var(--border)',
+      background: isEnv ? 'var(--accent)5' : 'var(--bg-secondary)',
     }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
         <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: dotColor, flexShrink: 0 }} />
         <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ fontSize: '14px', fontWeight: 600, color: 'var(--text)' }}>{server.name}</div>
+          <div style={{ fontSize: '14px', fontWeight: 600, color: 'var(--text)', display: 'flex', alignItems: 'center', gap: '6px' }}>
+            {server.name}
+            {isEnv && <span style={{ fontSize: '10px', padding: '2px 6px', borderRadius: '3px', background: 'var(--accent)', color: '#fff', fontWeight: 500 }}>env</span>}
+          </div>
           <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
             {server.transport.toUpperCase()} · {server.url}
           </div>

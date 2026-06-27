@@ -36,72 +36,7 @@ const generateId = () => `agent_${Date.now()}_${Math.random().toString(36).subst
 
 const now = Date.now();
 
-const SEED_AGENTS: MissionAgent[] = [
-  {
-    id: 'agent_active_1',
-    name: 'Builder',
-    status: 'running',
-    model: 'gpt-oss-120b',
-    task: 'Building Kanban board component',
-    context: '',
-    progress: 65,
-    startedAt: now - 120000,
-    lastHeartbeat: now - 5000,
-    logs: [
-      { id: 'l1', text: '[INFO] Starting task execution', timestamp: now - 120000, level: 'info' as const },
-      { id: 'l2', text: '[INFO] Loading kanbanStore.ts', timestamp: now - 110000, level: 'info' as const },
-      { id: 'l3', text: '[SUCCESS] Store created with 8 seed tasks', timestamp: now - 100000, level: 'success' as const },
-      { id: 'l4', text: '[INFO] Creating KanbanBoard component...', timestamp: now - 90000, level: 'info' as const },
-    ],
-    pid: 'proc_a1b2c3',
-  },
-  {
-    id: 'agent_active_2',
-    name: 'Explorer',
-    status: 'idle',
-    model: 'nex-n2-pro',
-    task: 'Awaiting assignment',
-    context: '',
-    progress: 0,
-    startedAt: 0,
-    lastHeartbeat: now - 30000,
-    logs: [],
-    pid: null,
-  },
-  {
-    id: 'agent_active_3',
-    name: 'Reviewer',
-    status: 'completed',
-    model: 'gpt-oss-120b',
-    task: 'Code review of AgentDesigner',
-    context: '',
-    progress: 100,
-    startedAt: now - 300000,
-    lastHeartbeat: now - 60000,
-    logs: [
-      { id: 'l5', text: '[INFO] Review started', timestamp: now - 300000, level: 'info' as const },
-      { id: 'l6', text: '[SUCCESS] No critical issues found', timestamp: now - 240000, level: 'success' as const },
-      { id: 'l7', text: '[INFO] Review complete', timestamp: now - 60000, level: 'info' as const },
-    ],
-    pid: null,
-  },
-  {
-    id: 'agent_active_4',
-    name: 'Fast',
-    status: 'error',
-    model: 'nex-n2-pro',
-    task: 'Quick audit scan',
-    context: '',
-    progress: 30,
-    startedAt: now - 600000,
-    lastHeartbeat: now - 300000,
-    logs: [
-      { id: 'l8', text: '[INFO] Starting audit', timestamp: now - 600000, level: 'info' as const },
-      { id: 'l9', text: '[ERROR] Timeout: target page unreachable', timestamp: now - 300000, level: 'error' as const },
-    ],
-    pid: null,
-  },
-];
+const SEED_AGENTS: MissionAgent[] = [];
 
 export interface MissionControlState {
   agents: MissionAgent[];

@@ -27,60 +27,7 @@ export interface AgentDeployment {
 const generateId = () => `deploy_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
 const now = Date.now();
 
-const SEED_DEPLOYMENTS: AgentDeployment[] = [
-  {
-    id: 'deploy_1',
-    agentName: 'Builder',
-    agentId: 'agent_designer_1',
-    version: 'v1.2.0',
-    status: 'live',
-    environment: 'production',
-    endpoint: 'https://api.mckellar.dev/agents/builder',
-    startedAt: now - 3600000,
-    completedAt: now - 3540000,
-    logs: [
-      { id: 'd1', text: '[INFO] Build started', timestamp: now - 3600000, level: 'info' },
-      { id: 'd2', text: '[INFO] Compiling TypeScript...', timestamp: now - 3580000, level: 'info' },
-      { id: 'd3', text: '[SUCCESS] Build complete (12.4s)', timestamp: now - 3550000, level: 'success' },
-      { id: 'd4', text: '[INFO] Deploying to production...', timestamp: now - 3545000, level: 'info' },
-      { id: 'd5', text: '[SUCCESS] Deployment live at /agents/builder', timestamp: now - 3540000, level: 'success' },
-    ],
-    rollbackVersion: 'v1.1.9',
-  },
-  {
-    id: 'deploy_2',
-    agentName: 'Explorer',
-    agentId: 'agent_designer_2',
-    version: 'v0.1.0',
-    status: 'building',
-    environment: 'staging',
-    endpoint: null,
-    startedAt: now - 60000,
-    completedAt: null,
-    logs: [
-      { id: 'd6', text: '[INFO] Build started', timestamp: now - 60000, level: 'info' },
-      { id: 'd7', text: '[INFO] Installing dependencies...', timestamp: now - 55000, level: 'info' },
-    ],
-    rollbackVersion: null,
-  },
-  {
-    id: 'deploy_3',
-    agentName: 'Fast',
-    agentId: 'agent_designer_3',
-    version: 'v0.0.3',
-    status: 'failed',
-    environment: 'staging',
-    endpoint: null,
-    startedAt: now - 86400000,
-    completedAt: now - 86340000,
-    logs: [
-      { id: 'd8', text: '[INFO] Build started', timestamp: now - 86400000, level: 'info' },
-      { id: 'd9', text: '[ERROR] TypeScript error: Type mismatch in StudioView.tsx', timestamp: now - 86350000, level: 'error' },
-      { id: 'd10', text: '[ERROR] Build failed', timestamp: now - 86340000, level: 'error' },
-    ],
-    rollbackVersion: 'v0.0.2',
-  },
-];
+const SEED_DEPLOYMENTS: AgentDeployment[] = [];
 
 export interface DeploymentState {
   deployments: AgentDeployment[];

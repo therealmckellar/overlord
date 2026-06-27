@@ -5,7 +5,7 @@ import { useUIStore } from '@/stores/uiStore';
 import { useMessageStore } from '@/stores/messageStore';
 import { useChatStream } from '@/hooks/useChatStream';
 import { useJarvis } from '@/hooks/useJarvis';
-import { Mic, MicOff, Volume2, VolumeX, History } from 'lucide-react';
+import { Mic, MicOff, Volume2, VolumeX, History, Loader2 } from 'lucide-react';
 import { InlineModelSelector } from '@/components/ui/InlineModelSelector';
 
 const SUGGESTED_COMMANDS = [
@@ -21,6 +21,7 @@ interface JarvisMessage {
   type: 'user' | 'jarvis';
   text: string;
   timestamp: Date;
+  isStreaming?: boolean;
 }
 
 const JARVIS_SESSION = 'jarvis-voice';
@@ -29,6 +30,7 @@ export function JarvisPanel() {
   const addToast = useUIStore((s) => s.addToast);
   const selectedModel = useUIStore((s) => s.selectedModel);
   const [messages, setMessages] = useState<JarvisMessage[]>([]);
+  const [isThinking, setIsThinking] = useState(false);
 
   const { sendMessage: sendChatMessage } = useChatStream({
     sessionId: JARVIS_SESSION,
@@ -89,16 +91,19 @@ export function JarvisPanel() {
     if (lowerCmd.includes('briefing') || lowerCmd.includes('daily') || lowerCmd.includes('morning')) {
       const briefingPrompt = `Give me a concise daily briefing. Consider: (1) What are the top priorities today? (2) What is the current status of ongoing work? (3) What should I focus on first? Be specific and actionable.`;
       addToast({ type: 'info', message: 'Generating daily briefing...', duration: 2000 });
+      setIsThinking(true);
       try {
         await sendChatMessage(briefingPrompt);
       } catch {
         setMessages(prev => [...prev, { id: `jarvis-${Date.now()}`, type: 'jarvis', text: 'Sorry, I had an issue generating the briefing.', timestamp: new Date() }]);
+      } finally {
+        setIsThinking(false);
       }
       return;
     }
 
-    // Default: send to AI
-    addToast({ type: 'info', message: 'Jarvis processing...', duration: 1500 });
+    // Default: send to AI — show thinking indicator
+    setIsThinking(true);
 
     try {
       await sendChatMessage(command);
@@ -107,6 +112,8 @@ export function JarvisPanel() {
         ...prev,
         { id: `jarvis-${Date.now()}`, type: 'jarvis', text: 'Sorry, I had an issue processing that.', timestamp: new Date() },
       ]);
+    } finally {
+      setIsThinking(false);
     }
   }, [addToast, sendChatMessage]);
 
@@ -146,13 +153,14 @@ export function JarvisPanel() {
       <div className="px-4 py-3 border-b border-[var(--border)] flex items-center justify-between shrink-0">
         <div className="flex items-center gap-2">
           <div className={`w-2 h-2 rounded-full ${
+            isThinking ? 'bg-yellow-500 animate-pulse' :
             isListening ? 'bg-red-500 animate-pulse' :
             isSpeaking ? 'bg-[var(--accent)] animate-pulse' :
             'bg-[var(--success)]'
           }`} />
           <span className="text-sm font-semibold text-[var(--text)]">Jarvis</span>
           <span className="text-[10px] text-[var(--text-muted)] font-mono">
-            {isListening ? 'LISTENING' : isSpeaking ? 'SPEAKING' : 'READY'}
+            {isThinking ? 'THINKING' : isListening ? 'LISTENING' : isSpeaking ? 'SPEAKING' : 'READY'}
           </span>
         </div>
         <div className="flex items-center gap-1">
@@ -205,6 +213,16 @@ export function JarvisPanel() {
           </div>
         ))}
 
+        {/* Thinking indicator */}
+        {isThinking && messages.length > 0 && messages[messages.length - 1]?.type === 'user' && (
+          <div className="flex justify-start">
+            <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-[var(--bg-secondary)] border border-[var(--border)]">
+              <Loader2 className="w-3.5 h-3.5 text-[var(--accent)] animate-spin" />
+              <span className="text-xs text-[var(--text-muted)]">Jarvis is thinking…</span>
+            </div>
+          </div>
+        )}
+
         {transcript && isListening && (
           <div className="flex justify-end">
             <div className="max-w-[80%] px-3 py-2 rounded-lg text-sm bg-[var(--accent)]/20 text-[var(--text-secondary)] italic">
@@ -213,7 +231,7 @@ export function JarvisPanel() {
           </div>
         )}
 
-        {lastCommand && !isListening && (
+        {lastCommand && !isListening && !isThinking && (
           <div className="flex justify-start">
             <div className="flex items-center gap-1.5 text-[10px] text-[var(--text-muted)] pt-1">
               <History className="w-3 h-3" />
@@ -240,13 +258,15 @@ export function JarvisPanel() {
             name="jarvis-input"
             type="text"
             placeholder="Continue the conversation..."
-            className="flex-1 px-3 py-2 text-sm rounded-lg bg-[var(--bg-secondary)] border border-[var(--border)] text-[var(--text)] placeholder:text-[var(--text-muted)] focus:outline-none focus:border-[var(--accent)]"
+            disabled={isThinking}
+            className="flex-1 px-3 py-2 text-sm rounded-lg bg-[var(--bg-secondary)] border border-[var(--border)] text-[var(--text)] placeholder:text-[var(--text-muted)] focus:outline-none focus:border-[var(--accent)] disabled:opacity-50"
           />
           <button
             type="submit"
-            className="px-3 py-2 text-xs rounded-lg bg-[var(--accent)] text-white hover:bg-[var(--accent-hover)] transition-colors"
+            disabled={isThinking}
+            className="px-3 py-2 text-xs rounded-lg bg-[var(--accent)] text-white hover:bg-[var(--accent-hover)] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            Send
+            {isThinking ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : 'Send'}
           </button>
         </form>
       </div>
@@ -283,7 +303,7 @@ export function JarvisPanel() {
           </button>
 
           <div className="flex-1 text-xs text-[var(--text-muted)] px-2">
-            {isListening ? '🎤 Listening...' : isSpeaking ? '🔊 Speaking...' : '⚡ Ready'}
+            {isListening ? '🎤 Listening...' : isSpeaking ? '🔊 Speaking...' : isThinking ? '💭 Thinking...' : '⚡ Ready'}
           </div>
           <InlineModelSelector compact />
         </div>

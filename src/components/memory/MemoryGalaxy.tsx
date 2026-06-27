@@ -6,7 +6,8 @@ import { useUIStore } from '@/stores/uiStore';
 import {
   Brain, Search, Plus, Trash2, Pin, Tag, Filter,
   X, Sparkles, ChevronDown, ChevronUp, Network,
-  RefreshCw, Link2, Eye
+  RefreshCw, Link2, Eye, BookOpen, Heart, FileDown,
+  Zap, AlertTriangle, CheckCircle
 } from 'lucide-react';
 
 // ─── Types ──────────────────────────────────────────────────────────────────
@@ -42,6 +43,27 @@ interface GraphData {
   edges: GraphEdge[];
 }
 
+interface WikiSearchResult {
+  id: string;
+  title: string;
+  relativePath: string;
+  snippet: string;
+  tags: string[];
+  type: string;
+  confidence: string;
+  score: number;
+}
+
+interface WikiLintSummary {
+  totalFiles: number;
+  totalIssues: number;
+  errors: number;
+  warnings: number;
+  info: number;
+  byCheck: Record<string, number>;
+  reportFile?: string;
+}
+
 // ─── Colors ─────────────────────────────────────────────────────────────────
 
 const TYPE_COLORS: Record<string, string> = {
@@ -71,7 +93,7 @@ interface MemoryGalaxyProps {
   onClose: () => void;
 }
 
-type ViewMode = 'list' | 'graph' | 'cognee';
+type ViewMode = 'list' | 'graph' | 'cognee' | 'wiki';
 
 // ─── Component ──────────────────────────────────────────────────────────────
 
@@ -87,6 +109,89 @@ export function MemoryGalaxy({ isOpen, onClose }: MemoryGalaxyProps) {
   const [graphData, setGraphData] = useState<GraphData | null>(null);
   const [isLoadingGraph, setIsLoadingGraph] = useState(false);
   const [selectedGraphNode, setSelectedGraphNode] = useState<string | null>(null);
+
+  // ─── Wiki state ────────────────────────────────────────────────────────────
+  const [wikiQuery, setWikiQuery] = useState('');
+  const [wikiResults, setWikiResults] = useState<WikiSearchResult[]>([]);
+  const [wikiSearching, setWikiSearching] = useState(false);
+  const [lintSummary, setLintSummary] = useState<WikiLintSummary | null>(null);
+  const [lintRunning, setLintRunning] = useState(false);
+  const [compactRunning, setCompactRunning] = useState(false);
+  const [fileToWikiContent, setFileToWikiContent] = useState('');
+  const [fileToWikiCategory, setFileToWikiCategory] = useState('shared');
+  const [fileToWikiTitle, setFileToWikiTitle] = useState('');
+  const [showFileForm, setShowFileForm] = useState(false);
+
+  // ─── Wiki handlers ────────────────────────────────────────────────────────
+  const handleWikiSearch = useCallback(async () => {
+    if (!wikiQuery.trim() || wikiQuery.length < 2) return;
+    setWikiSearching(true);
+    try {
+      const res = await fetch(`/api/wiki/search?q=${encodeURIComponent(wikiQuery)}&limit=20`);
+      const data = await res.json();
+      if (data.success) {
+        setWikiResults(data.results || []);
+      }
+    } catch { /* search failed */ }
+    setWikiSearching(false);
+  }, [wikiQuery]);
+
+  const handleLintRun = useCallback(async () => {
+    setLintRunning(true);
+    try {
+      const res = await fetch('/api/wiki/lint', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ checks: 'orphans,broken-links,missing-frontmatter,incomplete-frontmatter,oversized,stale,duplicates,missing-index,invalid-tags' }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        setLintSummary(data.summary);
+        addToast({ type: 'info', message: `Lint complete: ${data.summary.errors} errors, ${data.summary.warnings} warnings` });
+      }
+    } catch { /* lint failed */ }
+    setLintRunning(false);
+  }, [addToast]);
+
+  const handleCompact = useCallback(async (apply: boolean = false) => {
+    setCompactRunning(true);
+    try {
+      const res = await fetch('/api/wiki/compact', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ apply, pruneOrphans: apply }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        addToast({ type: apply ? 'success' : 'info', message: `Compact ${apply ? 'applied' : 'dry run'}: ${data.totalActions} actions` });
+      }
+    } catch { /* compact failed */ }
+    setCompactRunning(false);
+  }, [addToast]);
+
+  const handleFileToWiki = useCallback(async () => {
+    if (!fileToWikiContent.trim()) return;
+    try {
+      const res = await fetch('/api/wiki/file', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          content: fileToWikiContent,
+          title: fileToWikiTitle || undefined,
+          category: fileToWikiCategory,
+          type: 'concept',
+          tags: fileToWikiCategory === 'robbi' ? ['robbi-promotional'] : fileToWikiCategory === 'mcf' ? ['commercial-funding'] : [],
+        }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        addToast({ type: 'success', message: `Filed to wiki: ${data.file}` });
+        setFileToWikiContent('');
+        setFileToWikiTitle('');
+        setShowFileForm(false);
+      }
+    } catch { /* file failed */ }
+  }, [fileToWikiContent, fileToWikiTitle, fileToWikiCategory, addToast]);
 
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
@@ -351,7 +456,7 @@ export function MemoryGalaxy({ isOpen, onClose }: MemoryGalaxyProps) {
 
         {/* View mode toggle */}
         <div className="flex border-b border-[var(--border)]">
-          {(['list', 'graph', 'cognee'] as ViewMode[]).map((mode) => (
+          {(['list', 'graph', 'cognee', 'wiki'] as ViewMode[]).map((mode) => (
             <button
               key={mode}
               onClick={() => setViewMode(mode)}
@@ -463,6 +568,7 @@ export function MemoryGalaxy({ isOpen, onClose }: MemoryGalaxyProps) {
             {viewMode === 'list' && (searchQuery ? `Results for "${searchQuery}"` : 'All Memories')}
             {viewMode === 'graph' && 'Memory Graph'}
             {viewMode === 'cognee' && 'Cognee Knowledge Graph'}
+            {viewMode === 'wiki' && 'Wiki — Search & Maintenance'}
           </h3>
           <div className="flex items-center gap-2">
             {viewMode === 'graph' && (
@@ -633,6 +739,207 @@ export function MemoryGalaxy({ isOpen, onClose }: MemoryGalaxyProps) {
                   </button>
                 </div>
               )}
+            </div>
+          )}
+
+          {viewMode === 'wiki' && (
+            <div className="h-full overflow-y-auto p-6">
+              <div className="max-w-4xl mx-auto space-y-6">
+                {/* Wiki Search */}
+                <div>
+                  <h3 className="text-sm font-semibold text-[var(--text)] flex items-center gap-2 mb-3">
+                    <BookOpen className="w-4 h-4 text-[var(--accent)]" />
+                    Wiki Search
+                  </h3>
+                  <div className="flex gap-2">
+                    <div className="relative flex-1">
+                      <Search className="absolute left-2 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-[var(--text-muted)]" />
+                      <input
+                        type="text"
+                        value={wikiQuery}
+                        onChange={(e) => setWikiQuery(e.target.value)}
+                        onKeyDown={(e) => e.key === 'Enter' && handleWikiSearch()}
+                        placeholder="Search across 1,200+ wiki pages..."
+                        className="w-full pl-7 pr-3 py-2 text-sm rounded-lg bg-[var(--bg-tertiary)] border border-[var(--border)] text-[var(--text)] placeholder:text-[var(--text-muted)] focus:outline-none focus:border-[var(--accent)]"
+                      />
+                    </div>
+                    <button
+                      onClick={handleWikiSearch}
+                      disabled={wikiSearching || wikiQuery.length < 2}
+                      className="px-4 py-2 text-xs rounded-lg bg-[var(--accent)] text-white hover:bg-[var(--accent-hover)] disabled:opacity-30 transition-colors"
+                    >
+                      {wikiSearching ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : 'Search'}
+                    </button>
+                  </div>
+                  {wikiResults.length > 0 && (
+                    <div className="mt-3 space-y-2">
+                      <p className="text-[10px] text-[var(--text-muted)]">{wikiResults.length} results</p>
+                      {wikiResults.map((r) => (
+                        <div key={r.id} className="p-3 rounded-lg bg-[var(--bg-secondary)] border border-[var(--border)]">
+                          <div className="flex items-center gap-2 mb-1">
+                            <BookOpen className="w-3 h-3 text-[var(--accent)]" />
+                            <span className="text-sm font-medium text-[var(--text)]">{r.title}</span>
+                            <span className="text-[10px] px-1.5 py-0.5 rounded bg-[var(--bg-tertiary)] text-[var(--text-muted)]">
+                              {r.type}
+                            </span>
+                            {r.score > 5 && (
+                              <span className="text-[10px] px-1.5 py-0.5 rounded bg-[var(--accent)]/10 text-[var(--accent)]">
+                                ★ {r.score}
+                              </span>
+                            )}
+                          </div>
+                          <p className="text-xs text-[var(--text-muted)] mb-1">{r.relativePath}</p>
+                          <p className="text-xs text-[var(--text)] line-clamp-2">{r.snippet}</p>
+                          {r.tags.length > 0 && (
+                            <div className="flex gap-1 mt-1 flex-wrap">
+                              {r.tags.slice(0, 5).map((tag) => (
+                                <span key={tag} className="text-[9px] px-1 py-0.5 rounded bg-[var(--accent)]/10 text-[var(--accent)]">
+                                  {tag}
+                                </span>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                {/* Health Check */}
+                <div>
+                  <h3 className="text-sm font-semibold text-[var(--text)] flex items-center gap-2 mb-3">
+                    <Heart className="w-4 h-4 text-[#ec4899]" />
+                    Health Check
+                  </h3>
+                  <button
+                    onClick={handleLintRun}
+                    disabled={lintRunning}
+                    className="px-4 py-2 text-xs rounded-lg border border-[var(--border)] text-[var(--text)] hover:bg-[var(--bg-tertiary)] disabled:opacity-50 transition-colors"
+                  >
+                    {lintRunning ? <><RefreshCw className="w-3.5 h-3.5 animate-spin inline mr-1" /> Running...</> : 'Run Health Check'}
+                  </button>
+                  {lintSummary && (
+                    <div className="mt-3 grid grid-cols-4 gap-3">
+                      <div className="p-3 rounded-lg bg-[var(--bg-secondary)] border border-[var(--border)] text-center">
+                        <p className="text-lg font-bold text-[var(--text)]">{lintSummary.totalFiles}</p>
+                        <p className="text-[10px] text-[var(--text-muted)]">Files</p>
+                      </div>
+                      <div className="p-3 rounded-lg bg-[var(--bg-secondary)] border border-[var(--border)] text-center">
+                        <p className="text-lg font-bold text-[var(--error)]">{lintSummary.errors}</p>
+                        <p className="text-[10px] text-[var(--text-muted)]">Errors</p>
+                      </div>
+                      <div className="p-3 rounded-lg bg-[var(--bg-secondary)] border border-[var(--border)] text-center">
+                        <p className="text-lg font-bold text-[#f59e0b]">{lintSummary.warnings}</p>
+                        <p className="text-[10px] text-[var(--text-muted)]">Warnings</p>
+                      </div>
+                      <div className="p-3 rounded-lg bg-[var(--bg-secondary)] border border-[var(--border)] text-center">
+                        <p className="text-lg font-bold text-[var(--accent)]">{lintSummary.info}</p>
+                        <p className="text-[10px] text-[var(--text-muted)]">Info</p>
+                      </div>
+                    </div>
+                  )}
+                  {lintSummary && lintSummary.byCheck && Object.keys(lintSummary.byCheck).length > 0 && (
+                    <div className="mt-2 p-3 rounded-lg bg-[var(--bg-secondary)] border border-[var(--border)]">
+                      <p className="text-[10px] uppercase tracking-wider text-[var(--text-muted)] mb-2">Issues by Category</p>
+                      <div className="space-y-1">
+                        {Object.entries(lintSummary.byCheck).sort(([,a],[,b]) => b - a).map(([check, count]) => (
+                          <div key={check} className="flex items-center justify-between text-xs">
+                            <span className="text-[var(--text)]">{check}</span>
+                            <span className="text-[var(--text-muted)]">{count}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {/* Compact & File to Wiki */}
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <h3 className="text-sm font-semibold text-[var(--text)] flex items-center gap-2 mb-3">
+                      <Zap className="w-4 h-4 text-[#10b981]" />
+                      Compact
+                    </h3>
+                    <div className="space-y-2">
+                      <button
+                        onClick={() => handleCompact(false)}
+                        disabled={compactRunning}
+                        className="w-full px-4 py-2 text-xs rounded-lg border border-[var(--border)] text-[var(--text)] hover:bg-[var(--bg-tertiary)] disabled:opacity-50 transition-colors"
+                      >
+                        {compactRunning ? 'Running...' : 'Dry Run (Preview)'}
+                      </button>
+                      <button
+                        onClick={() => handleCompact(true)}
+                        disabled={compactRunning}
+                        className="w-full px-4 py-2 text-xs rounded-lg bg-[#10b981] text-white hover:opacity-80 disabled:opacity-50 transition-colors"
+                      >
+                        Apply Compaction
+                      </button>
+                      <p className="text-[10px] text-[var(--text-muted)]">
+                        Merge overlapping pages, rebuild index, prune orphans
+                      </p>
+                    </div>
+                  </div>
+                  <div>
+                    <h3 className="text-sm font-semibold text-[var(--text)] flex items-center gap-2 mb-3">
+                      <FileDown className="w-4 h-4 text-[#3b82f6]" />
+                      File to Wiki
+                    </h3>
+                    {!showFileForm ? (
+                      <button
+                        onClick={() => setShowFileForm(true)}
+                        className="px-4 py-2 text-xs rounded-lg bg-[#3b82f6] text-white hover:opacity-80 transition-colors"
+                      >
+                        New Entry
+                      </button>
+                    ) : (
+                      <div className="space-y-2">
+                        <input
+                          type="text"
+                          value={fileToWikiTitle}
+                          onChange={(e) => setFileToWikiTitle(e.target.value)}
+                          placeholder="Title"
+                          className="w-full px-3 py-1.5 text-xs rounded bg-[var(--bg-tertiary)] border border-[var(--border)] text-[var(--text)] placeholder:text-[var(--text-muted)] focus:outline-none"
+                        />
+                        <textarea
+                          value={fileToWikiContent}
+                          onChange={(e) => setFileToWikiContent(e.target.value)}
+                          placeholder="Content to file into wiki..."
+                          rows={3}
+                          className="w-full px-3 py-1.5 text-xs rounded bg-[var(--bg-tertiary)] border border-[var(--border)] text-[var(--text)] placeholder:text-[var(--text-muted)] focus:outline-none resize-none"
+                        />
+                        <div className="flex gap-2">
+                          <select
+                            value={fileToWikiCategory}
+                            onChange={(e) => setFileToWikiCategory(e.target.value)}
+                            className="px-2 py-1 text-xs rounded bg-[var(--bg-tertiary)] border border-[var(--border)] text-[var(--text)] focus:outline-none"
+                          >
+                            <option value="robbi">Robbi</option>
+                            <option value="mcf">MCF</option>
+                            <option value="fathom">Fathom</option>
+                            <option value="consulting">Consulting</option>
+                            <option value="shared">Shared</option>
+                            <option value="concepts">Concepts</option>
+                          </select>
+                          <button
+                            onClick={handleFileToWiki}
+                            disabled={!fileToWikiContent.trim()}
+                            className="px-3 py-1 text-xs rounded bg-[#3b82f6] text-white hover:opacity-80 disabled:opacity-30"
+                          >
+                            File
+                          </button>
+                          <button
+                            onClick={() => setShowFileForm(false)}
+                            className="px-3 py-1 text-xs rounded bg-[var(--bg-tertiary)] text-[var(--text-muted)]"
+                          >
+                            Cancel
+                          </button>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
             </div>
           )}
 

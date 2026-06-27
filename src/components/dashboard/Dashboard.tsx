@@ -29,10 +29,10 @@ export function Dashboard() {
   const setActiveSession = useSessionStore((s) => s.setActiveSession);
 
   const [stats, setStats] = useState<DashboardStats>({
-    activeSessions: 1,
+    activeSessions: 0,
     totalTokens: 0,
     costToday: 0,
-    activeAgents: 1,
+    activeAgents: 0,
     uptime: 0,
     errorsLast24h: 0,
     messagesToday: 0,

@@ -123,6 +123,9 @@ export interface ConnectorState {
 
   // System
   updateSystem: (updates: Partial<SystemSettings>) => void;
+
+  // Seed from server
+  seedFromServer: (serverKeys: Partial<APIKey>[], serverMCPs: Partial<MCPServer>[]) => void;
 }
 
 const generateId = () => `conn_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
@@ -343,6 +346,27 @@ export const useConnectorStore = create<ConnectorState>()(
         set((state) => ({
           system: { ...state.system, ...updates },
         }));
+      },
+
+      seedFromServer: (serverKeys, serverMCPs) => {
+        set((state) => {
+          // Merge: keep existing UI keys, add env keys that don't exist yet
+          const existingKeyIds = new Set(state.apiKeys.map((k) => k.id));
+          const existingMCPIds = new Set(state.mcpServers.map((s) => s.id));
+
+          const newKeys: APIKey[] = (serverKeys as APIKey[])
+            .filter((k) => k.id && !existingKeyIds.has(k.id))
+            .map((k) => ({ ...k, status: 'disconnected' as const, lastTested: null }));
+
+          const newMCPs: MCPServer[] = (serverMCPs as MCPServer[])
+            .filter((s) => s.id && !existingMCPIds.has(s.id))
+            .map((s) => ({ ...s, status: 'disconnected' as const, lastTested: null }));
+
+          return {
+            apiKeys: [...state.apiKeys, ...newKeys],
+            mcpServers: [...state.mcpServers, ...newMCPs],
+          };
+        });
       },
     }),
     { name: 'overlord-connectors' }

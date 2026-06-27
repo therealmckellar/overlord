@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useUIStore, useSessionStore } from '@/stores';
+import { useSharedMemoryStore } from '@/stores/sharedMemoryStore';
 
 interface NavItem {
   id: string;
@@ -83,15 +84,16 @@ export function Sidebar({ activePanel, onNavigate }: { activePanel: string; onNa
   const sessions = useSessionStore((s) => s.sessions);
   const activeSessionId = useSessionStore((s) => s.activeSessionId);
   const setActiveSession = useSessionStore((s) => s.setActiveSession);
+  const memoryEntries = useSharedMemoryStore((s) => s.memory);
 
-  const [systemStats, setSystemStats] = useState({ sessions: 0, memory: '' });
+  const [systemStats, setSystemStats] = useState({ sessions: 0, memory: 0 });
 
   useEffect(() => {
     setSystemStats({
       sessions: sessions.length,
-      memory: `${Math.round(Math.random() * 30 + 40)}%`,
+      memory: memoryEntries.length,
     });
-  }, [sessions.length]);
+  }, [sessions.length, memoryEntries.length]);
 
   return (
     <aside
@@ -118,7 +120,7 @@ export function Sidebar({ activePanel, onNavigate }: { activePanel: string; onNa
         </div>
         <div className="flex items-center justify-between text-xs mt-1">
           <span className="text-[var(--text-muted)]">Memory</span>
-          <span className="text-[var(--text-secondary)] font-mono">{systemStats.memory}</span>
+          <span className="text-[var(--text-secondary)] font-mono">{systemStats.memory} entries</span>
         </div>
         <div className="flex items-center gap-1.5 mt-2">
           <span

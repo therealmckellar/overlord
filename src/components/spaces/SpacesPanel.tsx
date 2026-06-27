@@ -452,6 +452,23 @@ function ThreadChatView({ space, thread }: { space: Space; thread: SpaceThread }
           </div>
         ))}
 
+        {/* Thinking indicator — shown while waiting for first content */}
+        {isStreaming && !streamingContent && (
+          <div className="flex justify-start">
+            <div className="px-3 py-2 rounded-lg bg-[var(--bg-secondary)] border border-[var(--border)]">
+              <div className="flex items-center gap-2">
+                <Bot className="w-3.5 h-3.5 text-[var(--accent)]" />
+                <span className="text-xs text-[var(--text-muted)]">Thinking</span>
+                <span className="flex gap-0.5">
+                  <span className="w-1.5 h-1.5 rounded-full bg-[var(--text-muted)] animate-bounce" style={{ animationDelay: '0ms' }} />
+                  <span className="w-1.5 h-1.5 rounded-full bg-[var(--text-muted)] animate-bounce" style={{ animationDelay: '150ms' }} />
+                  <span className="w-1.5 h-1.5 rounded-full bg-[var(--text-muted)] animate-bounce" style={{ animationDelay: '300ms' }} />
+                </span>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Streaming message (live, not yet saved to store) */}
         {isStreaming && streamingContent && (
           <div className="flex justify-start">
