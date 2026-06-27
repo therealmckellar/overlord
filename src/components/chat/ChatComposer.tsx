@@ -6,6 +6,7 @@ import { useSessionStore } from '@/stores/sessionStore';
 import { Send, Paperclip, Smile } from 'lucide-react';
 import { EmojiPicker } from './EmojiPicker';
 import { useSlashCommands, SLASH_COMMANDS, getCompletions } from '@/lib/slash-commands';
+import { InlineModelSelector } from '@/components/ui/InlineModelSelector';
 
 interface ChatComposerProps {
   onSend: (message: string) => void;
@@ -243,6 +244,9 @@ export function ChatComposer({ onSend }: ChatComposerProps) {
             </div>
           )}
         </div>
+
+        {/* Model selector */}
+        <InlineModelSelector compact />
 
         {/* Send button */}
         <button

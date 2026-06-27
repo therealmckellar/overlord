@@ -6,6 +6,7 @@ import {
   Loader2, Download, ExternalLink, BookOpen
 } from 'lucide-react';
 import { useUIStore } from '@/stores/uiStore';
+import { InlineModelSelector } from '@/components/ui/InlineModelSelector';
 
 type OutputFormat = 'deep' | 'report' | 'infographic' | 'podcast' | 'video';
 
@@ -157,6 +158,7 @@ export function ResearchMultiFormat({ isOpen, onClose }: ResearchMultiFormatProp
           >
             <Sparkles className="w-3.5 h-3.5" />
             Research & Generate
+            <InlineModelSelector compact className="ml-auto" />
           </button>
         </div>
 

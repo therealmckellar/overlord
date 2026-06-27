@@ -2,6 +2,7 @@
 
 import React, { useState } from 'react';
 import { useSharedMemoryStore, JournalEntry } from '@/stores/sharedMemoryStore';
+import { InlineModelSelector } from '@/components/ui/InlineModelSelector';
 
 const TYPE_CONFIG: Record<JournalEntry['type'], { icon: string; color: string; label: string }> = {
   built: { icon: '🔨', color: '#10b981', label: 'Built' },
@@ -215,6 +216,7 @@ export default function JournalPanel() {
             >
               Save Entry
             </button>
+            <InlineModelSelector compact />
           </div>
         </div>
       )}

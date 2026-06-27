@@ -16,6 +16,7 @@ import { useUIStore } from '@/stores/uiStore';
 import { PERSONAS } from '@/lib/personas';
 import { getAgentDisplayInfo } from '@/hooks/useAgentTask';
 import type { TaskCategory } from '@/lib/model-graph';
+import { InlineModelSelector } from '@/components/ui/InlineModelSelector';
 
 type StudioMode = 'image' | 'video' | 'design' | 'canvas' | 'report' | 'mindmap' | 'flashcard' | 'kanban';
 type Tool = 'select' | 'brush' | 'eraser' | 'text' | 'shape' | 'eyedropper' | 'move' | 'zoom';
@@ -894,6 +895,7 @@ export function ContentStudio({ isOpen, onClose }: ContentStudioProps) {
                     <><Wand2 size={12} /> Generate {modeConfig.label}</>
                   )}
                 </button>
+                <InlineModelSelector compact />
                 {/* Agent routing indicator */}
                 <div className="flex items-center justify-center gap-1.5 mt-2 text-[9px] text-[var(--text-muted)]">
                   <Zap size={8} />

@@ -6,6 +6,7 @@ import {
   ChevronRight, Trash2, ArrowRight, Loader2, Eye
 } from 'lucide-react';
 import { useUIStore } from '@/stores/uiStore';
+import { InlineModelSelector } from '@/components/ui/InlineModelSelector';
 
 interface PipelineIdea {
   id: string;
@@ -191,7 +192,7 @@ export function PipelineView({ isOpen, onClose }: PipelineViewProps) {
               <option value="josh">Josh (Funding)</option>
               <option value="fathom">Fathom (Realty)</option>
             </select>
-            <div className="flex gap-2">
+            <div className="flex gap-2 items-center">
               <button
                 onClick={createIdea}
                 disabled={!title.trim() || !description.trim()}
@@ -199,6 +200,7 @@ export function PipelineView({ isOpen, onClose }: PipelineViewProps) {
               >
                 Create
               </button>
+              <InlineModelSelector compact />
               <button
                 onClick={() => setShowForm(false)}
                 className="px-2 py-1.5 text-xs rounded bg-[var(--bg-secondary)] text-[var(--text-muted)] hover:text-[var(--text)] transition-colors"

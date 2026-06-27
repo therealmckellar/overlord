@@ -6,6 +6,7 @@ import { useMessageStore } from '@/stores/messageStore';
 import { useChatStream } from '@/hooks/useChatStream';
 import { useJarvis } from '@/hooks/useJarvis';
 import { Mic, MicOff, Volume2, VolumeX, MessageSquare, History } from 'lucide-react';
+import { InlineModelSelector } from '@/components/ui/InlineModelSelector';
 
 const SUGGESTED_COMMANDS = [
   { label: 'Show tasks', command: 'show me my tasks' },
@@ -245,6 +246,7 @@ export function JarvisPanel() {
           <div className="flex-1 text-xs text-[var(--text-muted)] px-2">
             {isListening ? '🎤 Listening...' : isSpeaking ? '🔊 Speaking...' : '⚡ Ready'}
           </div>
+          <InlineModelSelector compact />
         </div>
       </div>
     </div>

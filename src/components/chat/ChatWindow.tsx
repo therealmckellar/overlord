@@ -35,12 +35,12 @@ export const ChatWindow = () => {
 
   const currentPersona = PERSONAS[activePersona as PersonaSlug] || PERSONAS.david;
 
-  // Get active space instructions for chat context
-  const activeSpace = useSpaceStore((s) => {
+  // Get active space instructions for chat context (select primitive to avoid render loop)
+  const spaceInstructions = useSpaceStore((s) => {
     const spaceId = s.activeSpaceId;
-    return spaceId ? s.spaces.find(sp => sp.id === spaceId) : null;
+    const space = spaceId ? s.spaces.find(sp => sp.id === spaceId) : null;
+    return space?.customInstructions || undefined;
   });
-  const spaceInstructions = activeSpace?.customInstructions || undefined;
 
   const { sendMessage, cancelStream, reconnect } = useChatStream({
     sessionId: activeSession,

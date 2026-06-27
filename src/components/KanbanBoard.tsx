@@ -10,6 +10,7 @@ import {
   COLUMN_LABELS,
   COLUMN_COLORS,
 } from '@/stores/kanbanStore';
+import { InlineModelSelector } from '@/components/ui/InlineModelSelector';
 import { useAgentStore } from '@/stores/agentStore';
 
 const PRIORITY_COLORS: Record<TaskPriority, string> = {
@@ -230,6 +231,7 @@ export default function KanbanBoard() {
             >
               Create
             </button>
+            <InlineModelSelector compact />
             <button
               onClick={() => setShowNewTask(false)}
               style={{
