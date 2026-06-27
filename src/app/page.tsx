@@ -29,7 +29,6 @@ import SkillsPanel from '@/components/SkillsPanel';
 import GoalsPanel from '@/components/GoalsPanel';
 import JournalPanel from '@/components/JournalPanel';
 import AnalyticsDashboard from '@/components/AnalyticsDashboard';
-import MemoryPanel from '@/components/MemoryPanel';
 import SessionHistoryPanel from '@/components/SessionHistoryPanel';
 import FailureLogsPanel from '@/components/FailureLogsPanel';
 import InsightsPanel from '@/components/InsightsPanel';
