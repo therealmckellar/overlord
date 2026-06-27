@@ -50,7 +50,8 @@ export function SpacesPanel() {
   const [newSpaceMasterPrompt, setNewSpaceMasterPrompt] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
 
-  const activeSpace = spaces.find((s) => s.id === activeSpaceId) || null;
+  const activeSpaceIdRef = activeSpaceId; // primitive for find
+  const activeSpace = activeSpaceIdRef ? spaces.find((s) => s.id === activeSpaceIdRef) : null;
 
   const filteredSpaces = searchQuery.trim()
     ? spaces.filter((s) => s.name.toLowerCase().includes(searchQuery.toLowerCase()) || s.description.toLowerCase().includes(searchQuery.toLowerCase()))
