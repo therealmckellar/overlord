@@ -24,6 +24,7 @@ export interface MissionAgent {
   status: AgentStatus;
   model: string;
   task: string;
+  context: string; // additional instructions / background
   progress: number; // 0-100
   startedAt: number;
   lastHeartbeat: number;
@@ -42,6 +43,7 @@ const SEED_AGENTS: MissionAgent[] = [
     status: 'running',
     model: 'gpt-oss-120b',
     task: 'Building Kanban board component',
+    context: '',
     progress: 65,
     startedAt: now - 120000,
     lastHeartbeat: now - 5000,
@@ -59,6 +61,7 @@ const SEED_AGENTS: MissionAgent[] = [
     status: 'idle',
     model: 'nex-n2-pro',
     task: 'Awaiting assignment',
+    context: '',
     progress: 0,
     startedAt: 0,
     lastHeartbeat: now - 30000,
@@ -71,6 +74,7 @@ const SEED_AGENTS: MissionAgent[] = [
     status: 'completed',
     model: 'gpt-oss-120b',
     task: 'Code review of AgentDesigner',
+    context: '',
     progress: 100,
     startedAt: now - 300000,
     lastHeartbeat: now - 60000,
@@ -87,6 +91,7 @@ const SEED_AGENTS: MissionAgent[] = [
     status: 'error',
     model: 'nex-n2-pro',
     task: 'Quick audit scan',
+    context: '',
     progress: 30,
     startedAt: now - 600000,
     lastHeartbeat: now - 300000,
@@ -101,7 +106,8 @@ const SEED_AGENTS: MissionAgent[] = [
 export interface MissionControlState {
   agents: MissionAgent[];
   activityLog: AgentActivity[];
-  addAgent: (name: string, model: string, task: string) => string;
+  addAgent: (name: string, model: string, task: string, context?: string) => string;
+  startTask: (id: string, task: string, context?: string) => void;
   updateAgent: (id: string, updates: Partial<MissionAgent>) => void;
   stopAgent: (id: string) => void;
   restartAgent: (id: string) => void;
@@ -119,7 +125,7 @@ export const useMissionStore = create<MissionControlState>()(
         { id: 'a2', agentName: 'Reviewer', action: 'Completed code review', timestamp: now - 60000, type: 'success' },
         { id: 'a3', agentName: 'Fast', action: 'Error: timeout', timestamp: now - 300000, type: 'error' },
       ],
-      addAgent: (name, model, task) => {
+      addAgent: (name, model, task, context = '') => {
         const id = generateId();
         set((state) => ({
           agents: [
@@ -130,6 +136,7 @@ export const useMissionStore = create<MissionControlState>()(
               status: 'running',
               model,
               task,
+              context,
               progress: 0,
               startedAt: Date.now(),
               lastHeartbeat: Date.now(),
@@ -144,6 +151,24 @@ export const useMissionStore = create<MissionControlState>()(
         set((state) => ({
           agents: state.agents.map((a) =>
             a.id === id ? { ...a, ...updates, lastHeartbeat: Date.now() } : a
+          ),
+        }));
+      },
+      startTask: (id, task, context = '') => {
+        set((state) => ({
+          agents: state.agents.map((a) =>
+            a.id === id
+              ? {
+                  ...a,
+                  task,
+                  context: context || a.context,
+                  status: 'running' as const,
+                  progress: 0,
+                  startedAt: Date.now(),
+                  lastHeartbeat: Date.now(),
+                  logs: [...a.logs, { id: `log_${Date.now()}`, text: `[INFO] New task assigned: ${task}`, timestamp: Date.now(), level: 'info' as const }],
+                }
+              : a
           ),
         }));
       },

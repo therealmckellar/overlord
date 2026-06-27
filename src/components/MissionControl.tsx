@@ -34,15 +34,39 @@ export default function MissionControl() {
   const [newName, setNewName] = useState('');
   const [newModel, setNewModel] = useState('gpt-oss-120b');
   const [newTask, setNewTask] = useState('');
+  const [newContext, setNewContext] = useState('');
+  const [showStartTask, setShowStartTask] = useState(false);
+  const [startTaskText, setStartTaskText] = useState('');
+  const [startContext, setStartContext] = useState('');
+  const [editingContext, setEditingContext] = useState(false);
+  const [contextDraft, setContextDraft] = useState('');
 
   const handleAddAgent = () => {
     if (!newName.trim() || !newTask.trim()) return;
     const { addAgent } = useMissionStore.getState();
-    addAgent(newName, newModel, newTask);
+    addAgent(newName, newModel, newTask, newContext);
     addActivity(newName, 'Agent added to mission', 'info');
     setNewName('');
     setNewTask('');
+    setNewContext('');
     setShowAddAgent(false);
+  };
+
+  const handleStartTask = () => {
+    if (!selectedAgent || !startTaskText.trim()) return;
+    const { startTask } = useMissionStore.getState();
+    const agent = agents.find((a) => a.id === selectedAgent);
+    startTask(selectedAgent, startTaskText, startContext);
+    if (agent) addActivity(agent.name, `New task: ${startTaskText}`, 'info');
+    setStartTaskText('');
+    setStartContext('');
+    setShowStartTask(false);
+  };
+
+  const handleSaveContext = () => {
+    if (!selectedAgent) return;
+    updateAgent(selectedAgent, { context: contextDraft });
+    setEditingContext(false);
   };
 
   const simulateProgress = (id: string) => {
@@ -142,8 +166,26 @@ export default function MissionControl() {
                 background: '#1e293b',
                 color: '#f1f5f9',
                 fontSize: '12px',
+                marginBottom: '6px',
+                boxSizing: 'border-box',
+              }}
+            />
+            <textarea
+              value={newContext}
+              onChange={(e) => setNewContext(e.target.value)}
+              placeholder="Context (optional) — instructions, background, constraints..."
+              rows={3}
+              style={{
+                width: '100%',
+                padding: '6px 10px',
+                borderRadius: '4px',
+                border: '1px solid #334155',
+                background: '#1e293b',
+                color: '#f1f5f9',
+                fontSize: '12px',
                 marginBottom: '8px',
                 boxSizing: 'border-box',
+                resize: 'vertical',
               }}
             />
             <div style={{ display: 'flex', gap: '6px' }}>
@@ -295,24 +337,43 @@ export default function MissionControl() {
                   </>
                 )}
                 {(selectedAgentData.status === 'idle' || selectedAgentData.status === 'error' || selectedAgentData.status === 'completed') && (
-                  <button
-                    onClick={() => {
-                      restartAgent(selectedAgentData.id);
-                      addActivity(selectedAgentData.name, 'Agent restarted', 'info');
-                    }}
-                    style={{
-                      padding: '6px 12px',
-                      borderRadius: '6px',
-                      border: 'none',
-                      background: '#10b981',
-                      color: '#fff',
-                      fontSize: '12px',
-                      fontWeight: 600,
-                      cursor: 'pointer',
-                    }}
-                  >
-                    ▶ Restart
-                  </button>
+                  <>
+                    <button
+                      onClick={() => {
+                        setShowStartTask(true);
+                        setContextDraft(selectedAgentData.context);
+                      }}
+                      style={{
+                        padding: '6px 12px',
+                        borderRadius: '6px',
+                        border: 'none',
+                        background: '#10b981',
+                        color: '#fff',
+                        fontSize: '12px',
+                        fontWeight: 600,
+                        cursor: 'pointer',
+                      }}
+                    >
+                      ▶ Start Task
+                    </button>
+                    <button
+                      onClick={() => {
+                        restartAgent(selectedAgentData.id);
+                        addActivity(selectedAgentData.name, 'Agent restarted', 'info');
+                      }}
+                      style={{
+                        padding: '6px 12px',
+                        borderRadius: '6px',
+                        border: '1px solid #334155',
+                        background: 'transparent',
+                        color: '#94a3b8',
+                        fontSize: '12px',
+                        cursor: 'pointer',
+                      }}
+                    >
+                      ↻ Restart
+                    </button>
+                  </>
                 )}
               </div>
             </div>
@@ -342,7 +403,179 @@ export default function MissionControl() {
               ))}
             </div>
 
-            {/* Agent Logs */}
+            {/* Start Task Form */}
+            {showStartTask && (
+              <div style={{
+                margin: '0 20px 16px',
+                padding: '14px',
+                borderRadius: '8px',
+                background: '#0f172a',
+                border: '1px solid #10b98140',
+              }}>
+                <div style={{ fontSize: '12px', fontWeight: 600, color: '#10b981', marginBottom: '10px' }}>
+                  ▶ Start New Task
+                </div>
+                <input
+                  value={startTaskText}
+                  onChange={(e) => setStartTaskText(e.target.value)}
+                  placeholder="Task description"
+                  style={{
+                    width: '100%',
+                    padding: '6px 10px',
+                    borderRadius: '4px',
+                    border: '1px solid #334155',
+                    background: '#1e293b',
+                    color: '#f1f5f9',
+                    fontSize: '12px',
+                    marginBottom: '6px',
+                    boxSizing: 'border-box',
+                  }}
+                />
+                <textarea
+                  value={startContext}
+                  onChange={(e) => setStartContext(e.target.value)}
+                  placeholder="Context (optional) — instructions, background, constraints..."
+                  rows={3}
+                  style={{
+                    width: '100%',
+                    padding: '6px 10px',
+                    borderRadius: '4px',
+                    border: '1px solid #334155',
+                    background: '#1e293b',
+                    color: '#f1f5f9',
+                    fontSize: '12px',
+                    marginBottom: '8px',
+                    boxSizing: 'border-box',
+                    resize: 'vertical',
+                  }}
+                />
+                <div style={{ display: 'flex', gap: '6px' }}>
+                  <button
+                    onClick={handleStartTask}
+                    style={{
+                      flex: 1,
+                      padding: '6px',
+                      borderRadius: '4px',
+                      border: 'none',
+                      background: '#10b981',
+                      color: '#fff',
+                      fontSize: '12px',
+                      fontWeight: 600,
+                      cursor: 'pointer',
+                    }}
+                  >
+                    ▶ Start
+                  </button>
+                  <button
+                    onClick={() => setShowStartTask(false)}
+                    style={{
+                      padding: '6px 12px',
+                      borderRadius: '4px',
+                      border: '1px solid #334155',
+                      background: 'transparent',
+                      color: '#94a3b8',
+                      fontSize: '12px',
+                      cursor: 'pointer',
+                    }}
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* Context Panel */}
+            <div style={{
+              margin: '0 20px 16px',
+              padding: '14px',
+              borderRadius: '8px',
+              background: '#0f172a',
+              border: '1px solid #1e293b',
+            }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                <div style={{ fontSize: '12px', fontWeight: 600, color: '#94a3b8' }}>
+                  📋 Context
+                </div>
+                {!editingContext ? (
+                  <button
+                    onClick={() => {
+                      setContextDraft(selectedAgentData.context);
+                      setEditingContext(true);
+                    }}
+                    style={{
+                      padding: '3px 8px',
+                      borderRadius: '4px',
+                      border: '1px solid #334155',
+                      background: 'transparent',
+                      color: '#64748b',
+                      fontSize: '10px',
+                      cursor: 'pointer',
+                    }}
+                  >
+                    Edit
+                  </button>
+                ) : (
+                  <div style={{ display: 'flex', gap: '4px' }}>
+                    <button
+                      onClick={handleSaveContext}
+                      style={{
+                        padding: '3px 8px',
+                        borderRadius: '4px',
+                        border: 'none',
+                        background: '#10b981',
+                        color: '#fff',
+                        fontSize: '10px',
+                        cursor: 'pointer',
+                      }}
+                    >
+                      Save
+                    </button>
+                    <button
+                      onClick={() => setEditingContext(false)}
+                      style={{
+                        padding: '3px 8px',
+                        borderRadius: '4px',
+                        border: '1px solid #334155',
+                        background: 'transparent',
+                        color: '#64748b',
+                        fontSize: '10px',
+                        cursor: 'pointer',
+                      }}
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                )}
+              </div>
+              {editingContext ? (
+                <textarea
+                  value={contextDraft}
+                  onChange={(e) => setContextDraft(e.target.value)}
+                  rows={4}
+                  placeholder="Add context for this agent — instructions, background, constraints, references..."
+                  style={{
+                    width: '100%',
+                    padding: '8px 10px',
+                    borderRadius: '4px',
+                    border: '1px solid #334155',
+                    background: '#1e293b',
+                    color: '#f1f5f9',
+                    fontSize: '12px',
+                    boxSizing: 'border-box',
+                    resize: 'vertical',
+                  }}
+                />
+              ) : (
+                <div style={{
+                  fontSize: '12px',
+                  color: selectedAgentData.context ? '#cbd5e1' : '#475569',
+                  lineHeight: '1.5',
+                  whiteSpace: 'pre-wrap',
+                }}>
+                  {selectedAgentData.context || 'No context set. Click Edit to add instructions, background, or constraints.'}
+                </div>
+              )}
+            </div>
             <div style={{
               flex: 1,
               margin: '0 20px 16px',
