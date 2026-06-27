@@ -43,9 +43,11 @@ import { useChatStream } from '@/hooks/useChatStream';
 import { JarvisPanel } from '@/components/JarvisPanel';
 import { SpacesPanel } from '@/components/spaces/SpacesPanel';
 import SettingsPanel from '@/components/SettingsPanel';
+import { ContentPipelinePanel } from '@/components/ContentPipelinePanel';
+import { AutomationQueuePanel } from '@/components/AutomationQueuePanel';
 
 
-type Panel = 'dashboard' | 'chat' | 'pipeline' | 'memory' | 'loop' | 'devtools' | 'research' | 'researchQueue' | 'substack' | 'agent' | 'jarvis' | 'designer' | 'spaces' | 'mission' | 'taskboard' | 'deploy' | 'skills' | 'goals' | 'journal' | 'analytics' | 'session' | 'failureLogs' | 'insights' | 'settings';
+type Panel = 'dashboard' | 'chat' | 'pipeline' | 'memory' | 'loop' | 'devtools' | 'research' | 'researchQueue' | 'substack' | 'agent' | 'jarvis' | 'designer' | 'spaces' | 'mission' | 'taskboard' | 'deploy' | 'skills' | 'goals' | 'journal' | 'analytics' | 'session' | 'failureLogs' | 'insights' | 'settings' | 'contentPipeline' | 'automationQueue';
 
 export default function Home() {
   const { isAuthenticated, isLoading } = useAuthCheck();
@@ -191,6 +193,8 @@ export default function Home() {
             {activePanel === 'failureLogs' && 'Failure Logs'}
             {activePanel === 'insights' && 'System Insights'}
             {activePanel === 'settings' && 'Settings'}
+            {activePanel === 'contentPipeline' && 'Content Pipeline'}
+            {activePanel === 'automationQueue' && 'Automation Queue'}
           </h1>
 
           {/* Persona Selector */}
@@ -254,6 +258,8 @@ export default function Home() {
           {activePanel === 'failureLogs' && <FailureLogsPanel />}
           {activePanel === 'insights' && <InsightsPanel />}
           {activePanel === 'settings' && <SettingsPanel />}
+          {activePanel === 'contentPipeline' && <ContentPipelinePanel />}
+          {activePanel === 'automationQueue' && <AutomationQueuePanel />}
         </main>
 
         {/* Status Bar */}

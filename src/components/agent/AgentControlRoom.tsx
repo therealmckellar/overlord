@@ -23,9 +23,7 @@ export const AgentControlRoom = ({ agentId, onClose }: { agentId: string, onClos
     if (current.has(skillId)) current.delete(skillId);
     else current.add(skillId);
     
-    // Assuming we add updateAgent to the store
-    // For now, since I don't have it, I'll just log. I should add it to the store.
-    console.log(`Assigning skills to ${agent.name}:`, Array.from(current));
+    updateAgent(agent.id, { assignedSkillIds: Array.from(current) });
   };
 
   return (

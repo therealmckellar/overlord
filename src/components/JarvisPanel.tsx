@@ -3,6 +3,7 @@
 import React, { useState, useCallback, useEffect, useRef } from 'react';
 import { useUIStore } from '@/stores/uiStore';
 import { useMessageStore } from '@/stores/messageStore';
+import { useKanbanStore } from '@/stores/kanbanStore';
 import { useChatStream } from '@/hooks/useChatStream';
 import { useJarvis } from '@/hooks/useJarvis';
 import { Mic, MicOff, Volume2, VolumeX, History, Loader2 } from 'lucide-react';
@@ -87,12 +88,39 @@ export function JarvisPanel() {
       return;
     }
 
-    // J3: Daily briefing — read today's journal + goals
+    // J3: Daily briefing — read today's journal + goals from stores, build context-rich prompt
     if (lowerCmd.includes('briefing') || lowerCmd.includes('daily') || lowerCmd.includes('morning')) {
-      const briefingPrompt = `Give me a concise daily briefing. Consider: (1) What are the top priorities today? (2) What is the current status of ongoing work? (3) What should I focus on first? Be specific and actionable.`;
       setIsThinking(true);
       try {
+        // Gather context from stores
+        const { useSharedMemoryStore } = await import('@/stores/sharedMemoryStore');
+        const { useKanbanStore } = await import('@/stores/kanbanStore');
+        
+        const state = useSharedMemoryStore.getState();
+        const today = new Date().toISOString().split('T')[0];
+        const todaysJournal = state.journal.filter(j => j.date === today);
+        const goals = state.goals.filter(g => g.status === 'active');
+        
+        const kanbanState = useKanbanStore.getState();
+        const activeTasks = kanbanState.tasks.filter(t => t.status === 'in_progress');
+        const urgentTasks = kanbanState.tasks.filter(t => t.priority === 'urgent' && t.status !== 'done');
+        
+        // Build context-rich briefing prompt
+        const contextParts: string[] = [];
+        if (activeTasks.length > 0) contextParts.push(`Active tasks: ${activeTasks.map(t => `"${t.title}"`).join(', ')}`);
+        if (urgentTasks.length > 0) contextParts.push(`Urgent: ${urgentTasks.map(t => `"${t.title}"`).join(', ')}`);
+        if (goals.length > 0) contextParts.push(`Goals: ${goals.map(g => `${g.title} (${g.progress}%)`).join(', ')}`);
+        if (todaysJournal.length > 0) contextParts.push(`Today's notes: ${todaysJournal.map(j => j.content).join('; ')}`);
+        
+        const briefingPrompt = `You are Jarvis, Rich's AI assistant. Give a concise daily briefing. Context:\n${contextParts.length > 0 ? contextParts.join('\n') : 'No active tasks or goals yet.'}\n\nBe specific and actionable. What should Rich focus on first? Keep it under 100 words.`;
+        
         await sendChatMessage(briefingPrompt);
+        // Auto-speak the briefing after it's generated
+        setTimeout(() => {
+          const storeMsgs = useMessageStore.getState().messagesBySession[JARVIS_SESSION] || [];
+          const lastAssistant = storeMsgs.filter((m) => m.sender.role === 'assistant').slice(-1)[0];
+          if (lastAssistant) speak(lastAssistant.content);
+        }, 500);
       } catch {
         setMessages(prev => [...prev, { id: `jarvis-${Date.now()}`, type: 'jarvis', text: 'Sorry, I had an issue generating the briefing.', timestamp: new Date() }]);
       } finally {

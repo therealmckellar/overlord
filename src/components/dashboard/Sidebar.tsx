@@ -59,6 +59,8 @@ const navGroups = [
     items: [
       { id: 'research', label: 'Research', icon: '🔬', panel: 'research' },
       { id: 'researchQueue', label: 'Research Queue', icon: '📋', panel: 'researchQueue' },
+      { id: 'contentPipeline', label: 'Content Pipeline', icon: '⚡', panel: 'contentPipeline' },
+      { id: 'automationQueue', label: 'Auto Queue', icon: '🔄', panel: 'automationQueue' },
       { id: 'substack', label: 'Content', icon: '✨', panel: 'substack' },
     ],
   },
