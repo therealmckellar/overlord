@@ -64,6 +64,8 @@ export interface Space {
   description: string;
   masterPrompt: string;            // master system prompt for the space
   customInstructions: string;      // supplementary AI instructions
+  model: string;                   // default model for chats in this space
+  provider: string;                // default provider (e.g. 'openrouter')
   files: SpaceFile[];
   artifacts: SpaceArtifact[];
   attachments: SpaceAttachment[];
@@ -97,6 +99,8 @@ interface SpaceState {
   // Master Prompt & Description
   setMasterPrompt: (spaceId: string, prompt: string) => void;
   setDescription: (spaceId: string, description: string) => void;
+  setSpaceModel: (spaceId: string, model: string) => void;
+  setSpaceProvider: (spaceId: string, provider: string) => void;
 
   // Instructions
   setCustomInstructions: (spaceId: string, instructions: string) => void;
@@ -147,6 +151,8 @@ export const useSpaceStore = create<SpaceState>()(
           description: description || '',
           masterPrompt: '',
           customInstructions: '',
+          model: '',
+          provider: '',
           files: [],
           artifacts: [],
           attachments: [],
@@ -196,6 +202,20 @@ export const useSpaceStore = create<SpaceState>()(
         set((state) => ({
           spaces: state.spaces.map((s) =>
             s.id === spaceId ? { ...s, description, updatedAt: Date.now() } : s
+          ),
+        })),
+
+      setSpaceModel: (spaceId, model) =>
+        set((state) => ({
+          spaces: state.spaces.map((s) =>
+            s.id === spaceId ? { ...s, model, updatedAt: Date.now() } : s
+          ),
+        })),
+
+      setSpaceProvider: (spaceId, provider) =>
+        set((state) => ({
+          spaces: state.spaces.map((s) =>
+            s.id === spaceId ? { ...s, provider, updatedAt: Date.now() } : s
           ),
         })),
 

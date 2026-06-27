@@ -21,7 +21,10 @@ import {
   Send,
   Bot,
   ChevronRight,
+  Cpu,
+  Check,
 } from 'lucide-react';
+import { UNIQUE_MODELS } from '@/lib/model-graph';
 
 type SpaceTab = 'threads' | 'files' | 'instructions' | 'members';
 
@@ -160,6 +163,19 @@ export function SpacesPanel() {
 function SpaceDetail({ space }: { space: Space }) {
   const [activeTab, setActiveTab] = useState<SpaceTab>('threads');
   const setCustomInstructions = useSpaceStore((s) => s.setCustomInstructions);
+  const setSpaceModel = useSpaceStore((s) => s.setSpaceModel);
+  const [modelOpen, setModelOpen] = useState(false);
+  const globalModel = useUIStore((s) => s.selectedModel);
+  const setGlobalModel = useUIStore((s) => s.setSelectedModel);
+
+  const activeModel = space.model || globalModel;
+  const currentModelInfo = UNIQUE_MODELS.find((m) => m.value === activeModel);
+
+  const handleModelChange = (modelValue: string) => {
+    setSpaceModel(space.id, modelValue);
+    setGlobalModel(modelValue);
+    setModelOpen(false);
+  };
 
   const tabs: { id: SpaceTab; label: string; icon: React.ReactNode }[] = [
     { id: 'threads', label: 'Threads', icon: <MessageSquare className="w-3.5 h-3.5" /> },
@@ -172,11 +188,52 @@ function SpaceDetail({ space }: { space: Space }) {
     <div className="flex flex-col h-full overflow-hidden">
       {/* Space header */}
       <div className="px-4 py-3 border-b border-[var(--border)] bg-[var(--bg-secondary)]">
-        <div className="flex items-center gap-3">
-          <span className="text-lg">{space.icon}</span>
-          <div>
-            <h2 className="text-sm font-semibold text-[var(--text)]">{space.name}</h2>
-            {space.description && <p className="text-xs text-[var(--text-muted)]">{space.description}</p>}
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <span className="text-lg">{space.icon}</span>
+            <div>
+              <h2 className="text-sm font-semibold text-[var(--text)]">{space.name}</h2>
+              {space.description && <p className="text-xs text-[var(--text-muted)]">{space.description}</p>}
+            </div>
+          </div>
+          {/* Model Selector */}
+          <div className="relative">
+            <button
+              onClick={() => setModelOpen(!modelOpen)}
+              className="flex items-center gap-1.5 px-2 py-1 rounded-lg bg-[var(--bg-tertiary)] border border-[var(--border)] hover:border-[var(--accent)]/30 transition-colors"
+              title="Change model for this space"
+            >
+              <Cpu className="w-3 h-3 text-[var(--text-muted)]" />
+              <span className="text-[10px] font-medium text-[var(--text-secondary)] max-w-[80px] truncate">
+                {currentModelInfo?.label || 'Default'}
+              </span>
+            </button>
+            {modelOpen && (
+              <>
+                <div className="fixed inset-0 z-10" onClick={() => setModelOpen(false)} />
+                <div className="absolute right-0 mt-1 w-52 rounded-lg bg-[var(--bg-secondary)] border border-[var(--border)] shadow-2xl z-20 py-1 max-h-[300px] overflow-y-auto">
+                  <div className="px-2 py-1 text-[9px] uppercase tracking-wider text-[var(--text-muted)] font-medium">
+                    Model for this space
+                  </div>
+                  {UNIQUE_MODELS.map((m) => (
+                    <button
+                      key={m.value}
+                      onClick={() => handleModelChange(m.value)}
+                      className={`w-full flex items-center gap-2 px-2 py-1.5 text-left text-[11px] transition-colors ${
+                        activeModel === m.value
+                          ? 'bg-[var(--accent)]/10 text-[var(--accent)]'
+                          : 'text-[var(--text-secondary)] hover:bg-[var(--bg-tertiary)]'
+                      }`}
+                    >
+                      <div className="w-3 h-3 flex items-center justify-center">
+                        {activeModel === m.value && <Check className="w-2.5 h-2.5 text-[var(--accent)]" />}
+                      </div>
+                      <span className="flex-1 truncate">{m.label}</span>
+                    </button>
+                  ))}
+                </div>
+              </>
+            )}
           </div>
         </div>
       </div>
