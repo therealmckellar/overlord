@@ -48,17 +48,9 @@ export function initTables() {
       progress INTEGER NOT NULL DEFAULT 0,
       milestones TEXT,
       workspace_id TEXT,
-      linear_issue_id TEXT,
-      github_issue_id TEXT,
       created_at INTEGER NOT NULL,
       updated_at INTEGER NOT NULL
     );
 
-    CREATE TABLE IF NOT EXISTS linear_tokens (
-      id TEXT PRIMARY KEY,
-      api_key TEXT NOT NULL,
-      team_id TEXT,
-      created_at INTEGER NOT NULL
-    );
   `);
 }

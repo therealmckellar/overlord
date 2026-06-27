@@ -46,10 +46,9 @@ import SettingsPanel from '@/components/SettingsPanel';
 import { ContentPipelinePanel } from '@/components/ContentPipelinePanel';
 import { AutomationQueuePanel } from '@/components/AutomationQueuePanel';
 import WorkspacePanel from '@/components/WorkspacePanel';
-import { LinearSettings } from '@/components/LinearSettings';
 
 
-type Panel = 'dashboard' | 'chat' | 'pipeline' | 'memory' | 'loop' | 'devtools' | 'research' | 'researchQueue' | 'substack' | 'agent' | 'jarvis' | 'designer' | 'spaces' | 'mission' | 'taskboard' | 'deploy' | 'skills' | 'goals' | 'journal' | 'analytics' | 'session' | 'failureLogs' | 'insights' | 'settings' | 'contentPipeline' | 'automationQueue' | 'workspaces' | 'linear';
+type Panel = 'dashboard' | 'chat' | 'pipeline' | 'memory' | 'loop' | 'devtools' | 'research' | 'researchQueue' | 'substack' | 'agent' | 'jarvis' | 'designer' | 'spaces' | 'mission' | 'taskboard' | 'deploy' | 'skills' | 'goals' | 'journal' | 'analytics' | 'session' | 'failureLogs' | 'insights' | 'settings' | 'contentPipeline' | 'automationQueue' | 'workspaces';
 
 export default function Home() {
   const { isAuthenticated, isLoading } = useAuthCheck();
@@ -198,7 +197,6 @@ export default function Home() {
             {activePanel === 'contentPipeline' && 'Content Pipeline'}
             {activePanel === 'automationQueue' && 'Automation Queue'}
             {activePanel === 'workspaces' && 'Workspaces'}
-            {activePanel === 'linear' && 'Linear'}
           </h1>
 
           {/* Persona Selector */}
@@ -265,7 +263,6 @@ export default function Home() {
           {activePanel === 'contentPipeline' && <ContentPipelinePanel />}
           {activePanel === 'automationQueue' && <AutomationQueuePanel />}
           {activePanel === 'workspaces' && <WorkspacePanel />}
-          {activePanel === 'linear' && <LinearSettings />}
         </main>
 
         {/* Status Bar */}

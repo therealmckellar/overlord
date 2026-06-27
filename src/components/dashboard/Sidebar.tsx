@@ -77,7 +77,6 @@ const navGroups = [
     label: 'CONFIG',
     items: [
       { id: 'settings', label: 'Settings', icon: '⚙️', panel: 'settings' },
-      { id: 'linear', label: 'Linear', icon: '📐', panel: 'linear' },
     ],
   },
 ];

@@ -16,7 +16,7 @@ export async function GET() {
 
 export async function POST(req: NextRequest) {
   const body = await req.json();
-  const { title, description, milestones, workspace_id, linear_issue_id, github_issue_id } = body;
+  const { title, description, milestones, workspace_id } = body;
 
   if (!title) return NextResponse.json({ error: "title required" }, { status: 400 });
 
@@ -29,7 +29,7 @@ export async function POST(req: NextRequest) {
   ).run(
     id, title, description || null, "active", 0,
     milestones ? JSON.stringify(milestones) : null,
-    workspace_id || null, linear_issue_id || null, github_issue_id || null,
+    workspace_id || null,
     now, now
   );
 
