@@ -1,10 +1,39 @@
 'use client';
 
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useRef, useEffect } from 'react';
 import { useUIStore } from '@/stores/uiStore';
 import { useTTS } from '@/hooks/useTTS';
-import { useSTT } from '@/hooks/useSTT';
 import { Mic, MicOff, Volume2, VolumeX } from 'lucide-react';
+
+// Extend Window for SpeechRecognition
+interface SpeechRecognitionEvent extends Event {
+  results: SpeechRecognitionResultList;
+  resultIndex: number;
+}
+
+interface SpeechRecognitionErrorEvent extends Event {
+  error: string;
+}
+
+interface SpeechRecognitionInstance extends EventTarget {
+  continuous: boolean;
+  interimResults: boolean;
+  lang: string;
+  start: () => void;
+  stop: () => void;
+  abort: () => void;
+  onresult: ((event: SpeechRecognitionEvent) => void) | null;
+  onerror: ((event: SpeechRecognitionErrorEvent) => void) | null;
+  onend: (() => void) | null;
+  onstart: (() => void) | null;
+}
+
+declare global {
+  interface Window {
+    SpeechRecognition: new () => SpeechRecognitionInstance;
+    webkitSpeechRecognition: new () => SpeechRecognitionInstance;
+  }
+}
 
 export const VoiceControls = () => {
   const voiceEnabled = useUIStore((s) => s.voiceEnabled);
@@ -12,15 +41,90 @@ export const VoiceControls = () => {
   const soundsEnabled = useUIStore((s) => s.soundsEnabled);
   const toggleSounds = useUIStore((s) => s.toggleSounds);
   const { speak, stop: stopTTS, isSpeaking, canSpeak } = useTTS();
-  const { startRecording, stopRecording, isRecording, error: sttError } = useSTT(
-    useCallback((text: string) => {
-      // When STT returns text, auto-send as message
-      // For now, just speak it back as confirmation
-      if (voiceEnabled && text) {
-        speak(`Got it: ${text}`);
+
+  const [isRecording, setIsRecording] = useState(false);
+  const [interimTranscript, setInterimTranscript] = useState('');
+  const recognitionRef = useRef<SpeechRecognitionInstance | null>(null);
+
+  const handleVoiceCommand = useCallback((text: string) => {
+    if (!text.trim()) return;
+    // Dispatch custom event so ChatWindow / JarvisPanel can pick it up
+    window.dispatchEvent(new CustomEvent('overlord-voice-input', { detail: { text } }));
+  }, []);
+
+  const startRecording = useCallback(() => {
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!SpeechRecognition) return;
+
+    if (recognitionRef.current) {
+      recognitionRef.current.abort();
+    }
+
+    const recognition = new SpeechRecognition();
+    recognition.continuous = true;
+    recognition.interimResults = true;
+    recognition.lang = 'en-US';
+
+    recognition.onstart = () => {
+      setIsRecording(true);
+      setInterimTranscript('');
+    };
+
+    recognition.onresult = (event: SpeechRecognitionEvent) => {
+      let finalTranscript = '';
+      let interim = '';
+
+      for (let i = event.resultIndex; i < event.results.length; i++) {
+        const result = event.results[i];
+        if (result.isFinal) {
+          finalTranscript += result[0].transcript;
+        } else {
+          interim += result[0].transcript;
+        }
       }
-    }, [voiceEnabled, speak])
-  );
+
+      setInterimTranscript(interim || finalTranscript);
+
+      if (finalTranscript) {
+        handleVoiceCommand(finalTranscript.trim());
+      }
+    };
+
+    recognition.onerror = (event: SpeechRecognitionErrorEvent) => {
+      if (event.error !== 'no-speech' && event.error !== 'aborted') {
+        console.error('[VoiceControls] STT error:', event.error);
+      }
+    };
+
+    recognition.onend = () => {
+      // Auto-restart if still supposed to be listening
+      if (recognitionRef.current === recognition) {
+        try {
+          recognition.start();
+        } catch {
+          setIsRecording(false);
+          recognitionRef.current = null;
+        }
+      }
+    };
+
+    recognitionRef.current = recognition;
+    try {
+      recognition.start();
+    } catch {
+      setIsRecording(false);
+    }
+  }, [handleVoiceCommand]);
+
+  const stopRecording = useCallback(() => {
+    if (recognitionRef.current) {
+      const ref = recognitionRef.current;
+      recognitionRef.current = null;
+      ref.abort();
+    }
+    setIsRecording(false);
+    setInterimTranscript('');
+  }, []);
 
   const handleMicToggle = () => {
     if (isRecording) {
@@ -36,6 +140,16 @@ export const VoiceControls = () => {
     }
     toggleSounds();
   };
+
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      if (recognitionRef.current) {
+        recognitionRef.current.abort();
+        recognitionRef.current = null;
+      }
+    };
+  }, []);
 
   return (
     <div className="flex items-center gap-1">
@@ -94,10 +208,10 @@ export const VoiceControls = () => {
         {voiceEnabled ? 'VOICE' : 'voice'}
       </button>
 
-      {/* STT error toast */}
-      {sttError && (
-        <span className="text-[10px] text-red-400 max-w-[120px] truncate" title={sttError}>
-          {sttError}
+      {/* Interim transcript indicator */}
+      {isRecording && interimTranscript && (
+        <span className="text-[10px] text-zinc-400 max-w-[100px] truncate" title={interimTranscript}>
+          {interimTranscript}
         </span>
       )}
     </div>

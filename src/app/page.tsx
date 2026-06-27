@@ -64,24 +64,25 @@ export default function Home() {
 
   // Session management
   const activeSessionId = useSessionStore((s) => s.activeSessionId);
-  const sessions = useSessionStore((s) => s.sessions);
-  const createSession = useSessionStore((s) => s.createSession);
-  const setActiveSession = useSessionStore((s) => s.setActiveSession);
   const activeSession = activeSessionId || 'default';
 
-  // Ref to prevent duplicate session creation from effect re-runs (e.g. persist rehydration)
-  const sessionCreatedRef = useRef(false);
+  // Ensure there's at least one session — use lazy initialization in sessionStore instead of effect
 
-  // Ensure there's at least one session
+  // Global error handler for debugging React errors
   useEffect(() => {
-    if (sessions.length === 0 && !sessionCreatedRef.current) {
-      sessionCreatedRef.current = true;
-      const s = createSession('New Chat');
-      setActiveSession(s.id);
-    } else if (sessions.length > 0 && !activeSessionId) {
-      setActiveSession(sessions[0].id);
-    }
-  }, [sessions.length, activeSessionId, createSession, setActiveSession]);
+    const handler = (e: ErrorEvent) => {
+      console.error('[Global Error]', e.message, e.error?.stack?.split('\n').slice(0, 5).join('\n'));
+    };
+    const rejectionHandler = (e: PromiseRejectionEvent) => {
+      console.error('[Unhandled Rejection]', e.reason?.message || e.reason);
+    };
+    window.addEventListener('error', handler);
+    window.addEventListener('unhandledrejection', rejectionHandler);
+    return () => {
+      window.removeEventListener('error', handler);
+      window.removeEventListener('unhandledrejection', rejectionHandler);
+    };
+  }, []);
 
   // Wire keyboard shortcuts
   useKeyboardShortcuts();

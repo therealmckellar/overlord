@@ -22,7 +22,11 @@ export class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoun
   }
 
   componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
-    console.error('ErrorBoundary caught:', error, errorInfo);
+    console.error('ErrorBoundary caught:', error.message);
+    console.error('Component stack:', errorInfo.componentStack);
+    console.error('Error stack:', error.stack?.split('\n').slice(0, 15).join('\n'));
+    // Store component stack on error object for display in render
+    (error as any).componentStack = errorInfo.componentStack;
   }
 
   render() {
@@ -34,7 +38,9 @@ export class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoun
             <pre className="text-xs text-[var(--text)] whitespace-pre-wrap break-all bg-[var(--bg)] p-4 rounded-lg max-h-60 overflow-auto">
               {this.state.error?.message}
               {'\n\n'}
-              {this.state.error?.stack}
+              {this.state.error?.stack?.split('\n').slice(0, 20).join('\n')}
+              {'\n\nComponent Stack:\n'}
+              {(this.state.error as any)?.componentStack || 'N/A'}
             </pre>
             <button
               onClick={() => this.setState({ hasError: false, error: null })}

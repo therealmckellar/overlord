@@ -49,7 +49,9 @@ export const ChatWindow = () => {
     systemPrompt: spaceInstructions,
   });
 
-  const messages = useMessageStore((s) => s.messagesBySession[activeSession] || []);
+  // FIX: Do NOT use || [] in the selector — it creates a new array ref on every render
+  // causing an infinite re-render loop. Handle undefined in JSX instead.
+  const messages = useMessageStore((s) => s.messagesBySession[activeSession]);
   const scrollRef = useRef<HTMLDivElement>(null);
   const [showModelDropdown, setShowModelDropdown] = useState(false);
   const [showPersonaDropdown, setShowPersonaDropdown] = useState(false);
@@ -67,6 +69,18 @@ export const ChatWindow = () => {
     setLastError(null);
     sendMessage(text);
   }, [sendMessage]);
+
+  // Listen for voice input from VoiceControls (Web Speech API)
+  useEffect(() => {
+    const handleVoiceInput = (e: Event) => {
+      const detail = (e as CustomEvent).detail;
+      if (detail?.text) {
+        handleSend(detail.text);
+      }
+    };
+    window.addEventListener('overlord-voice-input', handleVoiceInput);
+    return () => window.removeEventListener('overlord-voice-input', handleVoiceInput);
+  }, [handleSend]);
 
   const handleStop = useCallback(() => {
     cancelStream();
@@ -185,7 +199,7 @@ export const ChatWindow = () => {
 
       {/* Messages area */}
       <div ref={scrollRef} className="flex-1 overflow-y-auto p-4 space-y-4 scroll-smooth">
-        {messages.length === 0 && !isStreaming && (
+        {!messages && !isStreaming && (
           <div className="h-full flex flex-col items-center justify-center gap-3">
             <div className="w-12 h-12 rounded-xl bg-[var(--bg-tertiary)] flex items-center justify-center">
               <UserCircle className="w-6 h-6 text-[var(--text-muted)]" />
@@ -197,7 +211,7 @@ export const ChatWindow = () => {
           </div>
         )}
 
-        {messages.map((msg) => (
+        {messages?.map((msg) => (
           <ChatMessage key={msg.id} message={msg} />
         ))}
 
