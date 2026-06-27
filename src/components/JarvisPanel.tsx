@@ -1,11 +1,11 @@
 'use client';
 
-import React, { useState, useCallback, useRef, useEffect } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import { useUIStore } from '@/stores/uiStore';
 import { useMessageStore } from '@/stores/messageStore';
 import { useChatStream } from '@/hooks/useChatStream';
 import { useJarvis } from '@/hooks/useJarvis';
-import { Mic, MicOff, Volume2, VolumeX, MessageSquare, History } from 'lucide-react';
+import { Mic, MicOff, Volume2, VolumeX, History } from 'lucide-react';
 import { InlineModelSelector } from '@/components/ui/InlineModelSelector';
 
 const SUGGESTED_COMMANDS = [
@@ -29,7 +29,6 @@ export function JarvisPanel() {
   const addToast = useUIStore((s) => s.addToast);
   const selectedModel = useUIStore((s) => s.selectedModel);
   const [messages, setMessages] = useState<JarvisMessage[]>([]);
-  const lastProcessedRef = useRef<string | null>(null);
 
   const { sendMessage: sendChatMessage } = useChatStream({
     sessionId: JARVIS_SESSION,
@@ -88,7 +87,7 @@ export function JarvisPanel() {
 
     // J3: Daily briefing — read today's journal + goals
     if (lowerCmd.includes('briefing') || lowerCmd.includes('daily') || lowerCmd.includes('morning')) {
-      const briefingPrompt = `Give me a concise daily briefing. Consider: (1) What are the top priorities today? (2) What's the current status of ongoing work? (3) What should I focus on first? Be specific and actionable.`;
+      const briefingPrompt = `Give me a concise daily briefing. Consider: (1) What are the top priorities today? (2) What is the current status of ongoing work? (3) What should I focus on first? Be specific and actionable.`;
       addToast({ type: 'info', message: 'Generating daily briefing...', duration: 2000 });
       try {
         await sendChatMessage(briefingPrompt);
@@ -111,21 +110,33 @@ export function JarvisPanel() {
     }
   }, [addToast, sendChatMessage]);
 
-  // Watch message store for Jarvis responses
+  // Watch message store for Jarvis responses — count-based so follow-ups work
   useEffect(() => {
     const interval = setInterval(() => {
       const storeMsgs = useMessageStore.getState().messagesBySession[JARVIS_SESSION] || [];
-      const lastAssistant = storeMsgs.filter((m) => m.sender.role === 'assistant').slice(-1)[0];
-      if (lastAssistant && lastAssistant.id !== lastProcessedRef.current) {
-        lastProcessedRef.current = lastAssistant.id;
-        setMessages(prev => [
-          ...prev,
-          { id: `jarvis-${Date.now()}`, type: 'jarvis', text: lastAssistant.content, timestamp: new Date() },
-        ]);
+      const assistantMsgs = storeMsgs.filter((m) => m.sender.role === 'assistant');
+      const localJarvisCount = messages.filter((m) => m.type === 'jarvis' && m.text !== 'Jarvis processing...').length;
+
+      if (assistantMsgs.length > localJarvisCount) {
+        // Find unseen assistant messages
+        const displayedContent = new Set(
+          messages.filter(m => m.type === 'jarvis').map(m => m.text)
+        );
+
+        for (let i = assistantMsgs.length - 1; i >= 0; i--) {
+          const msg = assistantMsgs[i];
+          if (!displayedContent.has(msg.content)) {
+            setMessages(prev => [
+              ...prev,
+              { id: `jarvis-${Date.now()}-${i}`, type: 'jarvis', text: msg.content, timestamp: new Date() },
+            ]);
+            break;
+          }
+        }
       }
     }, 300);
     return () => clearInterval(interval);
-  }, []);
+  }, [messages]);
 
   const { isListening, isSpeaking, isSupported, transcript, lastCommand, toggle, speak } = useJarvis(handleCommand);
 
@@ -210,6 +221,34 @@ export function JarvisPanel() {
             </div>
           </div>
         )}
+      </div>
+
+      {/* Conversation input */}
+      <div className="px-3 pt-2 border-t border-[var(--border)] shrink-0">
+        <form
+          onSubmit={(e) => {
+            e.preventDefault();
+            const input = (e.target as HTMLFormElement).elements.namedItem('jarvis-input') as HTMLInputElement;
+            if (input && input.value.trim()) {
+              handleCommand(input.value.trim());
+              input.value = '';
+            }
+          }}
+          className="flex items-center gap-2"
+        >
+          <input
+            name="jarvis-input"
+            type="text"
+            placeholder="Continue the conversation..."
+            className="flex-1 px-3 py-2 text-sm rounded-lg bg-[var(--bg-secondary)] border border-[var(--border)] text-[var(--text)] placeholder:text-[var(--text-muted)] focus:outline-none focus:border-[var(--accent)]"
+          />
+          <button
+            type="submit"
+            className="px-3 py-2 text-xs rounded-lg bg-[var(--accent)] text-white hover:bg-[var(--accent-hover)] transition-colors"
+          >
+            Send
+          </button>
+        </form>
       </div>
 
       {/* Controls */}
