@@ -255,6 +255,7 @@ function ThreadChatView({ space, thread }: { space: Space; thread: SpaceThread }
   const setSpaceModel = useSpaceStore((s) => s.setSpaceModel);
   const [input, setInput] = useState('');
   const [isStreaming, setIsStreaming] = useState(false);
+  const [streamingContent, setStreamingContent] = useState('');
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const abortRef = useRef<AbortController | null>(null);
 
@@ -274,6 +275,7 @@ function ThreadChatView({ space, thread }: { space: Space; thread: SpaceThread }
     const userContent = input.trim();
     setInput('');
     setIsStreaming(true);
+    setStreamingContent('');
 
     // Add user message to store
     addThreadMessage(space.id, thread.id, { role: 'user', content: userContent });
@@ -283,10 +285,6 @@ function ThreadChatView({ space, thread }: { space: Space; thread: SpaceThread }
       const title = summarizeTitle(userContent);
       updateThreadTitle(space.id, thread.id, title);
     }
-
-    // Create a temporary assistant message ID that we'll stream into
-    const assistantMsgId = Math.random().toString(36).substr(2, 9) + Date.now().toString(36);
-    addThreadMessage(space.id, thread.id, { role: 'assistant', content: '' });
 
     // Build system prompt from space master prompt + custom instructions
     const systemPrompt = [space.masterPrompt.trim(), space.customInstructions.trim()].filter(Boolean).join('\n\n');
@@ -313,8 +311,6 @@ function ThreadChatView({ space, thread }: { space: Space; thread: SpaceThread }
       if (!response.ok) {
         const errText = await response.text();
         console.error('Chat API error:', response.status, errText);
-        // Update the assistant message with error
-        // (we can't easily update by ID in the store, so we add an error message)
         addThreadMessage(space.id, thread.id, {
           role: 'assistant',
           content: `⚠️ Error: Failed to get response from AI (${response.status}). Please check your API key configuration.`,
@@ -337,15 +333,6 @@ function ThreadChatView({ space, thread }: { space: Space; thread: SpaceThread }
       const decoder = new TextDecoder();
       let accumulated = '';
 
-      // Stream the assistant response character by character
-      // We use a local state trick: we'll update the last message in the store
-      // by removing it and re-adding with updated content
-      const streamMessages = [...thread.messages];
-      const baseMessageCount = streamMessages.length; // includes the empty assistant msg we added
-
-      // Remove the empty assistant message — we'll re-add with content
-      useSpaceStore.getState().removeThreadMessage?.(space.id, thread.id, assistantMsgId);
-
       while (true) {
         const { done, value } = await reader.read();
         if (done) break;
@@ -360,28 +347,10 @@ function ThreadChatView({ space, thread }: { space: Space; thread: SpaceThread }
 
           try {
             const parsed = JSON.parse(data);
-            if (parsed.event === 'chunk') {
+            if (parsed.event === 'chunk' && parsed.content) {
               accumulated += parsed.content;
-              // Update the store's last message by re-adding
-              // We'll just accumulate locally for performance, then flush
-              if (accumulated.length % 3 === 0 || accumulated.length < 50) {
-                // Update: remove last assistant msg and add updated one
-                const currentThread = useSpaceStore.getState().spaces
-                  .find(s => s.id === space.id)
-                  ?.threads.find(t => t.id === thread.id);
-                if (currentThread) {
-                  const msgs = currentThread.messages;
-                  // Find and update the last assistant message
-                  const lastIdx = msgs.length - 1;
-                  if (lastIdx >= 0 && msgs[lastIdx].role === 'assistant') {
-                    useSpaceStore.getState().removeThreadMessage?.(space.id, thread.id, msgs[lastIdx].id);
-                    useSpaceStore.getState().addThreadMessage(space.id, thread.id, {
-                      role: 'assistant',
-                      content: accumulated,
-                    });
-                  }
-                }
-              }
+              // Update local state for live streaming display
+              setStreamingContent(accumulated);
             }
           } catch {
             // Skip malformed
@@ -389,20 +358,19 @@ function ThreadChatView({ space, thread }: { space: Space; thread: SpaceThread }
         }
       }
 
-      // Final flush — ensure all accumulated content is saved
-      const currentThread = useSpaceStore.getState().spaces
-        .find(s => s.id === space.id)
-        ?.threads.find(t => t.id === thread.id);
-      if (currentThread && accumulated) {
-        const msgs = currentThread.messages;
-        const lastIdx = msgs.length - 1;
-        if (lastIdx >= 0 && msgs[lastIdx].role === 'assistant' && msgs[lastIdx].content !== accumulated) {
-          useSpaceStore.getState().removeThreadMessage?.(space.id, thread.id, msgs[lastIdx].id);
-          useSpaceStore.getState().addThreadMessage(space.id, thread.id, {
-            role: 'assistant',
-            content: accumulated,
-          });
-        }
+      // Final save to store
+      if (accumulated) {
+        addThreadMessage(space.id, thread.id, {
+          role: 'assistant',
+          content: accumulated,
+        });
+        setStreamingContent('');
+      } else {
+        addThreadMessage(space.id, thread.id, {
+          role: 'assistant',
+          content: '⚠️ Error: Empty response from AI. Please try again.',
+        });
+        setStreamingContent('');
       }
 
       setIsStreaming(false);
@@ -483,7 +451,20 @@ function ThreadChatView({ space, thread }: { space: Space; thread: SpaceThread }
           </div>
         ))}
 
-        {thread.messages.length === 0 && !space.masterPrompt.trim() && (
+        {/* Streaming message (live, not yet saved to store) */}
+        {isStreaming && streamingContent && (
+          <div className="flex justify-start">
+            <div className="max-w-[80%] px-3 py-2 rounded-lg text-xs bg-[var(--bg-secondary)] border border-[var(--border)] text-[var(--text)]">
+              <div className="flex items-center gap-1 mb-1">
+                <Bot className="w-3 h-3 text-[var(--accent)]" />
+                <span className="text-[10px] font-medium text-[var(--accent)]">Assistant</span>
+              </div>
+              <p className="whitespace-pre-wrap">{streamingContent}<span className="animate-pulse">▋</span></p>
+            </div>
+          </div>
+        )}
+
+        {thread.messages.length === 0 && !isStreaming && !space.masterPrompt.trim() && (
           <div className="flex-1 flex items-center justify-center h-full">
             <div className="text-center">
               <MessageSquare className="w-8 h-8 text-[var(--text-muted)] mx-auto mb-2" />
