@@ -84,9 +84,12 @@ export function Sidebar({ activePanel, onNavigate }: { activePanel: string; onNa
   const sessions = useSessionStore((s) => s.sessions);
   const activeSessionId = useSessionStore((s) => s.activeSessionId);
   const setActiveSession = useSessionStore((s) => s.setActiveSession);
+  const renameSession = useSessionStore((s) => s.renameSession);
   const memoryEntries = useSharedMemoryStore((s) => s.memory);
 
   const [systemStats, setSystemStats] = useState({ sessions: 0, memory: 0 });
+  const [editingSessionId, setEditingSessionId] = useState<string | null>(null);
+  const [editTitle, setEditTitle] = useState('');
 
   useEffect(() => {
     setSystemStats({
@@ -168,23 +171,62 @@ export function Sidebar({ activePanel, onNavigate }: { activePanel: string; onNa
 
       {/* Active Sessions List */}
       {sessions.length > 0 && (
-        <div className="px-3 py-2 border-t border-[var(--border)] max-h-[180px] overflow-y-auto">
+        <div className="px-3 py-2 border-t border-[var(--border)] max-h-[220px] overflow-y-auto">
           <p className="text-[10px] uppercase tracking-wider text-[var(--text-muted)] mb-1.5 px-1">
             Recent
           </p>
-          {sessions.slice(0, 4).map((s) => (
-            <button
+          {sessions.slice(0, 6).map((s) => (
+            <div
               key={s.id}
-              onClick={() => { setActiveSession(s.id); onNavigate('chat'); }}
-              className={`w-full flex items-center gap-2 px-2 py-1.5 rounded text-left text-xs truncate transition-colors ${
+              className={`group flex items-center gap-1 px-2 py-1.5 rounded text-left text-xs transition-colors ${
                 s.id === activeSessionId
                   ? 'bg-[var(--accent)]/10 text-[var(--accent)]'
                   : 'text-[var(--text-muted)] hover:bg-[var(--bg-tertiary)] hover:text-[var(--text-secondary)]'
               }`}
             >
-              <span>💬</span>
-              <span className="truncate">{s.title}</span>
-            </button>
+              <span className="shrink-0">💬</span>
+              {editingSessionId === s.id ? (
+                <input
+                  autoFocus
+                  value={editTitle}
+                  onChange={(e) => setEditTitle(e.target.value)}
+                  onBlur={() => {
+                    if (editTitle.trim()) renameSession(s.id, editTitle.trim());
+                    setEditingSessionId(null);
+                  }}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      if (editTitle.trim()) renameSession(s.id, editTitle.trim());
+                      setEditingSessionId(null);
+                    } else if (e.key === 'Escape') {
+                      setEditingSessionId(null);
+                    }
+                  }}
+                  onClick={(e) => e.stopPropagation()}
+                  className="flex-1 min-w-0 px-1 py-0.5 bg-[var(--bg-tertiary)] border border-[var(--accent)] rounded text-xs text-[var(--text)] outline-none"
+                />
+              ) : (
+                <>
+                  <span
+                    className="truncate flex-1 cursor-pointer"
+                    onClick={() => { setActiveSession(s.id); onNavigate('chat'); }}
+                  >
+                    {s.title}
+                  </span>
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setEditingSessionId(s.id);
+                      setEditTitle(s.title);
+                    }}
+                    className="opacity-0 group-hover:opacity-100 shrink-0 text-[var(--text-muted)] hover:text-[var(--text)] transition-opacity"
+                    title="Rename"
+                  >
+                    ✏️
+                  </button>
+                </>
+              )}
+            </div>
           ))}
         </div>
       )}

@@ -4,6 +4,7 @@ import { useCallback, useRef } from 'react';
 import { useMessageStore } from '@/stores/messageStore';
 import { useUIStore } from '@/stores/uiStore';
 import { useSessionStore } from '@/stores/sessionStore';
+import { useSharedMemoryStore } from '@/stores/sharedMemoryStore';
 
 interface SendMessageOptions {
   sessionId: string;
@@ -140,6 +141,26 @@ export function useChatStream({ sessionId, persona, model, systemPrompt }: SendM
           timestamp: Date.now(),
         },
       });
+
+      // Auto-title: if session still has default title, generate one from first user message
+      const session = useSessionStore.getState().getSessionById(sessionId);
+      if (session && /^Chat \d+$/.test(session.title)) {
+        const autoTitle = content.length > 50
+          ? content.slice(0, 47).trim() + '...'
+          : content;
+        useSessionStore.getState().renameSession(sessionId, autoTitle);
+      }
+
+      // Auto-record journal entry for significant conversations
+      if (assistantContent.trim()) {
+        const today = new Date().toISOString().split('T')[0];
+        useSharedMemoryStore.getState().addJournal({
+          date: today,
+          content: `Chat with ${persona}: ${content.slice(0, 100)}${content.length > 100 ? '...' : ''}`,
+          type: 'built',
+          agentName: persona.charAt(0).toUpperCase() + persona.slice(1),
+        });
+      }
     } catch (err) {
       if (err instanceof Error && err.name === 'AbortError') {
         // User cancelled — save partial content

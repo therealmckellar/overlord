@@ -7,7 +7,7 @@ import { promises as fs } from 'fs';
 import path from 'path';
 import os from 'os';
 
-const HOME = os.homedir();
+const HERMES_HOME = path.join(os.homedir(), '.hermes');
 
 // Dirs/files to hide from the browser
 const HIDDEN = new Set([
@@ -24,7 +24,7 @@ const HIDDEN = new Set([
   'node_modules',
   '.next',
   '.git',
-  '.hermes',  // hide the actual .hermes config dir
+  // Note: we don't hide .hermes here since it's the root
   'venv',
   '.venv',
   '__pycache__',
@@ -97,11 +97,11 @@ async function readDir(dirPath: string, depth: number, count: { n: number }): Pr
 export async function GET(req: NextRequest) {
   try {
     const { searchParams } = new URL(req.url);
-    const requestedPath = searchParams.get('path') || HOME;
+    const requestedPath = searchParams.get('path') || HERMES_HOME;
 
-    // Security: only allow paths under HOME
+    // Security: only allow paths under HERMES_HOME
     const resolved = path.resolve(requestedPath);
-    if (!resolved.startsWith(HOME)) {
+    if (!resolved.startsWith(HERMES_HOME)) {
       return NextResponse.json({ success: false, error: 'Access denied' }, { status: 403 });
     }
 

@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useCallback, useState } from 'react';
+import { useEffect, useCallback, useState, useRef } from 'react';
 import { useTheme } from '@/hooks/useTheme';
 import { useUIStore, useSessionStore } from '@/stores';
 import { useKeyboardShortcuts } from '@/hooks/useKeyboardShortcuts';
@@ -69,12 +69,16 @@ export default function Home() {
   const setActiveSession = useSessionStore((s) => s.setActiveSession);
   const activeSession = activeSessionId || 'default';
 
+  // Ref to prevent duplicate session creation from effect re-runs (e.g. persist rehydration)
+  const sessionCreatedRef = useRef(false);
+
   // Ensure there's at least one session
   useEffect(() => {
-    if (sessions.length === 0) {
+    if (sessions.length === 0 && !sessionCreatedRef.current) {
+      sessionCreatedRef.current = true;
       const s = createSession('New Chat');
       setActiveSession(s.id);
-    } else if (!activeSessionId) {
+    } else if (sessions.length > 0 && !activeSessionId) {
       setActiveSession(sessions[0].id);
     }
   }, [sessions.length, activeSessionId, createSession, setActiveSession]);
