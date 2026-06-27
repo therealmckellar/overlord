@@ -13,12 +13,14 @@ const STATUS_DOT: Record<string, string> = {
   testing: '#f59e0b',
 };
 
-type SettingsSection = 'apiKeys' | 'mcp' | 'webhooks' | 'models' | 'notifications' | 'security' | 'system';
+type SettingsSection = 'apiKeys' | 'oauth' | 'mcp' | 'webhooks' | 'integrations' | 'models' | 'notifications' | 'security' | 'system';
 
 const SECTION_ICONS: Record<SettingsSection, string> = {
   apiKeys: '🔑',
+  oauth: '🔐',
   mcp: '🔌',
   webhooks: '🪝',
+  integrations: '🔗',
   models: '🧠',
   notifications: '🔔',
   security: '🛡️',
@@ -27,8 +29,10 @@ const SECTION_ICONS: Record<SettingsSection, string> = {
 
 const SECTION_DESCS: Record<SettingsSection, string> = {
   apiKeys: 'LLM provider credentials & API keys',
+  oauth: 'Google, GitHub, Discord, Slack, X connections',
   mcp: 'Model Context Protocol servers & tool connectors',
   webhooks: 'Event-driven HTTP endpoints for automations',
+  integrations: 'Cloudflare, Notion, Airtable, Firecrawl & more',
   models: 'Default model, temperature & token settings',
   notifications: 'Desktop alerts, sounds & daily digest schedule',
   security: 'Access control, session timeout & lockdown',
@@ -200,7 +204,7 @@ export default function SettingsPanel() {
     marginBottom: '12px',
   };
 
-  const sectionList: SettingsSection[] = ['apiKeys', 'mcp', 'webhooks', 'models', 'notifications', 'security', 'system'];
+  const sectionList: SettingsSection[] = ['apiKeys', 'oauth', 'mcp', 'webhooks', 'integrations', 'models', 'notifications', 'security', 'system'];
 
   const renderThemeSwitcher = () => (
     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: '12px' }}>
