@@ -5,6 +5,7 @@ import { useSharedMemoryStore } from '@/stores/sharedMemoryStore';
 import { useKanbanStore } from '@/stores/kanbanStore';
 import { useDeploymentStore } from '@/stores/deploymentStore';
 import { useSpaceStore } from '@/stores/spaceStore';
+import { useAgentStore } from '@/stores/agentStore';
 
 export default function AnalyticsDashboard() {
   const memory = useSharedMemoryStore((s) => s.memory);
@@ -14,6 +15,7 @@ export default function AnalyticsDashboard() {
   const tasks = useKanbanStore((s) => s.tasks);
   const deployments = useDeploymentStore((s) => s.deployments);
   const spaces = useSpaceStore((s) => s.spaces);
+  const agents = useAgentStore((s) => s.agents);
 
   // Compute analytics
   const totalTasks = tasks.length;
@@ -25,15 +27,17 @@ export default function AnalyticsDashboard() {
   const completedGoals = goals.filter((g) => g.status === 'completed').length;
   const avgGoalProgress = goals.length > 0 ? Math.round(goals.reduce((sum, g) => sum + g.progress, 0) / goals.length) : 0;
 
-  // Agent counts derived from deployments (source of truth), not missionStore
+  // Agent counts from agentStore (source of truth)
+  const activeAgents = agents.filter((a) => a.status === 'active').length;
+  const totalAgents = agents.length;
+
   const liveDeployments = deployments.filter((d) => d.status === 'live').length;
   const buildingDeployments = deployments.filter((d) => d.status === 'building' || d.status === 'deploying').length;
   const failedDeployments = deployments.filter((d) => d.status === 'failed').length;
   const deploySuccessRate = deployments.length > 0 ? Math.round((liveDeployments / deployments.length) * 100) : 0;
 
-  // Running agents = live deployments (these are actually active)
-  const runningAgents = liveDeployments;
-  const totalAgents = deployments.length;
+  // Running agents = active from agentStore + live deployments
+  const runningAgents = activeAgents + liveDeployments;
 
   const totalSessions = sessions.length;
   const recentJournal = journal.filter((j) => j.timestamp > Date.now() - 86400000 * 7).length;
