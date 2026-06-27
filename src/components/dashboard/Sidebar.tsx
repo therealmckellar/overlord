@@ -31,6 +31,7 @@ const navGroups = [
       { id: 'deploy', label: 'Deployments', icon: '🚀', panel: 'deploy' },
       { id: 'loop', label: 'Loops', icon: '🔄', panel: 'loop' },
       { id: 'goals', label: 'Goals', icon: '🎯', panel: 'goals' },
+      { id: 'workspaces', label: 'Workspaces', icon: '🌳', panel: 'workspaces' },
     ],
   },
   {
@@ -76,6 +77,7 @@ const navGroups = [
     label: 'CONFIG',
     items: [
       { id: 'settings', label: 'Settings', icon: '⚙️', panel: 'settings' },
+      { id: 'linear', label: 'Linear', icon: '📐', panel: 'linear' },
     ],
   },
 ];

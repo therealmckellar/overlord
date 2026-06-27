@@ -21,3 +21,6 @@ export { useFailureLogStore } from './failureLogStore';
 export { useResearchStore } from './researchStore';
 export { usePipelineStore } from './pipelineStore';
 export { useAutomationQueueStore } from './automationQueueStore';
+export { useWorkspaceStore } from './workspaceStore';
+export { useGoalStore } from './goalStore';
+export type { Milestone } from './goalStore';
