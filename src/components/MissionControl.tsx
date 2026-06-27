@@ -1,9 +1,11 @@
 'use client';
 
 import React, { useState } from 'react';
-import { useMissionStore, MissionAgent, AgentStatus } from '@/stores/missionStore';
+import { useAgentStore, type Agent } from '@/stores/agentStore';
 
-const STATUS_COLORS: Record<AgentStatus, string> = {
+type MCStatus = 'idle' | 'running' | 'paused' | 'error' | 'completed' | 'deployed';
+
+const STATUS_COLORS: Record<MCStatus, string> = {
   idle: '#6b7280',
   running: '#10b981',
   paused: '#f59e0b',
@@ -12,7 +14,7 @@ const STATUS_COLORS: Record<AgentStatus, string> = {
   deployed: '#8b5cf6',
 };
 
-const STATUS_ICONS: Record<AgentStatus, string> = {
+const STATUS_ICONS: Record<MCStatus, string> = {
   idle: '⏸',
   running: '▶',
   paused: '⏯',
@@ -21,13 +23,38 @@ const STATUS_ICONS: Record<AgentStatus, string> = {
   deployed: '🚀',
 };
 
+// Map agentStore Agent.status to MCStatus
+function toMCStatus(s: Agent['status']): MCStatus {
+  if (s === 'active') return 'running';
+  if (s === 'idle') return 'idle';
+  return 'error';
+}
+
+// Build a display-compatible agent from agentStore Agent
+function toMCAgent(a: Agent) {
+  const status = toMCStatus(a.status);
+  return {
+    id: a.id,
+    name: a.name,
+    status,
+    model: a.model,
+    task: a.role,
+    context: a.role,
+    progress: status === 'running' ? 50 : 0,
+    startedAt: Date.now(),
+    lastHeartbeat: Date.now(),
+    logs: a.logs.map(l => ({ id: `log_${Date.now()}_${Math.random()}`, text: `[${l.type.toUpperCase()}] ${l.message}`, timestamp: new Date(l.timestamp).getTime(), level: l.type as 'info' | 'success' | 'warning' | 'error' })),
+    pid: null as string | null,
+  };
+}
+
 export default function MissionControl() {
-  const agents = useMissionStore((s) => s.agents);
-  const activityLog = useMissionStore((s) => s.activityLog);
-  const stopAgent = useMissionStore((s) => s.stopAgent);
-  const restartAgent = useMissionStore((s) => s.restartAgent);
-  const addActivity = useMissionStore((s) => s.addActivity);
-  const updateAgent = useMissionStore((s) => s.updateAgent);
+  const rawAgents = useAgentStore((s) => s.agents);
+  const agents = rawAgents.map(toMCAgent);
+  const pauseAgent = useAgentStore((s) => s.pauseAgent);
+  const restartAgent = useAgentStore((s) => s.restartAgent);
+  const spawnAgent = useAgentStore((s) => s.spawnAgent);
+  const killAgent = useAgentStore((s) => s.killAgent);
 
   const [selectedAgent, setSelectedAgent] = useState<string | null>(null);
   const [showAddAgent, setShowAddAgent] = useState(false);
@@ -43,9 +70,7 @@ export default function MissionControl() {
 
   const handleAddAgent = () => {
     if (!newName.trim() || !newTask.trim()) return;
-    const { addAgent } = useMissionStore.getState();
-    addAgent(newName, newModel, newTask, newContext);
-    addActivity(newName, 'Agent added to mission', 'info');
+    spawnAgent(newName, newTask, newModel);
     setNewName('');
     setNewTask('');
     setNewContext('');
@@ -54,10 +79,7 @@ export default function MissionControl() {
 
   const handleStartTask = () => {
     if (!selectedAgent || !startTaskText.trim()) return;
-    const { startTask } = useMissionStore.getState();
-    const agent = agents.find((a) => a.id === selectedAgent);
-    startTask(selectedAgent, startTaskText, startContext);
-    if (agent) addActivity(agent.name, `New task: ${startTaskText}`, 'info');
+    restartAgent(selectedAgent);
     setStartTaskText('');
     setStartContext('');
     setShowStartTask(false);
@@ -65,19 +87,11 @@ export default function MissionControl() {
 
   const handleSaveContext = () => {
     if (!selectedAgent) return;
-    updateAgent(selectedAgent, { context: contextDraft });
     setEditingContext(false);
   };
 
   const simulateProgress = (id: string) => {
-    const agent = agents.find((a) => a.id === id);
-    if (!agent || agent.status !== 'running') return;
-    const newProgress = Math.min(agent.progress + Math.random() * 5, 100);
-    updateAgent(id, { progress: newProgress });
-    if (newProgress >= 100) {
-      updateAgent(id, { status: 'completed', progress: 100 });
-      addActivity(agent.name, 'Task completed', 'success');
-    }
+    // Progress is shown based on agent status from agentStore
   };
 
   const selectedAgentData = agents.find((a) => a.id === selectedAgent);
@@ -303,8 +317,7 @@ export default function MissionControl() {
                   <>
                     <button
                       onClick={() => {
-                        stopAgent(selectedAgentData.id);
-                        addActivity(selectedAgentData.name, 'Agent stopped', 'warning');
+                        pauseAgent(selectedAgentData.id);
                       }}
                       style={{
                         padding: '6px 12px',
@@ -359,7 +372,6 @@ export default function MissionControl() {
                     <button
                       onClick={() => {
                         restartAgent(selectedAgentData.id);
-                        addActivity(selectedAgentData.name, 'Agent restarted', 'info');
                       }}
                       style={{
                         padding: '6px 12px',
@@ -646,21 +658,20 @@ export default function MissionControl() {
           <div style={{ fontSize: '12px', fontWeight: 600, color: '#94a3b8', marginBottom: '8px' }}>
             📡 Activity Feed
           </div>
-          {activityLog.slice(0, 10).map((entry) => (
-            <div key={entry.id} style={{
+          {agents.length > 0 ? agents.slice(0, 10).map((agent) => (
+            <div key={agent.id} style={{
               fontSize: '11px',
-              color:
-                entry.type === 'error' ? '#ef4444' :
-                entry.type === 'success' ? '#10b981' :
-                entry.type === 'warning' ? '#f59e0b' : '#94a3b8',
+              color: STATUS_COLORS[agent.status],
               marginBottom: '3px',
             }}>
               <span style={{ color: '#475569' }}>
-                {new Date(entry.timestamp).toLocaleTimeString()}
+                {agent.logs.length > 0 ? new Date(agent.logs[agent.logs.length - 1].timestamp * 1).toLocaleTimeString() : '—'}
               </span>{' '}
-              <strong>{entry.agentName}</strong> — {entry.action}
+              <strong>{agent.name}</strong> — {agent.status} · {agent.task}
             </div>
-          ))}
+          )) : (
+            <p style={{ fontSize: '11px', color: '#64748b' }}>No agents yet</p>
+          )}
         </div>
       </div>
     </div>

@@ -19,7 +19,7 @@ export default function AgentDeploymentPanel() {
   const rollbackDeployment = useDeploymentStore((s) => s.rollbackDeployment);
   const addDeployLog = useDeploymentStore((s) => s.addDeployLog);
   const updateDeployment = useDeploymentStore((s) => s.updateDeployment);
-  const agents = useAgentStore((s) => s.presets);
+  const agents = useAgentStore((s) => s.agents);
 
   const [showDeploy, setShowDeploy] = useState(false);
   const [selectedAgentId, setSelectedAgentId] = useState('');
@@ -132,7 +132,7 @@ export default function AgentDeploymentPanel() {
             >
               <option value="">Select agent...</option>
               {agents.map((a) => (
-                <option key={a.id} value={a.id}>{a.name} ({a.config.model})</option>
+                <option key={a.id} value={a.id}>{a.name} ({a.model})</option>
               ))}
             </select>
             <select

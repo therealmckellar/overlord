@@ -122,7 +122,9 @@ export function MemoryGalaxy({ isOpen, onClose }: MemoryGalaxyProps) {
   const [fileToWikiTitle, setFileToWikiTitle] = useState('');
   const [showFileForm, setShowFileForm] = useState(false);
 
-  // ─── Wiki handlers ────────────────────────────────────────────────────────
+  const addToast = useUIStore((s) => s.addToast);
+
+  // ─── Wiki handlers ────────────────────────────────────────────────────────────────
   const handleWikiSearch = useCallback(async () => {
     if (!wikiQuery.trim() || wikiQuery.length < 2) return;
     setWikiSearching(true);
@@ -203,8 +205,6 @@ export function MemoryGalaxy({ isOpen, onClose }: MemoryGalaxyProps) {
     getFilteredMemories,
     addMemory, deleteMemory, updateMemory,
   } = useMemoryStore();
-
-  const addToast = useUIStore((s) => s.addToast);
 
   const filtered = getFilteredMemories();
   const allTags = getAllTags();
