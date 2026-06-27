@@ -15,6 +15,34 @@ export interface SpaceFile {
   url?: string;       // local/object URL
 }
 
+export interface SpaceArtifact {
+  id: string;
+  title: string;
+  type: 'document' | 'code' | 'image' | 'data' | 'other';
+  content: string;      // text content or base64 for images
+  createdAt: number;
+  updatedAt: number;
+}
+
+export interface SpaceAttachment {
+  id: string;
+  name: string;
+  type: string;         // mime type
+  size: number;
+  url: string;          // stored URL / object URL
+  uploadedAt: number;
+  description?: string;
+}
+
+export interface SpaceLink {
+  id: string;
+  title: string;
+  url: string;
+  description?: string;
+  category?: string;    // e.g. 'docs', 'api', 'reference', 'repo'
+  addedAt: number;
+}
+
 export interface SpaceMember {
   id: string;
   name: string;
@@ -34,8 +62,12 @@ export interface Space {
   id: string;
   name: string;
   description: string;
-  customInstructions: string;   // AI instructions applied to all threads in this space
+  masterPrompt: string;            // master system prompt for the space
+  customInstructions: string;      // supplementary AI instructions
   files: SpaceFile[];
+  artifacts: SpaceArtifact[];
+  attachments: SpaceAttachment[];
+  links: SpaceLink[];
   threads: SpaceThread[];
   pinnedItems: string[];   // ids of pinned threads/files
   members: SpaceMember[];
@@ -62,6 +94,10 @@ interface SpaceState {
   deleteSpace: (id: string) => void;
   setActiveSpace: (id: string | null) => void;
 
+  // Master Prompt & Description
+  setMasterPrompt: (spaceId: string, prompt: string) => void;
+  setDescription: (spaceId: string, description: string) => void;
+
   // Instructions
   setCustomInstructions: (spaceId: string, instructions: string) => void;
 
@@ -72,6 +108,20 @@ interface SpaceState {
   // Files
   addFile: (spaceId: string, file: Omit<SpaceFile, 'id' | 'uploadedAt'>) => void;
   removeFile: (spaceId: string, fileId: string) => void;
+
+  // Artifacts
+  addArtifact: (spaceId: string, artifact: Omit<SpaceArtifact, 'id' | 'createdAt' | 'updatedAt'>) => void;
+  updateArtifact: (spaceId: string, artifactId: string, updates: Partial<SpaceArtifact>) => void;
+  removeArtifact: (spaceId: string, artifactId: string) => void;
+
+  // Attachments
+  addAttachment: (spaceId: string, attachment: Omit<SpaceAttachment, 'id' | 'uploadedAt'>) => void;
+  removeAttachment: (spaceId: string, attachmentId: string) => void;
+
+  // Links
+  addLink: (spaceId: string, link: Omit<SpaceLink, 'id' | 'addedAt'>) => void;
+  updateLink: (spaceId: string, linkId: string, updates: Partial<SpaceLink>) => void;
+  removeLink: (spaceId: string, linkId: string) => void;
 
   // Members
   addMember: (spaceId: string, member: Omit<SpaceMember, 'id'>) => void;
@@ -95,8 +145,12 @@ export const useSpaceStore = create<SpaceState>()(
           id: generateId(),
           name,
           description: description || '',
+          masterPrompt: '',
           customInstructions: '',
           files: [],
+          artifacts: [],
+          attachments: [],
+          links: [],
           threads: [],
           pinnedItems: [],
           members: [{ id: 'owner', name: 'Rich', role: 'owner' }],
@@ -128,6 +182,20 @@ export const useSpaceStore = create<SpaceState>()(
         set((state) => ({
           spaces: state.spaces.map((s) =>
             s.id === spaceId ? { ...s, customInstructions: instructions, updatedAt: Date.now() } : s
+          ),
+        })),
+
+      setMasterPrompt: (spaceId, prompt) =>
+        set((state) => ({
+          spaces: state.spaces.map((s) =>
+            s.id === spaceId ? { ...s, masterPrompt: prompt, updatedAt: Date.now() } : s
+          ),
+        })),
+
+      setDescription: (spaceId, description) =>
+        set((state) => ({
+          spaces: state.spaces.map((s) =>
+            s.id === spaceId ? { ...s, description, updatedAt: Date.now() } : s
           ),
         })),
 
@@ -167,6 +235,88 @@ export const useSpaceStore = create<SpaceState>()(
           spaces: state.spaces.map((s) =>
             s.id === spaceId
               ? { ...s, files: s.files.filter((f) => f.id !== fileId), updatedAt: Date.now() }
+              : s
+          ),
+        })),
+
+      // Artifacts
+      addArtifact: (spaceId, artifact) => {
+        const now = Date.now();
+        const newArtifact: SpaceArtifact = { ...artifact, id: generateId(), createdAt: now, updatedAt: now };
+        set((state) => ({
+          spaces: state.spaces.map((s) =>
+            s.id === spaceId
+              ? { ...s, artifacts: [...s.artifacts, newArtifact], updatedAt: now }
+              : s
+          ),
+        }));
+      },
+
+      updateArtifact: (spaceId, artifactId, updates) =>
+        set((state) => ({
+          spaces: state.spaces.map((s) =>
+            s.id === spaceId
+              ? { ...s, artifacts: s.artifacts.map((a) => a.id === artifactId ? { ...a, ...updates, updatedAt: Date.now() } : a), updatedAt: Date.now() }
+              : s
+          ),
+        })),
+
+      removeArtifact: (spaceId, artifactId) =>
+        set((state) => ({
+          spaces: state.spaces.map((s) =>
+            s.id === spaceId
+              ? { ...s, artifacts: s.artifacts.filter((a) => a.id !== artifactId), updatedAt: Date.now() }
+              : s
+          ),
+        })),
+
+      // Attachments
+      addAttachment: (spaceId, attachment) => {
+        const newAttachment: SpaceAttachment = { ...attachment, id: generateId(), uploadedAt: Date.now() };
+        set((state) => ({
+          spaces: state.spaces.map((s) =>
+            s.id === spaceId
+              ? { ...s, attachments: [...s.attachments, newAttachment], updatedAt: Date.now() }
+              : s
+          ),
+        }));
+      },
+
+      removeAttachment: (spaceId, attachmentId) =>
+        set((state) => ({
+          spaces: state.spaces.map((s) =>
+            s.id === spaceId
+              ? { ...s, attachments: s.attachments.filter((a) => a.id !== attachmentId), updatedAt: Date.now() }
+              : s
+          ),
+        })),
+
+      // Links
+      addLink: (spaceId, link) => {
+        const newLink: SpaceLink = { ...link, id: generateId(), addedAt: Date.now() };
+        set((state) => ({
+          spaces: state.spaces.map((s) =>
+            s.id === spaceId
+              ? { ...s, links: [...s.links, newLink], updatedAt: Date.now() }
+              : s
+          ),
+        }));
+      },
+
+      updateLink: (spaceId, linkId, updates) =>
+        set((state) => ({
+          spaces: state.spaces.map((s) =>
+            s.id === spaceId
+              ? { ...s, links: s.links.map((l) => l.id === linkId ? { ...l, ...updates } : l), updatedAt: Date.now() }
+              : s
+          ),
+        })),
+
+      removeLink: (spaceId, linkId) =>
+        set((state) => ({
+          spaces: state.spaces.map((s) =>
+            s.id === spaceId
+              ? { ...s, links: s.links.filter((l) => l.id !== linkId), updatedAt: Date.now() }
               : s
           ),
         })),

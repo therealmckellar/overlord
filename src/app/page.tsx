@@ -45,7 +45,7 @@ import { JarvisPanel } from '@/components/JarvisPanel';
 import { SpacesPanel } from '@/components/spaces/SpacesPanel';
 
 
-type Panel = 'dashboard' | 'chat' | 'pipeline' | 'memory' | 'loop' | 'studio' | 'research' | 'researchQueue' | 'substack' | 'agent' | 'jarvis' | 'designer' | 'spaces' | 'mission' | 'kanban' | 'deploy' | 'skills' | 'goals' | 'journal' | 'analytics' | 'session' | 'failureLogs' | 'insights';
+type Panel = 'dashboard' | 'chat' | 'pipeline' | 'memory' | 'loop' | 'devtools' | 'research' | 'researchQueue' | 'substack' | 'agent' | 'jarvis' | 'designer' | 'spaces' | 'mission' | 'taskboard' | 'deploy' | 'skills' | 'goals' | 'journal' | 'analytics' | 'session' | 'failureLogs' | 'insights';
 
 export default function Home() {
   const { isAuthenticated, isLoading } = useAuthCheck();
@@ -167,15 +167,15 @@ export default function Home() {
             {activePanel === 'pipeline' && 'Idea → Implement Pipeline'}
             {activePanel === 'memory' && 'Memory Galaxy'}
             {activePanel === 'loop' && 'Loop Engineering'}
-            {activePanel === 'studio' && 'Studio'}
-            {activePanel === 'research' && 'Research → Multi-Format'}
+            {activePanel === 'devtools' && 'DevTools'}
+            {activePanel === 'research' && 'Research'}
             {activePanel === 'substack' && 'Content Studio'}
             {activePanel === 'agent' && 'Agent Roster'}
-            {activePanel === 'jarvis' && 'Jarvis — Voice Agent'}
+            {activePanel === 'jarvis' && 'Jarvis'}
             {activePanel === 'designer' && 'Agent Designer'}
             {activePanel === 'spaces' && 'Spaces'}
             {activePanel === 'mission' && 'Mission Control'}
-            {activePanel === 'kanban' && 'Task Board'}
+            {activePanel === 'taskboard' && 'Task Board'}
             {activePanel === 'deploy' && 'Deployments'}
             {activePanel === 'skills' && 'Skills & Playbooks'}
             {activePanel === 'goals' && 'Goals'}
@@ -223,7 +223,7 @@ export default function Home() {
           {activePanel === 'loop' && (
             <LoopEngineering isOpen={true} onClose={() => setActivePanel('dashboard')} />
           )}
-          {activePanel === 'studio' && (
+          {activePanel === 'devtools' && (
             <StudioView isOpen={true} onClose={() => setActivePanel('dashboard')} />
           )}
           {activePanel === 'research' && (
@@ -237,7 +237,7 @@ export default function Home() {
           {activePanel === 'designer' && <AgentDesigner />}
           {activePanel === 'spaces' && <SpacesPanel />}
           {activePanel === 'mission' && <MissionControl />}
-          {activePanel === 'kanban' && <KanbanBoard />}
+          {activePanel === 'taskboard' && <KanbanBoard />}
           {activePanel === 'deploy' && <AgentDeploymentPanel />}
           {activePanel === 'skills' && <SkillsPanel />}
           {activePanel === 'goals' && <GoalsPanel />}

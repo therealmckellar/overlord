@@ -1,0 +1,31 @@
+[
+  {
+    "id": "idea_seed_1",
+    "title": "SDR Auto-Outreach for MCA Renewals",
+    "description": "Build an automated outreach system that identifies MCA clients approaching renewal and sends personalized follow-ups via email and SMS to re-lock them before competitors do.",
+    "persona": "josh",
+    "status": "planning",
+    "plan": "## Plan\n\n1. **Query** existing MCA client DB for renewals in next 30-60 days\n2. **Enrich** each lead with latest revenue/deposit data\n3. **Generate** personalized outreach emails per persona\n4. **Sequence** 3-touch email + 1 SMS cadence\n5. **Track** opens, clicks, and responses in CRM",
+    "createdAt": 1782350799825,
+    "updatedAt": 1782437199825
+  },
+  {
+    "id": "idea_seed_2",
+    "title": "Promo Product Catalog Chatbot",
+    "description": "AI chatbot for Robbi Promotional that helps clients find the right merch for their event — asks budget, audience, timeline and recommends products with pricing.",
+    "persona": "david",
+    "status": "draft",
+    "createdAt": 1782437199825,
+    "updatedAt": 1782437199825
+  },
+  {
+    "id": "idea_seed_3",
+    "title": "Real Estate Lead Scoring Model",
+    "description": "Build a lead scoring model for Fathom Realty that ranks inbound buyer/seller leads by likelihood to close, using property interest, engagement signals, and demographics.",
+    "persona": "fathom",
+    "status": "approved",
+    "plan": "## Plan\n\n1. **Collect** historical lead data with outcomes (closed/lost)\n2. **Feature engineer** signals: page views, inquiries, price range, location\n3. **Train** classification model (gradient boosted)\n4. **Deploy** scoring API endpoint\n5. **Integrate** into Overlord lead panel with score display",
+    "createdAt": 1782264399825,
+    "updatedAt": 1782480399825
+  }
+]

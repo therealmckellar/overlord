@@ -17,7 +17,7 @@ import { PERSONAS } from '@/lib/personas';
 import { getAgentDisplayInfo } from '@/hooks/useAgentTask';
 import type { TaskCategory } from '@/lib/model-graph';
 
-type StudioMode = 'image' | 'video' | 'design' | 'canvas' | 'report' | 'mindmap' | 'flashcard' | 'kanban' | 'research';
+type StudioMode = 'image' | 'video' | 'design' | 'canvas' | 'report' | 'mindmap' | 'flashcard' | 'kanban';
 type Tool = 'select' | 'brush' | 'eraser' | 'text' | 'shape' | 'eyedropper' | 'move' | 'zoom';
 
 interface GenerationConfig {
@@ -142,7 +142,6 @@ const MODE_TASK_CATEGORY: Record<StudioMode, TaskCategory> = {
   mindmap: 'mindmap',
   flashcard: 'flashcards',
   kanban: 'kanban-task',
-  research: 'deep-research',
 };
 
 const MODE_CONFIG: Record<StudioMode, { icon: React.ElementType; label: string; description: string }> = {
@@ -154,7 +153,6 @@ const MODE_CONFIG: Record<StudioMode, { icon: React.ElementType; label: string; 
   mindmap: { icon: Brain, label: 'Mind Maps', description: 'Create visual mind maps' },
   flashcard: { icon: BookOpen, label: 'Flashcards', description: 'Build study flashcard decks' },
   kanban: { icon: LayoutGrid, label: 'Kanban', description: 'Manage tasks visually' },
-  research: { icon: Globe, label: 'Research', description: 'Deep research and synthesis' },
 };
 
 interface ContentStudioProps {
@@ -646,62 +644,7 @@ export function ContentStudio({ isOpen, onClose }: ContentStudioProps) {
       );
     }
 
-    // Research mode
-    if (mode === 'research') {
-      return (
-        <div className="absolute inset-0 overflow-auto p-6">
-          <div className="max-w-3xl mx-auto space-y-6">
-            <div className="space-y-2">
-              <div className="text-sm font-semibold text-[var(--text)] flex items-center gap-2">
-                <Globe size={14} style={{ color: persona.color }} />
-                Deep Research
-              </div>
-              <p className="text-xs text-[var(--text-muted)]">Research any topic across the web. Results are synthesized and summarized.</p>
-            </div>
-            <div className="flex gap-2">
-              <input
-                type="text"
-                value={config.prompt}
-                onChange={(e) => setConfig((prev) => ({ ...prev, prompt: e.target.value }))}
-                placeholder="Research topic..."
-                className="flex-1 px-4 py-2.5 text-sm rounded-xl bg-[var(--bg-secondary)] border border-[var(--border)] text-[var(--text)] focus:outline-none focus:border-[var(--accent)]"
-              />
-              <button
-                onClick={handleGenerate}
-                disabled={isGenerating || !config.prompt.trim()}
-                className="px-4 py-2.5 text-sm rounded-xl text-white font-medium flex items-center gap-2 disabled:opacity-50"
-                style={{ backgroundColor: persona.color }}
-              >
-                {isGenerating ? <Loader2 size={14} className="animate-spin" /> : <ScanLine size={14} />}
-                Research
-              </button>
-            </div>
-            <div className="space-y-3">
-              {[
-                { title: 'Market Analysis', desc: 'Comprehensive market research with trends, competitors, and opportunities', emoji: '📊' },
-                { title: 'Competitive Intelligence', desc: 'Deep dive into competitor strategies and positioning', emoji: '🔍' },
-                { title: 'Industry Report', desc: 'Sector-wide analysis with key metrics and forecasts', emoji: '📈' },
-                { title: 'Trend Forecast', desc: 'Emerging trends and predictions for strategic planning', emoji: '🔮' },
-              ].map((item, i) => (
-                <button
-                  key={i}
-                  onClick={() => setConfig((prev) => ({ ...prev, prompt: item.desc }))}
-                  className="w-full text-left p-4 rounded-xl bg-[var(--bg-secondary)] border border-[var(--border)] hover:border-[var(--accent)] transition-colors flex items-center gap-3"
-                >
-                  <span className="text-lg">{item.emoji}</span>
-                  <div>
-                    <div className="text-xs font-medium text-[var(--text)]">{item.title}</div>
-                    <div className="text-[10px] text-[var(--text-muted)] mt-0.5">{item.desc}</div>
-                  </div>
-                </button>
-              ))}
-            </div>
-          </div>
-        </div>
-      );
-    }
-
-    // Report mode
+    // Flashcard mode
     if (mode === 'report') {
       return (
         <div className="absolute inset-0 overflow-auto p-6">
@@ -891,7 +834,6 @@ export function ContentStudio({ isOpen, onClose }: ContentStudioProps) {
                 { id: 'mindmap', icon: Brain },
                 { id: 'flashcard', icon: BookOpen },
                 { id: 'kanban', icon: LayoutGrid },
-                { id: 'research', icon: Globe },
               ] as const).map((m) => (
                 <button
                   key={m.id}

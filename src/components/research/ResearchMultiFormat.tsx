@@ -7,7 +7,7 @@ import {
 } from 'lucide-react';
 import { useUIStore } from '@/stores/uiStore';
 
-type OutputFormat = 'report' | 'infographic' | 'podcast' | 'video';
+type OutputFormat = 'deep' | 'report' | 'infographic' | 'podcast' | 'video';
 
 interface ResearchProject {
   id: string;
@@ -19,6 +19,7 @@ interface ResearchProject {
 }
 
 const formatConfig: Record<OutputFormat, { label: string; icon: React.ElementType; color: string }> = {
+  deep: { label: 'Deep Research', icon: BookOpen, color: 'text-purple-400' },
   report: { label: 'Report', icon: FileText, color: 'text-[var(--info)]' },
   infographic: { label: 'Infographic', icon: BarChart3, color: 'text-[var(--accent)]' },
   podcast: { label: 'Podcast', icon: Headphones, color: 'text-[var(--warning)]' },
@@ -32,7 +33,7 @@ interface ResearchMultiFormatProps {
 
 export function ResearchMultiFormat({ isOpen, onClose }: ResearchMultiFormatProps) {
   const [query, setQuery] = useState('');
-  const [selectedFormats, setSelectedFormats] = useState<OutputFormat[]>(['report', 'infographic']);
+  const [selectedFormats, setSelectedFormats] = useState<OutputFormat[]>(['deep', 'report']);
   const [projects, setProjects] = useState<ResearchProject[]>([]);
   const [selectedProject, setSelectedProject] = useState<ResearchProject | null>(null);
   const addToast = useUIStore((s) => s.addToast);

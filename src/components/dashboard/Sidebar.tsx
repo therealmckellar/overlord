@@ -26,7 +26,7 @@ const navGroups = [
     label: 'OPERATE',
     items: [
       { id: 'mission', label: 'Mission Control', icon: '🛸', panel: 'mission' },
-      { id: 'kanban', label: 'Task Board', icon: '📋', panel: 'kanban' },
+      { id: 'taskboard', label: 'Task Board', icon: '📋', panel: 'taskboard' },
       { id: 'deploy', label: 'Deployments', icon: '🚀', panel: 'deploy' },
       { id: 'loop', label: 'Loops', icon: '🔄', panel: 'loop' },
       { id: 'goals', label: 'Goals', icon: '🎯', panel: 'goals' },
@@ -37,7 +37,7 @@ const navGroups = [
     label: 'OBSERVE',
     items: [
       { id: 'memory', label: 'Memory', icon: '🧠', panel: 'memory' },
-      { id: 'studio', label: 'Studio', icon: '🎨', panel: 'studio' },
+      { id: 'devtools', label: 'DevTools', icon: '🛠️', panel: 'devtools' },
       { id: 'skills', label: 'Skills', icon: '⚡', panel: 'skills' },
       { id: 'session', label: 'Sessions', icon: '💬', panel: 'session' },
     ],
@@ -56,8 +56,8 @@ const navGroups = [
     id: 'automate',
     label: 'AUTOMATE',
     items: [
-      { id: 'research', label: 'Research', icon: '📊', panel: 'research' },
-      { id: 'researchQueue', label: 'Research Queue', icon: '🔬', panel: 'researchQueue' },
+      { id: 'research', label: 'Research', icon: '🔬', panel: 'research' },
+      { id: 'researchQueue', label: 'Research Queue', icon: '📋', panel: 'researchQueue' },
       { id: 'substack', label: 'Content', icon: '✨', panel: 'substack' },
     ],
   },
@@ -65,7 +65,7 @@ const navGroups = [
     id: 'jarvis',
     label: 'JARVIS',
     items: [
-      { id: 'jarvis', label: 'Voice Agent', icon: '🎙️', panel: 'jarvis' },
+      { id: 'jarvis', label: 'Jarvis', icon: '🎙️', panel: 'jarvis' },
     ],
   },
 ];

@@ -8,11 +8,11 @@ import { useJarvis } from '@/hooks/useJarvis';
 import { Mic, MicOff, Volume2, VolumeX, MessageSquare, History } from 'lucide-react';
 
 const SUGGESTED_COMMANDS = [
-  { label: 'Create agent', command: 'create new agent' },
-  { label: 'Check missions', command: 'check missions' },
-  { label: 'New chat', command: 'open new chat' },
+  { label: 'Show tasks', command: 'show me my tasks' },
   { label: 'Daily briefing', command: 'give me my daily briefing' },
-  { label: 'Show dashboard', command: 'show dashboard' },
+  { label: 'Create agent', command: 'create new agent' },
+  { label: 'New chat', command: 'open new chat' },
+  { label: 'Check missions', command: 'check missions' },
 ];
 
 interface JarvisMessage {
@@ -66,8 +66,17 @@ export function JarvisPanel() {
       return;
     }
     if (lowerCmd.includes('kanban') || lowerCmd.includes('task') || lowerCmd.includes('board')) {
-      window.dispatchEvent(new CustomEvent('overlord-navigate', { detail: 'kanban' }));
-      setMessages(prev => [...prev, { id: `jarvis-${Date.now()}`, type: 'jarvis', text: 'Opening Task Board.', timestamp: new Date() }]);
+      // Don't just navigate — let Jarvis read and summarize tasks
+      const kanbanState = (await import('@/stores/kanbanStore')).useKanbanStore.getState();
+      const tasks = kanbanState.tasks;
+      const byStatus: Record<string, number> = {};
+      for (const t of tasks) {
+        byStatus[t.status] = (byStatus[t.status] || 0) + 1;
+      }
+      const summary = tasks.length === 0
+        ? 'You have no tasks yet. Want me to create one?'
+        : `You have ${tasks.length} tasks: ${Object.entries(byStatus).map(([s, c]) => `${c} ${s}`).join(', ')}. ${tasks.filter(t => t.status === 'in_progress').map(t => `Currently working on: "${t.title}"`).join('; ') || 'Nothing in progress right now.'}`;
+      setMessages(prev => [...prev, { id: `jarvis-${Date.now()}`, type: 'jarvis', text: summary, timestamp: new Date() }]);
       return;
     }
     if (lowerCmd.includes('space')) {
