@@ -97,7 +97,7 @@ export function Sidebar({ activePanel, onNavigate }: { activePanel: string; onNa
   const memoryEntries = useSharedMemoryStore((s) => s.memory);
   const getVisiblePanels = usePanelLayoutStore((s) => s.getVisiblePanels);
   const visiblePanels = getVisiblePanels();
-  const visibleIds = new Set(visiblePanels.map((p) => p.id));
+  const visibleIds = new Set(visiblePanels.map((p) => p.id as string));
 
   const [systemStats, setSystemStats] = useState({ sessions: 0, memory: 0 });
   const [editingSessionId, setEditingSessionId] = useState<string | null>(null);

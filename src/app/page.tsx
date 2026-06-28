@@ -49,6 +49,8 @@ import PluginPanel from '@/components/PluginPanel';
 import WorkspacePanel from '@/components/WorkspacePanel';
 import { TokenCostPanel } from '@/components/TokenCostPanel';
 import { DailyUpdatesPanel } from '@/components/DailyUpdatesPanel';
+import { AchievementsPanel } from '@/components/AchievementsPanel';
+import { ConfigEditorPanel } from '@/components/ConfigEditorPanel';
 import { usePanelLayoutStore } from '@/stores/panelLayoutStore';
 
 
