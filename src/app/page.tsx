@@ -47,6 +47,8 @@ import { AutomationQueuePanel } from '@/components/AutomationQueuePanel';
 import CronPanel from '@/components/CronPanel';
 import PluginPanel from '@/components/PluginPanel';
 import WorkspacePanel from '@/components/WorkspacePanel';
+import { WebhooksPanel } from '@/components/WebhooksPanel'; import { ChannelsPanel } from '@/components/ChannelsPanel';
+import { PairingPanel } from '@/components/PairingPanel'; import { MCPPanel } from '@/components/MCPPanel';
 import { TokenCostPanel } from '@/components/TokenCostPanel';
 import { DailyUpdatesPanel } from '@/components/DailyUpdatesPanel';
 import { AchievementsPanel } from '@/components/AchievementsPanel';
@@ -205,6 +207,10 @@ export default function Home() {
             {activePanel === 'plugins' && 'Plugins'}
             {activePanel === 'achievements' && 'Achievements'}
             {activePanel === 'configEditor' && 'Config Editor'}
+            {activePanel === 'webhooks' && 'Webhooks'}
+            {activePanel === 'channels' && 'Channels'}
+            {activePanel === 'pairing' && 'Pairing'}
+            {activePanel === 'mcp' && 'MCP Servers'}
             {activePanel === 'workspaces' && 'Workspaces'}
             {activePanel === 'tokens' && 'Token Costs'}
             {activePanel === 'updates' && 'Daily Updates'}
@@ -276,6 +282,10 @@ export default function Home() {
           {activePanel === 'plugins' && <PluginPanel />}
           {activePanel === 'achievements' && <AchievementsPanel />}
           {activePanel === 'configEditor' && <ConfigEditorPanel />}
+          {activePanel === 'webhooks' && <WebhooksPanel />}
+          {activePanel === 'channels' && <ChannelsPanel />}
+          {activePanel === 'pairing' && <PairingPanel />}
+          {activePanel === 'mcp' && <MCPPanel />}
           {activePanel === 'workspaces' && <WorkspacePanel />}
           {activePanel === 'tokens' && <TokenCostPanel />}
           {activePanel === 'updates' && <DailyUpdatesPanel />}

@@ -66,6 +66,7 @@ const navGroups = [
       { id: 'contentPipeline', label: 'Content Pipeline', icon: '⚡', panel: 'contentPipeline' },
       { id: 'automationQueue', label: 'Auto Queue', icon: '🔄', panel: 'automationQueue' },
       { id: 'cron', label: 'Cron', icon: '⏰', panel: 'cron' },
+      { id: 'webhooks', label: 'Webhooks', icon: '🪝', panel: 'webhooks' },
       { id: 'substack', label: 'Content', icon: '✨', panel: 'substack' },
     ],
   },
@@ -82,6 +83,9 @@ const navGroups = [
     items: [
       { id: 'plugins', label: 'Plugins', icon: '🧩', panel: 'plugins' },
       { id: 'configEditor', label: 'Config', icon: '📝', panel: 'configEditor' },
+      { id: 'channels', label: 'Channels', icon: '📡', panel: 'channels' },
+      { id: 'pairing', label: 'Pairing', icon: '🔐', panel: 'pairing' },
+      { id: 'mcp', label: 'MCP', icon: '🔌', panel: 'mcp' },
       { id: 'settings', label: 'Settings', icon: '⚙️', panel: 'settings' },
     ],
   },
