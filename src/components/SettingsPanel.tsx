@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { useUIStore } from '@/stores/uiStore';
+import { usePanelLayoutStore } from '@/stores/panelLayoutStore';
 import { useConnectorStore, type APIKey, type MCPServer, type WebhookEndpoint } from '@/stores/connectorStore';
 import { THEME_LIST, THEME_LABELS, getThemeCSSVars } from '@/utils/themes';
 import type { ThemeName } from '@/types';
@@ -13,7 +14,7 @@ const STATUS_DOT: Record<string, string> = {
   testing: '#f59e0b',
 };
 
-type SettingsSection = 'apiKeys' | 'oauth' | 'mcp' | 'webhooks' | 'integrations' | 'models' | 'notifications' | 'security' | 'system';
+type SettingsSection = 'apiKeys' | 'oauth' | 'mcp' | 'webhooks' | 'integrations' | 'models' | 'notifications' | 'security' | 'system' | 'panels';
 
 const SECTION_ICONS: Record<SettingsSection, string> = {
   apiKeys: '🔑',
@@ -25,6 +26,7 @@ const SECTION_ICONS: Record<SettingsSection, string> = {
   notifications: '🔔',
   security: '🛡️',
   system: '⚙️',
+  panels: '🧩',
 };
 
 const SECTION_DESCS: Record<SettingsSection, string> = {
@@ -37,12 +39,17 @@ const SECTION_DESCS: Record<SettingsSection, string> = {
   notifications: 'Desktop alerts, sounds & daily digest schedule',
   security: 'Access control, session timeout & lockdown',
   system: 'Agent limits, logging, compaction & debug',
+  panels: 'Toggle panel visibility, reorder, and layout presets',
 };
 
 export default function SettingsPanel() {
   const theme = useUIStore((s) => s.theme);
   const setTheme = useUIStore((s) => s.setTheme);
   const addToast = useUIStore((s) => s.addToast);
+  const panels = usePanelLayoutStore((s) => s.panels);
+  const togglePanel = usePanelLayoutStore((s) => s.togglePanel);
+  const applyPreset = usePanelLayoutStore((s) => s.applyPreset);
+  const layoutPreset = usePanelLayoutStore((s) => s.layoutPreset);
   const selectedModel = useUIStore((s) => s.selectedModel);
   const setSelectedModel = useUIStore((s) => s.setSelectedModel);
   const availableModels = useUIStore((s) => s.availableModels);
@@ -207,7 +214,7 @@ export default function SettingsPanel() {
     marginBottom: '12px',
   };
 
-  const sectionList: SettingsSection[] = ['apiKeys', 'oauth', 'mcp', 'webhooks', 'integrations', 'models', 'notifications', 'security', 'system'];
+  const sectionList: SettingsSection[] = ['apiKeys', 'oauth', 'mcp', 'webhooks', 'integrations', 'models', 'notifications', 'security', 'system', 'panels'];
 
   const renderThemeSwitcher = () => (
     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: '12px' }}>
@@ -791,6 +798,88 @@ export default function SettingsPanel() {
                   📥 Export
                 </button>
               </div>
+            </div>
+          </div>
+        )}
+
+        {/* PANELS SECTION — Modular Customizable Panels */}
+        {activeSection === 'panels' && (
+          <div>
+            <h3 style={{ margin: '0 0 4px', fontSize: '18px', fontWeight: 700, color: 'var(--text)' }}>🧩 Panels</h3>
+            <p style={{ margin: '0 0 20px', fontSize: '13px', color: 'var(--text-secondary)' }}>
+              Toggle panel visibility and customize your layout.
+            </p>
+
+            {/* Layout Presets */}
+            <div style={cardStyle}>
+              <div style={{ fontSize: '14px', fontWeight: 600, color: 'var(--text)', marginBottom: '12px' }}>Layout Presets</div>
+              <div style={{ display: 'flex', gap: '8px' }}>
+                {(['default', 'minimal', 'full'] as const).map((preset) => (
+                  <button
+                    key={preset}
+                    onClick={() => applyPreset(preset)}
+                    style={{
+                      padding: '8px 16px',
+                      borderRadius: '8px',
+                      border: layoutPreset === preset ? '2px solid var(--accent)' : '1px solid var(--border)',
+                      background: layoutPreset === preset ? 'var(--accent)' : 'var(--bg-tertiary)',
+                      color: layoutPreset === preset ? 'white' : 'var(--text-secondary)',
+                      fontSize: '12px',
+                      fontWeight: 600,
+                      cursor: 'pointer',
+                      textTransform: 'capitalize',
+                    }}
+                  >
+                    {preset}
+                  </button>
+                ))}
+              </div>
+              <p style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '8px' }}>
+                minimal: only dashboard, chat, jarvis, settings — full: all panels
+              </p>
+            </div>
+
+            {/* Panel Toggles */}
+            <div style={cardStyle}>
+              <div style={{ fontSize: '14px', fontWeight: 600, color: 'var(--text)', marginBottom: '4px' }}>Panel Visibility</div>
+              <p style={{ fontSize: '11px', color: 'var(--text-muted)', margin: '0 0 12px' }}>
+                Enabled panels appear in the sidebar navigation.
+              </p>
+              {(['core', 'operate', 'observe', 'insight', 'automate', 'jarvis', 'config'] as readonly string[]).map((group: string) => {
+                const groupPanels = panels.filter((p) => p.group === group);
+                if (groupPanels.length === 0) return null;
+                return (
+                  <div key={group} style={{ marginBottom: '12px' }}>
+                    <div style={{ fontSize: '10px', textTransform: 'uppercase', letterSpacing: '0.5px', color: 'var(--text-muted)', marginBottom: '4px' }}>
+                      {group}
+                    </div>
+                    {groupPanels.sort((a, b) => a.order - b.order).map((panel) => (
+                      <div
+                        key={panel.id}
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'space-between',
+                          padding: '6px 8px',
+                          borderRadius: '6px',
+                          marginBottom: '2px',
+                          background: 'var(--bg-tertiary)',
+                        }}
+                      >
+                        <span style={{ fontSize: '12px', color: 'var(--text)' }}>{panel.label}</span>
+                        <label style={{ display: 'flex', alignItems: 'center', gap: '6px', cursor: 'pointer' }}>
+                          <input
+                            type="checkbox"
+                            checked={panel.visible}
+                            onChange={() => togglePanel(panel.id)}
+                            style={{ accentColor: 'var(--accent)' }}
+                          />
+                        </label>
+                      </div>
+                    ))}
+                  </div>
+                );
+              })}
             </div>
           </div>
         )}

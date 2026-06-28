@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useUIStore, useSessionStore } from '@/stores';
 import { useSharedMemoryStore } from '@/stores/sharedMemoryStore';
+import { usePanelLayoutStore } from '@/stores/panelLayoutStore';
 
 interface NavItem {
   id: string;
@@ -18,6 +19,7 @@ const navGroups = [
       { id: 'dashboard', label: 'Dashboard', icon: '📊', panel: 'dashboard' },
       { id: 'chat', label: 'Chat', icon: '💬', panel: 'chat' },
       { id: 'pipeline', label: 'Pipeline', icon: '⚡', panel: 'pipeline' },
+      { id: 'tokens', label: 'Tokens', icon: '💰', panel: 'tokens' },
       { id: 'designer', label: 'Designer', icon: '🧬', panel: 'designer' },
       { id: 'spaces', label: 'Spaces', icon: '📁', panel: 'spaces' },
     ],
@@ -42,6 +44,7 @@ const navGroups = [
       { id: 'devtools', label: 'DevTools', icon: '🛠️', panel: 'devtools' },
       { id: 'skills', label: 'Skills', icon: '⚡', panel: 'skills' },
       { id: 'session', label: 'Sessions', icon: '💬', panel: 'session' },
+      { id: 'updates', label: 'Updates', icon: '🔔', panel: 'updates' },
     ],
   },
   {
@@ -49,6 +52,7 @@ const navGroups = [
     label: 'INSIGHT',
     items: [
       { id: 'analytics', label: 'Analytics', icon: '📈', panel: 'analytics' },
+      { id: 'achievements', label: 'Achievements', icon: '🏆', panel: 'achievements' },
       { id: 'journal', label: 'Journal', icon: '📓', panel: 'journal' },
       { id: 'failureLogs', label: 'Failure Logs', icon: '🔥', panel: 'failureLogs' },
       { id: 'insights', label: 'Insights', icon: '💡', panel: 'insights' },
@@ -61,6 +65,7 @@ const navGroups = [
       { id: 'research', label: 'Research', icon: '🔬', panel: 'research' },
       { id: 'contentPipeline', label: 'Content Pipeline', icon: '⚡', panel: 'contentPipeline' },
       { id: 'automationQueue', label: 'Auto Queue', icon: '🔄', panel: 'automationQueue' },
+      { id: 'cron', label: 'Cron', icon: '⏰', panel: 'cron' },
       { id: 'substack', label: 'Content', icon: '✨', panel: 'substack' },
     ],
   },
@@ -75,6 +80,8 @@ const navGroups = [
     id: 'config',
     label: 'CONFIG',
     items: [
+      { id: 'plugins', label: 'Plugins', icon: '🧩', panel: 'plugins' },
+      { id: 'configEditor', label: 'Config', icon: '📝', panel: 'configEditor' },
       { id: 'settings', label: 'Settings', icon: '⚙️', panel: 'settings' },
     ],
   },
@@ -88,6 +95,9 @@ export function Sidebar({ activePanel, onNavigate }: { activePanel: string; onNa
   const setActiveSession = useSessionStore((s) => s.setActiveSession);
   const renameSession = useSessionStore((s) => s.renameSession);
   const memoryEntries = useSharedMemoryStore((s) => s.memory);
+  const getVisiblePanels = usePanelLayoutStore((s) => s.getVisiblePanels);
+  const visiblePanels = getVisiblePanels();
+  const visibleIds = new Set(visiblePanels.map((p) => p.id));
 
   const [systemStats, setSystemStats] = useState({ sessions: 0, memory: 0 });
   const [editingSessionId, setEditingSessionId] = useState<string | null>(null);
@@ -149,7 +159,9 @@ export function Sidebar({ activePanel, onNavigate }: { activePanel: string; onNa
               </p>
             )}
             <div className="space-y-0.5">
-              {group.items.map((item) => (
+              {group.items
+                .filter((item) => visibleIds.has(item.id))
+                .map((item) => (
                 <button
                   key={item.id}
                   onClick={() => onNavigate(item.panel)}

@@ -44,10 +44,15 @@ import { SpacesPanel } from '@/components/spaces/SpacesPanel';
 import SettingsPanel from '@/components/SettingsPanel';
 import { ContentPipelinePanel } from '@/components/ContentPipelinePanel';
 import { AutomationQueuePanel } from '@/components/AutomationQueuePanel';
+import CronPanel from '@/components/CronPanel';
+import PluginPanel from '@/components/PluginPanel';
 import WorkspacePanel from '@/components/WorkspacePanel';
+import { TokenCostPanel } from '@/components/TokenCostPanel';
+import { DailyUpdatesPanel } from '@/components/DailyUpdatesPanel';
+import { usePanelLayoutStore } from '@/stores/panelLayoutStore';
 
 
-type Panel = 'dashboard' | 'chat' | 'pipeline' | 'memory' | 'loop' | 'devtools' | 'research' | 'substack' | 'agent' | 'jarvis' | 'designer' | 'spaces' | 'mission' | 'taskboard' | 'deploy' | 'skills' | 'goals' | 'journal' | 'analytics' | 'session' | 'failureLogs' | 'insights' | 'settings' | 'contentPipeline' | 'automationQueue' | 'workspaces';
+type Panel = 'dashboard' | 'chat' | 'pipeline' | 'memory' | 'loop' | 'devtools' | 'research' | 'substack' | 'agent' | 'jarvis' | 'designer' | 'spaces' | 'mission' | 'taskboard' | 'deploy' | 'skills' | 'goals' | 'journal' | 'analytics' | 'session' | 'failureLogs' | 'insights' | 'settings' | 'contentPipeline' | 'automationQueue' | 'workspaces' | 'tokens' | 'updates' | 'cron' | 'plugins' | 'achievements' | 'configEditor' | 'webhooks' | 'channels' | 'pairing' | 'mcp';
 
 export default function Home() {
   const { isAuthenticated, isLoading } = useAuthCheck();
@@ -194,7 +199,13 @@ export default function Home() {
             {activePanel === 'settings' && 'Settings'}
             {activePanel === 'contentPipeline' && 'Content Pipeline'}
             {activePanel === 'automationQueue' && 'Automation Queue'}
+            {activePanel === 'cron' && 'Cron Jobs'}
+            {activePanel === 'plugins' && 'Plugins'}
+            {activePanel === 'achievements' && 'Achievements'}
+            {activePanel === 'configEditor' && 'Config Editor'}
             {activePanel === 'workspaces' && 'Workspaces'}
+            {activePanel === 'tokens' && 'Token Costs'}
+            {activePanel === 'updates' && 'Daily Updates'}
           </h1>
 
           {/* Persona Selector */}
@@ -259,7 +270,13 @@ export default function Home() {
           {activePanel === 'settings' && <SettingsPanel />}
           {activePanel === 'contentPipeline' && <ContentPipelinePanel />}
           {activePanel === 'automationQueue' && <AutomationQueuePanel />}
+          {activePanel === 'cron' && <CronPanel />}
+          {activePanel === 'plugins' && <PluginPanel />}
+          {activePanel === 'achievements' && <AchievementsPanel />}
+          {activePanel === 'configEditor' && <ConfigEditorPanel />}
           {activePanel === 'workspaces' && <WorkspacePanel />}
+          {activePanel === 'tokens' && <TokenCostPanel />}
+          {activePanel === 'updates' && <DailyUpdatesPanel />}
         </main>
 
         {/* Status Bar */}
