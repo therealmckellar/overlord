@@ -15,7 +15,7 @@ interface JarvisActions {
   activate: () => void;
   deactivate: () => void;
   toggle: () => void;
-  speak: (text: string) => void;
+  speak: (text: string, voice?: SpeechSynthesisVoice | null) => void;
 }
 
 type JarvisCommandCallback = (command: string) => void;
@@ -201,7 +201,7 @@ export function useJarvis(onCommand?: JarvisCommandCallback) {
     }
   }, [state.isListening, startListening, stopListening]);
 
-  const speak = useCallback((text: string) => {
+  const speak = useCallback((text: string, voice?: SpeechSynthesisVoice | null) => {
     if (!window.speechSynthesis) return;
 
     window.speechSynthesis.cancel();
@@ -210,6 +210,7 @@ export function useJarvis(onCommand?: JarvisCommandCallback) {
     utterance.rate = 1.0;
     utterance.pitch = 1.0;
     utterance.volume = 1.0;
+    if (voice) utterance.voice = voice;
 
     utterance.onstart = () => setState((s) => ({ ...s, isSpeaking: true }));
     utterance.onend = () => setState((s) => ({ ...s, isSpeaking: false }));

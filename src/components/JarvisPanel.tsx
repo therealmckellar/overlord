@@ -6,7 +6,7 @@ import { useMessageStore } from '@/stores/messageStore';
 import { useKanbanStore } from '@/stores/kanbanStore';
 import { useChatStream } from '@/hooks/useChatStream';
 import { useJarvis } from '@/hooks/useJarvis';
-import { Mic, MicOff, Volume2, VolumeX, History, Loader2 } from 'lucide-react';
+import { Mic, MicOff, Volume2, VolumeX, History, Loader2, ChevronDown } from 'lucide-react';
 import { InlineModelSelector } from '@/components/ui/InlineModelSelector';
 
 const SUGGESTED_COMMANDS = [
@@ -119,7 +119,7 @@ export function JarvisPanel() {
         setTimeout(() => {
           const storeMsgs = useMessageStore.getState().messagesBySession[JARVIS_SESSION] || [];
           const lastAssistant = storeMsgs.filter((m) => m.sender.role === 'assistant').slice(-1)[0];
-          if (lastAssistant) speak(lastAssistant.content);
+          if (lastAssistant) handleSpeak(lastAssistant.content);
         }, 500);
       } catch {
         setMessages(prev => [...prev, { id: `jarvis-${Date.now()}`, type: 'jarvis', text: 'Sorry, I had an issue generating the briefing.', timestamp: new Date() }]);
@@ -166,6 +166,32 @@ export function JarvisPanel() {
   }, []);
 
   const { isListening, isSpeaking, isSupported, transcript, lastCommand, toggle, speak } = useJarvis(handleCommand);
+
+  // Voice selection
+  const [voices, setVoices] = useState<SpeechSynthesisVoice[]>([]);
+  const [selectedVoice, setSelectedVoice] = useState<SpeechSynthesisVoice | null>(null);
+  const [voicePickerOpen, setVoicePickerOpen] = useState(false);
+
+  useEffect(() => {
+    const loadVoices = () => {
+      const available = window.speechSynthesis?.getVoices() || [];
+      if (available.length > 0) {
+        setVoices(available);
+        // Prefer a deep/male English voice, fallback to first available
+        const preferred = available.find(v => /daniel|david|google uk english male|microsoft david|mark|james/i.test(v.name))
+          || available.find(v => v.lang.startsWith('en'))
+          || available[0];
+        setSelectedVoice(preferred || null);
+      }
+    };
+    loadVoices();
+    window.speechSynthesis?.addEventListener('voiceschanged', loadVoices);
+    return () => window.speechSynthesis?.removeEventListener('voiceschanged', loadVoices);
+  }, []);
+
+  const handleSpeak = useCallback((text: string) => {
+    speak(text, selectedVoice);
+  }, [speak, selectedVoice]);
 
   return (
     <div className="flex flex-col h-full bg-[var(--bg)]">
@@ -313,7 +339,7 @@ export function JarvisPanel() {
             onClick={() => {
               if (messages.length > 0) {
                 const lastJarvisMsg = messages.filter(m => m.type === 'jarvis').slice(-1)[0];
-                if (lastJarvisMsg) speak(lastJarvisMsg.text);
+                if (lastJarvisMsg) handleSpeak(lastJarvisMsg.text);
               }
             }}
             className="w-10 h-10 rounded-full flex items-center justify-center bg-[var(--bg-secondary)] border border-[var(--border)] text-[var(--text-secondary)] hover:bg-[var(--bg-tertiary)] hover:text-[var(--text)] transition-colors"
@@ -325,6 +351,35 @@ export function JarvisPanel() {
           <div className="flex-1 text-xs text-[var(--text-muted)] px-2">
             {isListening ? '🎤 Listening...' : isSpeaking ? '🔊 Speaking...' : isThinking ? '💭 Thinking...' : '⚡ Ready'}
           </div>
+
+          {/* Voice Picker */}
+          {voices.length > 0 && (
+            <div className="relative">
+              <button
+                onClick={() => setVoicePickerOpen(!voicePickerOpen)}
+                className="flex items-center gap-1 px-2 py-1 text-[10px] rounded-lg bg-[var(--bg-secondary)] border border-[var(--border)] text-[var(--text-secondary)] hover:bg-[var(--bg-tertiary)] transition-colors max-w-[120px]"
+                title="Change voice"
+              >
+                <span className="truncate">{selectedVoice?.name.split(' ').slice(0, 2).join(' ') || 'Voice'}</span>
+                <ChevronDown className="w-3 h-3 shrink-0" />
+              </button>
+              {voicePickerOpen && (
+                <div className="absolute bottom-full right-0 mb-1 w-56 max-h-48 overflow-y-auto rounded-lg border border-[var(--border)] bg-[var(--bg)] shadow-xl z-50">
+                  {voices.map((v) => (
+                    <button
+                      key={v.name}
+                      onClick={() => { setSelectedVoice(v); setVoicePickerOpen(false); }}
+                      className={`w-full text-left px-3 py-1.5 text-[11px] transition-colors ${selectedVoice?.name === v.name ? 'bg-[var(--accent)]/10 text-[var(--accent)]' : 'text-[var(--text-secondary)] hover:bg-[var(--bg-tertiary)]'}`}
+                    >
+                      <div className="truncate font-medium">{v.name}</div>
+                      <div className="text-[9px] text-[var(--text-muted)]">{v.lang} {v.localService ? '• local' : '• remote'}</div>
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+
           <InlineModelSelector compact />
         </div>
       </div>
