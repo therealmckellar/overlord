@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import "./globals.css";
+import GovernanceProvider from "@/components/GovernanceProvider";
 
 export const metadata: Metadata = {
   title: "Agent OS — Overlord",
@@ -51,7 +52,9 @@ export default function RootLayout({
         <style dangerouslySetInnerHTML={{ __html: criticalCSS }} />
       </head>
       <body className="min-h-full flex flex-col bg-[var(--bg)] text-[var(--text)] font-[var(--font-sans)]">
-        {children}
+        <GovernanceProvider>
+          {children}
+        </GovernanceProvider>
       </body>
     </html>
   );
