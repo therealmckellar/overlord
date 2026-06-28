@@ -57,6 +57,7 @@ export function useChatStream({ sessionId, persona, model, systemPrompt }: SendM
     try {
       const res = await fetch('/api/chat', {
         method: 'POST',
+        credentials: 'same-origin',
         headers: {
           'Content-Type': 'application/json',
           'x-persona': persona,

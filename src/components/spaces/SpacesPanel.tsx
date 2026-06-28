@@ -314,7 +314,9 @@ function ThreadChatView({ space, thread }: { space: Space; thread: SpaceThread }
         console.error('Chat API error:', response.status, errText);
         addThreadMessage(space.id, thread.id, {
           role: 'assistant',
-          content: `⚠️ Error: Failed to get response from AI (${response.status}). Please check your API key configuration.`,
+          content: response.status === 401
+            ? '⚠️ Session expired. Please log in again to continue.'
+            : `⚠️ Error: Failed to get response from AI (${response.status}). Please check your configuration.`,
         });
         setIsStreaming(false);
         return;
