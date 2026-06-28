@@ -15,6 +15,7 @@ import {
 } from 'lucide-react';
 import { useWorkspaceStore } from '@/stores/workspaceStore';
 import { useUIStore } from '@/stores/uiStore';
+import { useScopeStore } from '@/stores/scopeStore';
 
 type StageStatus = 'pending' | 'active' | 'blocked' | 'done';
 
@@ -86,6 +87,7 @@ export function PipelinePanel() {
   const [loading, setLoading] = useState(true);
   const { workspaces } = useWorkspaceStore();
   const addToast = useUIStore((s) => s.addToast);
+  const addScopeAlert = useScopeStore((s) => s.addAlert);
 
   useEffect(() => {
     fetchPipeline();
@@ -133,6 +135,37 @@ export function PipelinePanel() {
 
     try {
       const pipelineId = pipeline.id;
+      
+      const checkRes = await fetch('/api/scope/check', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          taskId: 'current-stage-' + currentStage.id,
+          originalScope: currentStage.exitCriteria.join(', '),
+          actualOutput: 'Sample output for check',
+          modifiedFiles: [], 
+          declaredFiles: [],
+        }),
+      });
+      const checkData = await checkRes.json();
+      
+      if (checkData.analysis?.hasDrift) {
+        addScopeAlert({
+          id: 'alert-' + Date.now(),
+          taskId: 'current-stage-' + currentStage.id,
+          workspaceId: pipeline.workspaceId || 'unknown',
+          pipelineId: pipeline.id,
+          agentId: 'default-agent',
+          originalScope: currentStage.exitCriteria.join(', '),
+          proposedChange: checkData.analysis.proposedChange || 'Unknown drift',
+          driftType: checkData.analysis.driftType,
+          status: 'pending',
+          detectedAt: new Date(),
+          actualOutput: 'Sample output for check',
+        });
+        addToast({ type: 'warning', message: 'Scope drift detected! Check ScopePanel.' });
+      }
+
       const res = await fetch('/api/pipeline/' + pipelineId + '/advance', {
         method: 'POST',
       });
@@ -226,7 +259,7 @@ export function PipelinePanel() {
                       </h3>
                       <div className="flex items-center gap-4 text-sm text-gray-400">
                         <span className="flex items-center gap-1"><Clock className="w-4 h-4" /> {stage.estimatedDuration}</span>
-                        <span className="flex items-center gap-1"><Layers className="w-4 h-4" /> Status: {stage.status}</span>
+                        <span className="flex items-center gap-1"><Layers className="w-4 h-4" /> {stage.status}</span>
                       </div>
                     </div>
 
@@ -246,7 +279,7 @@ export function PipelinePanel() {
                       <ul className="space-y-2">
                         {stage.exitCriteria.map((c, i) => (
                           <li key={i} className="flex items-center gap-2 text-sm text-gray-300">
-                            <Circle className="w-3 h-3 text-gray-600" /> {c}
+                            <Circle className="w-3 h-3" /> {c}
                           </li>
                         ))}
                       </ul>
