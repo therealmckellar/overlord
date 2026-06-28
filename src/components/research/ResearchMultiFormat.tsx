@@ -229,15 +229,17 @@ export function ResearchMultiFormat({ isOpen, onClose }: ResearchMultiFormatProp
               </div>
             </div>
 
-            <button
-              onClick={startResearch}
-              disabled={!query.trim() || selectedFormats.length === 0}
-              className="w-full flex items-center justify-center gap-2 px-4 py-2 text-xs rounded-lg bg-[var(--accent)] text-white hover:bg-[var(--accent-hover)] disabled:opacity-30 transition-colors"
-            >
-              <Sparkles className="w-3.5 h-3.5" />
-              Research & Generate
-              <InlineModelSelector compact className="ml-auto" />
-            </button>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={startResearch}
+                disabled={!query.trim() || selectedFormats.length === 0}
+                className="flex-1 flex items-center justify-center gap-2 px-4 py-2 text-xs rounded-lg bg-[var(--accent)] text-white hover:bg-[var(--accent-hover)] disabled:opacity-30 transition-colors"
+              >
+                <Sparkles className="w-3.5 h-3.5" />
+                Research & Generate
+              </button>
+              <InlineModelSelector compact />
+            </div>
           </div>
 
           {/* Project list */}
