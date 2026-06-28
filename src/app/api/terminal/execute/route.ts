@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { exec } from 'child_process';
 import { promisify } from 'util';
+import { checkSafety, DEFAULT_SAFETY_RULES } from '@/lib/safetyRules';
 
 const execAsync = promisify(exec);
 
@@ -13,26 +14,24 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Command is required' }, { status: 400 });
     }
 
-    // Security: block dangerous commands
-    const blockedPatterns = [
-      /\brm\s+-rf\b/,
-      /\bsudo\b/,
-      /\bchmod\b/,
-      /\bchown\b/,
-      /\bmkfs\b/,
-      /\bdd\s+if=/,
-      /\b>:?\s*\/dev\//,
-      /\bcurl\b.*\|.*\bbash\b/,
-      /\bwget\b.*\|.*\bbash\b/,
-    ];
-
-    for (const pattern of blockedPatterns) {
-      if (pattern.test(command)) {
-        return NextResponse.json({ error: 'Command blocked for security' }, { status: 403 });
-      }
+    const safety = checkSafety(command, DEFAULT_SAFETY_RULES);
+    
+    if (safety.action === 'block') {
+      return NextResponse.json({ 
+        error: 'Command blocked by safety guardrails: ' + safety.reason, 
+        safetyAction: 'block',
+        ruleId: safety.matchedRule 
+      }, { status: 403 });
     }
 
-    // Limit command length
+    if (safety.action === 'warn') {
+      return NextResponse.json({ 
+        error: 'Safety warning: ' + safety.reason + '. Please use the confirmation flag or override if you are sure.', 
+        safetyAction: 'warn',
+        ruleId: safety.matchedRule 
+      }, { status: 403 });
+    }
+
     if (command.length > 500) {
       return NextResponse.json({ error: 'Command too long (max 500 chars)' }, { status: 400 });
     }
@@ -40,7 +39,7 @@ export async function POST(req: NextRequest) {
     const { stdout, stderr } = await execAsync(command, {
       cwd: process.cwd(),
       timeout: 30000,
-      maxBuffer: 1024 * 1024, // 1MB output limit
+      maxBuffer: 1024 * 1024,
       env: {
         ...process.env,
         PATH: '/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin',
