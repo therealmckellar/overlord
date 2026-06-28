@@ -15,6 +15,8 @@ export interface Toast {
   duration?: number;
 }
 
+export type WorkflowMode = 'PLAN' | 'ASK' | 'EXECUTE' | 'REVIEW';
+
 interface UIState {
   // Theme
   theme: ThemeName;
@@ -56,6 +58,9 @@ interface UIState {
   activePersona: string;
   setActivePersona: (slug: string) => void;
 
+  // Workflow Mode
+  currentMode: WorkflowMode;
+  setCurrentMode: (mode: WorkflowMode) => void;
 
   // Breadcrumbs
   breadcrumbs: { label: string; href?: string }[];
@@ -141,6 +146,9 @@ export const useUIStore = create<UIState>()(
       activePersona: 'hermes',
       setActivePersona: (slug) => set({ activePersona: slug }),
 
+      // Workflow Mode
+      currentMode: 'EXECUTE',
+      setCurrentMode: (mode) => set({ currentMode: mode }),
 
       // Breadcrumbs
       breadcrumbs: [],
@@ -183,6 +191,7 @@ export const useUIStore = create<UIState>()(
         selectedModel: state.selectedModel,
         reasoningEffort: state.reasoningEffort,
         voiceEnabled: state.voiceEnabled,
+        currentMode: state.currentMode,
       }),
 
     }
