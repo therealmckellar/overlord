@@ -11,7 +11,7 @@ interface LoginFormProps {
 
 export function LoginForm({ onSuccess, onSwitchToRegister }: LoginFormProps) {
   const router = useRouter();
-  const [email, setEmail] = useState('');
+  const [identifier, setIdentifier] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
@@ -24,7 +24,7 @@ export function LoginForm({ onSuccess, onSwitchToRegister }: LoginFormProps) {
 
     try {
       const { login: loginApi } = await import('@/lib/auth/api');
-      const data = await loginApi(email, password);
+      const data = await loginApi(identifier, password);
       // Set auth store directly — avoids race condition with reload
       setUser(data.user, data.expiresAt);
       // Signal to useAuthCheck that a fresh login just happened — skip the getMe() revalidation
@@ -43,16 +43,16 @@ export function LoginForm({ onSuccess, onSwitchToRegister }: LoginFormProps) {
   return (
     <form onSubmit={handleSubmit} className="space-y-4 w-full max-w-sm">
       <div>
-        <label className="block text-xs font-medium text-[var(--text-secondary)] mb-1.5">
-          Email
-        </label>
-        <input
-          type="email"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-          placeholder="you@example.com"
-          required
-          autoComplete="email"
+          <label className="block text-xs font-medium text-[var(--text-secondary)] mb-1.5">
+            Username or Email
+          </label>
+          <input
+            type="text"
+            value={identifier}
+            onChange={(e) => setIdentifier(e.target.value)}
+            placeholder="mckellardev"
+            required
+            autoComplete="username"
           className="w-full px-3 py-2 rounded-lg bg-[var(--bg-tertiary)] border border-[var(--border)] text-sm text-[var(--text)] placeholder:text-[var(--text-muted)] focus:outline-none focus:border-[var(--accent)] transition-colors"
         />
       </div>

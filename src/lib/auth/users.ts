@@ -3,9 +3,9 @@
  * Replaces the in-memory Map from users.ts.
  *
  * DB file: data/overlord.db (gitignored)
- * Table: users (id, email, name, password_hash, role, created_at, last_login_at)
+ * Table: users (id, username, email, name, password_hash, role, created_at, last_login_at)
  *
- * Seed user: richard@mycommercialfunding.com / admin123
+ * Seed user: mckellardev / admin123 (email kept as recovery contact)
  */
 
 import Database from 'better-sqlite3';
@@ -14,6 +14,7 @@ import { hashPassword, verifyPassword } from './hash';
 
 export interface User {
   id: string;
+  username: string;
   email: string;
   name: string;
   passwordHash: string;
@@ -37,6 +38,7 @@ function getDb(): Database.Database {
   db.exec(`
     CREATE TABLE IF NOT EXISTS users (
       id TEXT PRIMARY KEY,
+      username TEXT UNIQUE NOT NULL,
       email TEXT UNIQUE NOT NULL,
       name TEXT NOT NULL,
       password_hash TEXT NOT NULL,
@@ -45,6 +47,14 @@ function getDb(): Database.Database {
       last_login_at INTEGER
     );
   `);
+
+  // Migration: add username column if missing
+  const cols = db.prepare("PRAGMA table_info(users)").all() as { name: string }[];
+  if (!cols.find(c => c.name === 'username')) {
+    db.exec(`ALTER TABLE users ADD COLUMN username TEXT`);
+    db.exec(`UPDATE users SET username = 'mckellardev' WHERE id = 'usr_admin_001'`);
+    db.exec(`CREATE UNIQUE INDEX IF NOT EXISTS idx_users_username ON users(username)`);
+  }
 
   return db;
 }
@@ -59,7 +69,7 @@ async function ensureSeed() {
 
   seedPromise = (async () => {
     const database = getDb();
-    const existing = database.prepare('SELECT id FROM users WHERE email = ?').get('richard@mycommercialfunding.com');
+    const existing = database.prepare('SELECT id FROM users WHERE username = ?').get('mckellardev');
     if (existing) {
       seeded = true;
       return;
@@ -68,9 +78,9 @@ async function ensureSeed() {
     const passwordHash = await hashPassword('admin123');
     const now = Date.now();
     database.prepare(`
-      INSERT INTO users (id, email, name, password_hash, role, created_at)
-      VALUES (?, ?, ?, ?, ?, ?)
-    `).run('usr_admin_001', 'richard@mycommercialfunding.com', 'Richard', passwordHash, 'admin', now);
+      INSERT INTO users (id, username, email, name, password_hash, role, created_at)
+      VALUES (?, ?, ?, ?, ?, ?, ?)
+    `).run('usr_admin_001', 'mckellardev', 'richard@mycommercialfunding.com', 'mckellardev', passwordHash, 'admin', now);
 
     seeded = true;
   })();
@@ -85,12 +95,33 @@ export async function findByEmail(email: string): Promise<User | null> {
   await initPromise;
   const database = getDb();
   const row = database.prepare('SELECT * FROM users WHERE email = ?').get(email.toLowerCase()) as {
-    id: string; email: string; name: string; password_hash: string; role: string; created_at: number; last_login_at: number | null;
+    id: string; username: string; email: string; name: string; password_hash: string; role: string; created_at: number; last_login_at: number | null;
   } | undefined;
 
   if (!row) return null;
   return {
     id: row.id,
+    username: row.username,
+    email: row.email,
+    name: row.name,
+    passwordHash: row.password_hash,
+    role: row.role as 'admin' | 'user',
+    createdAt: row.created_at,
+    lastLoginAt: row.last_login_at || undefined,
+  };
+}
+
+export async function findByUsername(username: string): Promise<User | null> {
+  await initPromise;
+  const database = getDb();
+  const row = database.prepare('SELECT * FROM users WHERE username = ?').get(username.toLowerCase()) as {
+    id: string; username: string; email: string; name: string; password_hash: string; role: string; created_at: number; last_login_at: number | null;
+  } | undefined;
+
+  if (!row) return null;
+  return {
+    id: row.id,
+    username: row.username,
     email: row.email,
     name: row.name,
     passwordHash: row.password_hash,
@@ -104,12 +135,13 @@ export async function findById(id: string): Promise<User | null> {
   await initPromise;
   const database = getDb();
   const row = database.prepare('SELECT * FROM users WHERE id = ?').get(id) as {
-    id: string; email: string; name: string; password_hash: string; role: string; created_at: number; last_login_at: number | null;
+    id: string; username: string; email: string; name: string; password_hash: string; role: string; created_at: number; last_login_at: number | null;
   } | undefined;
 
   if (!row) return null;
   return {
     id: row.id,
+    username: row.username,
     email: row.email,
     name: row.name,
     passwordHash: row.password_hash,
@@ -120,6 +152,7 @@ export async function findById(id: string): Promise<User | null> {
 }
 
 export async function createUser(data: {
+  username: string;
   email: string;
   name: string;
   password: string;
@@ -127,9 +160,10 @@ export async function createUser(data: {
 }): Promise<User> {
   await initPromise;
   const database = getDb();
+  const username = data.username.toLowerCase();
   const email = data.email.toLowerCase();
 
-  const existing = database.prepare('SELECT id FROM users WHERE email = ?').get(email);
+  const existing = database.prepare('SELECT id FROM users WHERE username = ? OR email = ?').get(username, email);
   if (existing) {
     throw new Error('User already exists');
   }
@@ -139,12 +173,13 @@ export async function createUser(data: {
   const now = Date.now();
 
   database.prepare(`
-    INSERT INTO users (id, email, name, password_hash, role, created_at)
-    VALUES (?, ?, ?, ?, ?, ?)
-  `).run(id, email, data.name, passwordHash, data.role || 'user', now);
+    INSERT INTO users (id, username, email, name, password_hash, role, created_at)
+    VALUES (?, ?, ?, ?, ?, ?, ?)
+  `).run(id, username, email, data.name, passwordHash, data.role || 'user', now);
 
   return {
     id,
+    username,
     email,
     name: data.name,
     passwordHash,
@@ -154,11 +189,12 @@ export async function createUser(data: {
 }
 
 export async function validateCredentials(
-  email: string,
+  identifier: string,
   password: string
 ): Promise<User | null> {
   await initPromise;
-  const user = await findByEmail(email);
+  // Try username first, then email
+  const user = await findByUsername(identifier) || await findByEmail(identifier);
   if (!user) return null;
 
   const valid = await verifyPassword(password, user.passwordHash);
@@ -173,7 +209,7 @@ export async function validateCredentials(
   return user;
 }
 
-export async function updateUser(id: string, data: { name?: string; password?: string }): Promise<User | null> {
+export async function updateUser(id: string, data: { username?: string; name?: string; password?: string }): Promise<User | null> {
   await initPromise;
   const database = getDb();
   const user = await findById(id);
@@ -181,6 +217,11 @@ export async function updateUser(id: string, data: { name?: string; password?: s
 
   const updates: string[] = [];
   const params: (string | number)[] = [];
+
+  if (data.username) {
+    updates.push('username = ?');
+    params.push(data.username.toLowerCase());
+  }
 
   if (data.name) {
     updates.push('name = ?');
@@ -211,12 +252,13 @@ export async function deleteUser(id: string): Promise<boolean> {
 export async function listUsers(): Promise<Omit<User, 'passwordHash'>[]> {
   await initPromise;
   const database = getDb();
-  const rows = database.prepare('SELECT id, email, name, role, created_at, last_login_at FROM users ORDER BY created_at DESC').all() as {
-    id: string; email: string; name: string; role: string; created_at: number; last_login_at: number | null;
+  const rows = database.prepare('SELECT id, username, email, name, role, created_at, last_login_at FROM users ORDER BY created_at DESC').all() as {
+    id: string; username: string; email: string; name: string; role: string; created_at: number; last_login_at: number | null;
   }[];
 
   return rows.map((row) => ({
     id: row.id,
+    username: row.username,
     email: row.email,
     name: row.name,
     role: row.role as 'admin' | 'user',

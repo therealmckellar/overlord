@@ -11,6 +11,7 @@ interface RegisterFormProps {
 
 export function RegisterForm({ onSuccess, onSwitchToLogin }: RegisterFormProps) {
   const router = useRouter();
+  const [username, setUsername] = useState('');
   const [email, setEmail] = useState('');
   const [name, setName] = useState('');
   const [password, setPassword] = useState('');
@@ -37,7 +38,7 @@ export function RegisterForm({ onSuccess, onSwitchToLogin }: RegisterFormProps) 
 
     try {
       const { register: registerApi } = await import('@/lib/auth/api');
-      const data = await registerApi(email, name, password);
+      const data = await registerApi(username, email, name, password);
       // Set auth store directly — avoids race condition with reload
       setUser(data.user, data.expiresAt);
       onSuccess();
@@ -52,6 +53,21 @@ export function RegisterForm({ onSuccess, onSwitchToLogin }: RegisterFormProps) 
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4 w-full max-w-sm">
+      <div>
+        <label className="block text-xs font-medium text-[var(--text-secondary)] mb-1.5">
+          Username
+        </label>
+        <input
+          type="text"
+          value={username}
+          onChange={(e) => setUsername(e.target.value)}
+          placeholder="mckellardev"
+          required
+          autoComplete="username"
+          className="w-full px-3 py-2 rounded-lg bg-[var(--bg-tertiary)] border border-[var(--border)] text-sm text-[var(--text)] placeholder:text-[var(--text-muted)] focus:outline-none focus:border-[var(--accent)] transition-colors"
+        />
+      </div>
+
       <div>
         <label className="block text-xs font-medium text-[var(--text-secondary)] mb-1.5">
           Name

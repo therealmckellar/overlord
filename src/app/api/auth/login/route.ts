@@ -7,16 +7,17 @@ import { serialize } from 'cookie';
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
-    const { email, password } = body;
+    const { identifier, email, password } = body;
+    const loginId = identifier || email;
 
-    if (!email || !password) {
+    if (!loginId || !password) {
       return NextResponse.json(
-        { error: 'Email and password are required' },
+        { error: 'Username/email and password are required' },
         { status: 400 }
       );
     }
 
-    const user = await validateCredentials(email, password);
+    const user = await validateCredentials(loginId, password);
     if (!user) {
       return NextResponse.json(
         { error: 'Invalid email or password' },
@@ -26,6 +27,7 @@ export async function POST(req: NextRequest) {
 
     const tokens = await signTokenPair({
       id: user.id,
+      username: user.username,
       email: user.email,
       name: user.name,
       role: user.role,

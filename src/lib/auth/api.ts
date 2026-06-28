@@ -37,21 +37,22 @@ async function authFetch<T>(path: string, options?: RequestInit): Promise<T> {
   return data as T;
 }
 
-export async function login(email: string, password: string): Promise<AuthResponse> {
+export async function login(identifier: string, password: string): Promise<AuthResponse> {
   return authFetch<AuthResponse>('/login', {
     method: 'POST',
-    body: JSON.stringify({ email, password }),
+    body: JSON.stringify({ identifier, password }),
   });
 }
 
 export async function register(
+  username: string,
   email: string,
   name: string,
   password: string
 ): Promise<AuthResponse> {
   return authFetch<AuthResponse>('/register', {
     method: 'POST',
-    body: JSON.stringify({ email, name, password }),
+    body: JSON.stringify({ username, email, name, password }),
   });
 }
 

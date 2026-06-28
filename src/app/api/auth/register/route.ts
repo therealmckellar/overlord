@@ -7,11 +7,11 @@ import { serialize } from 'cookie';
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
-    const { email, name, password } = body;
+    const { username, email, name, password } = body;
 
-    if (!email || !name || !password) {
+    if (!username || !email || !name || !password) {
       return NextResponse.json(
-        { error: 'Email, name, and password are required' },
+        { error: 'Username, email, name, and password are required' },
         { status: 400 }
       );
     }
@@ -23,18 +23,10 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Check if user exists
-    const existing = await findByEmail(email);
-    if (existing) {
-      return NextResponse.json(
-        { error: 'User already exists' },
-        { status: 409 }
-      );
-    }
-
-    const user = await createUser({ email, name, password });
+    const user = await createUser({ username, email, name, password });
     const tokens = await signTokenPair({
       id: user.id,
+      username: user.username,
       email: user.email,
       name: user.name,
       role: user.role,

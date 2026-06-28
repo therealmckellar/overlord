@@ -6,6 +6,7 @@ const REFRESH_TOKEN_EXPIRY = '7d';
 
 export interface TokenPayload extends jose.JWTPayload {
   userId: string;
+  username: string;
   email: string;
   name: string;
   role: string;
@@ -45,9 +46,10 @@ export function decodeToken(token: string): TokenPayload | null {
   }
 }
 
-export async function signTokenPair(user: { id: string; email: string; name: string; role: string }): Promise<TokenPair> {
+export async function signTokenPair(user: { id: string; username: string; email: string; name: string; role: string }): Promise<TokenPair> {
   const accessToken = await signAccessToken({
     userId: user.id,
+    username: user.username,
     email: user.email,
     name: user.name,
     role: user.role,
