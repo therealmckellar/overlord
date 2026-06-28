@@ -3,12 +3,24 @@
 import React, { useState } from 'react';
 import {
   FileText, BarChart3, Headphones, Video, Sparkles,
-  Loader2, Download, ExternalLink, BookOpen
+  Loader2, Download, ExternalLink, BookOpen, ListTodo,
+  Play, Trash2
 } from 'lucide-react';
 import { useUIStore } from '@/stores/uiStore';
+import { useResearchStore, type ResearchStatus, type ResearchTask } from '@/stores/researchStore';
 import { InlineModelSelector } from '@/components/ui/InlineModelSelector';
 
 type OutputFormat = 'deep' | 'report' | 'infographic' | 'podcast' | 'video';
+type ResearchTab = 'projects' | 'queue';
+
+const STATUS_CONFIG: Record<ResearchStatus, { color: string; bg: string; icon: string; label: string }> = {
+  queued: { color: '#6b7280', bg: '#6b728022', icon: '⏳', label: 'Queued' },
+  researching: { color: '#3b82f6', bg: '#3b82f622', icon: '🔍', label: 'Researching' },
+  complete: { color: '#10b981', bg: '#10b98122', icon: '✅', label: 'Complete' },
+  failed: { color: '#ef4444', bg: '#ef444422', icon: '❌', label: 'Failed' },
+};
+
+const AGENTS = ['Researcher', 'Explorer', 'Builder', 'Hermes'];
 
 interface ResearchProject {
   id: string;
@@ -37,7 +49,17 @@ export function ResearchMultiFormat({ isOpen, onClose }: ResearchMultiFormatProp
   const [selectedFormats, setSelectedFormats] = useState<OutputFormat[]>(['deep', 'report']);
   const [projects, setProjects] = useState<ResearchProject[]>([]);
   const [selectedProject, setSelectedProject] = useState<ResearchProject | null>(null);
+  const [activeTab, setActiveTab] = useState<ResearchTab>('projects');
   const addToast = useUIStore((s) => s.addToast);
+
+  // Queue state
+  const queue = useResearchStore((s) => s.queue);
+  const addTopic = useResearchStore((s) => s.addTopic);
+  const updateStatus = useResearchStore((s) => s.updateStatus);
+  const deleteTask = useResearchStore((s) => s.deleteTask);
+  const [newTopic, setNewTopic] = useState('');
+  const [newAgent, setNewAgent] = useState('Researcher');
+  const [expandedQueueId, setExpandedQueueId] = useState<string | null>(null);
 
   const toggleFormat = (format: OutputFormat) => {
     setSelectedFormats((prev) =>
@@ -61,14 +83,12 @@ export function ResearchMultiFormat({ isOpen, onClose }: ResearchMultiFormatProp
     setSelectedProject(project);
     setQuery('');
 
-    // Simulate research pipeline
     setTimeout(() => {
       setProjects((prev) =>
         prev.map((p) => (p.id === project.id ? { ...p, status: 'generating' } : p))
       );
       setSelectedProject((prev) => prev?.id === project.id ? { ...prev, status: 'generating' } : prev);
 
-      // Simulate format generation
       setTimeout(() => {
         const results: Partial<Record<OutputFormat, string>> = {};
         selectedFormats.forEach((format) => {
@@ -101,6 +121,35 @@ export function ResearchMultiFormat({ isOpen, onClose }: ResearchMultiFormatProp
     }, 1500);
   };
 
+  const handleAddToQueue = () => {
+    if (!newTopic.trim()) return;
+    addTopic(newTopic.trim(), 'agent-' + newAgent.toLowerCase());
+    setNewTopic('');
+    addToast({ type: 'info', message: 'Topic added to research queue' });
+  };
+
+  const handleSimulateQueue = (task: ResearchTask) => {
+    if (task.status === 'queued') {
+      updateStatus(task.id, 'researching');
+      setTimeout(() => {
+        updateStatus(task.id, 'complete', 'Research complete. Key findings compiled.', generateFakeResult(task.topic));
+        addToast({ type: 'success', message: `Research complete: ${task.topic}` });
+      }, 2000);
+    }
+  };
+
+  const formatTime = (ts: number) => {
+    const d = new Date(ts);
+    return d.toLocaleString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+  };
+
+  const queueCounts = {
+    queued: queue.filter((t) => t.status === 'queued').length,
+    researching: queue.filter((t) => t.status === 'researching').length,
+    complete: queue.filter((t) => t.status === 'complete').length,
+    failed: queue.filter((t) => t.status === 'failed').length,
+  };
+
   if (!isOpen) return null;
 
   return (
@@ -110,94 +159,246 @@ export function ResearchMultiFormat({ isOpen, onClose }: ResearchMultiFormatProp
         <div className="flex items-center justify-between px-4 py-3 border-b border-[var(--border)]">
           <h2 className="text-sm font-semibold text-[var(--text)] flex items-center gap-2">
             <BookOpen className="w-4 h-4 text-[var(--accent)]" />
-            Research → Multi-Format
+            Research
+            <span className="text-[10px] font-normal text-[var(--text-muted)] ml-1">
+              {projects.length} projects · {queue.length} queued
+            </span>
           </h2>
-          <button onClick={onClose} className="p-1 rounded hover:bg-[var(--bg-tertiary)] text-[var(--text-muted)]">
-            <ExternalLink className="w-4 h-4" />
-          </button>
-        </div>
-
-        {/* New research form */}
-        <div className="p-4 border-b border-[var(--border)] space-y-3">
-          <textarea
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            placeholder="What do you want to research?"
-            rows={3}
-            className="w-full px-3 py-2 text-xs rounded-lg bg-[var(--bg-tertiary)] border border-[var(--border)] text-[var(--text)] placeholder:text-[var(--text-muted)] focus:outline-none focus:border-[var(--accent)] resize-none"
-          />
-
-          <div>
-            <label className="text-[10px] uppercase tracking-wider text-[var(--text-muted)] mb-2 block">Output Formats</label>
-            <div className="grid grid-cols-2 gap-2">
-              {(Object.entries(formatConfig) as [OutputFormat, typeof formatConfig[OutputFormat]][]).map(([format, config]) => {
-                const Icon = config.icon;
-                const selected = selectedFormats.includes(format);
-                return (
-                  <button
-                    key={format}
-                    onClick={() => toggleFormat(format)}
-                    className={`flex items-center gap-2 px-3 py-2 text-xs rounded-lg border transition-colors ${
-                      selected
-                        ? 'border-[var(--accent)] bg-[var(--accent)]/10 text-[var(--accent)]'
-                        : 'border-[var(--border)] text-[var(--text-muted)] hover:text-[var(--text)]'
-                    }`}
-                  >
-                    <Icon className="w-3.5 h-3.5" />
-                    {config.label}
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-
-          <button
-            onClick={startResearch}
-            disabled={!query.trim() || selectedFormats.length === 0}
-            className="w-full flex items-center justify-center gap-2 px-4 py-2 text-xs rounded-lg bg-[var(--accent)] text-white hover:bg-[var(--accent-hover)] disabled:opacity-30 transition-colors"
-          >
-            <Sparkles className="w-3.5 h-3.5" />
-            Research & Generate
-            <InlineModelSelector compact className="ml-auto" />
-          </button>
-        </div>
-
-        {/* Project list */}
-        <div className="flex-1 overflow-y-auto">
-          {projects.length === 0 ? (
-            <div className="p-6 text-center text-xs text-[var(--text-muted)]">
-              <BookOpen className="w-8 h-8 mx-auto mb-2 opacity-30" />
-              <p>No research projects yet</p>
-            </div>
-          ) : (
-            projects.map((project) => (
+          <div className="flex items-center gap-2">
+            <div className="flex bg-[var(--bg-tertiary)] rounded-md p-0.5">
               <button
-                key={project.id}
-                onClick={() => setSelectedProject(project)}
-                className={`w-full text-left px-4 py-3 border-b border-[var(--border)] hover:bg-[var(--bg-tertiary)] transition-colors ${
-                  selectedProject?.id === project.id ? 'bg-[var(--bg-tertiary)]' : ''
+                onClick={() => setActiveTab('projects')}
+                className={`px-2.5 py-1 text-[10px] rounded font-medium transition-colors ${
+                  activeTab === 'projects'
+                    ? 'bg-[var(--accent)] text-white'
+                    : 'text-[var(--text-muted)] hover:text-[var(--text)]'
                 }`}
               >
-                <div className="text-xs font-medium text-[var(--text)] truncate">{project.query}</div>
-                <div className="flex items-center gap-2 mt-1">
-                  {project.status === 'researching' || project.status === 'generating' ? (
-                    <span className="flex items-center gap-1 text-[10px] text-[var(--accent)]">
-                      <Loader2 className="w-3 h-3 animate-spin" />
-                      {project.status === 'researching' ? 'Researching...' : 'Generating...'}
-                    </span>
-                  ) : project.status === 'complete' ? (
-                    <span className="text-[10px] text-[var(--success)]">Complete</span>
-                  ) : (
-                    <span className="text-[10px] text-[var(--text-muted)]">{project.status}</span>
-                  )}
-                  <span className="text-[10px] text-[var(--text-muted)]">
-                    {project.formats.map((f) => formatConfig[f].label).join(', ')}
-                  </span>
-                </div>
+                <BookOpen className="w-3 h-3 inline mr-1" />Projects
               </button>
-            ))
-          )}
+              <button
+                onClick={() => setActiveTab('queue')}
+                className={`px-2.5 py-1 text-[10px] rounded font-medium transition-colors ${
+                  activeTab === 'queue'
+                    ? 'bg-[var(--accent)] text-white'
+                    : 'text-[var(--text-muted)] hover:text-[var(--text)]'
+                }`}
+              >
+                <ListTodo className="w-3 h-3 inline mr-1" />Queue{queue.length > 0 ? ` (${queue.length})` : ''}
+              </button>
+            </div>
+            <button onClick={onClose} className="p-1 rounded hover:bg-[var(--bg-tertiary)] text-[var(--text-muted)]">
+              <ExternalLink className="w-4 h-4" />
+            </button>
+          </div>
         </div>
+
+        {/* Tab content: Projects */}
+        {activeTab === 'projects' && (
+        <>
+          <div className="p-4 border-b border-[var(--border)] space-y-3">
+            <textarea
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder="What do you want to research?"
+              rows={3}
+              className="w-full px-3 py-2 text-xs rounded-lg bg-[var(--bg-tertiary)] border border-[var(--border)] text-[var(--text)] placeholder:text-[var(--text-muted)] focus:outline-none focus:border-[var(--accent)] resize-none"
+            />
+
+            <div>
+              <label className="text-[10px] uppercase tracking-wider text-[var(--text-muted)] mb-2 block">Output Formats</label>
+              <div className="grid grid-cols-2 gap-2">
+                {(Object.entries(formatConfig) as [OutputFormat, typeof formatConfig[OutputFormat]][]).map(([format, config]) => {
+                  const Icon = config.icon;
+                  const selected = selectedFormats.includes(format);
+                  return (
+                    <button
+                      key={format}
+                      onClick={() => toggleFormat(format)}
+                      className={`flex items-center gap-2 px-3 py-2 text-xs rounded-lg border transition-colors ${
+                        selected
+                          ? 'border-[var(--accent)] bg-[var(--accent)]/10 text-[var(--accent)]'
+                          : 'border-[var(--border)] text-[var(--text-muted)] hover:text-[var(--text)]'
+                      }`}
+                    >
+                      <Icon className="w-3.5 h-3.5" />
+                      {config.label}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            <button
+              onClick={startResearch}
+              disabled={!query.trim() || selectedFormats.length === 0}
+              className="w-full flex items-center justify-center gap-2 px-4 py-2 text-xs rounded-lg bg-[var(--accent)] text-white hover:bg-[var(--accent-hover)] disabled:opacity-30 transition-colors"
+            >
+              <Sparkles className="w-3.5 h-3.5" />
+              Research & Generate
+              <InlineModelSelector compact className="ml-auto" />
+            </button>
+          </div>
+
+          {/* Project list */}
+          <div className="flex-1 overflow-y-auto">
+            {projects.length === 0 ? (
+              <div className="p-6 text-center text-xs text-[var(--text-muted)]">
+                <BookOpen className="w-8 h-8 mx-auto mb-2 opacity-30" />
+                <p>No research projects yet</p>
+              </div>
+            ) : (
+              projects.map((project) => (
+                <button
+                  key={project.id}
+                  onClick={() => setSelectedProject(project)}
+                  className={`w-full text-left px-4 py-3 border-b border-[var(--border)] hover:bg-[var(--bg-tertiary)] transition-colors ${
+                    selectedProject?.id === project.id ? 'bg-[var(--bg-tertiary)]' : ''
+                  }`}
+                >
+                  <div className="text-xs font-medium text-[var(--text)] truncate">{project.query}</div>
+                  <div className="flex items-center gap-2 mt-1">
+                    {project.status === 'researching' || project.status === 'generating' ? (
+                      <span className="flex items-center gap-1 text-[10px] text-[var(--accent)]">
+                        <Loader2 className="w-3 h-3 animate-spin" />
+                        {project.status === 'researching' ? 'Researching...' : 'Generating...'}
+                      </span>
+                    ) : project.status === 'complete' ? (
+                      <span className="text-[10px] text-[var(--success)]">Complete</span>
+                    ) : (
+                      <span className="text-[10px] text-[var(--text-muted)]">{project.status}</span>
+                    )}
+                    <span className="text-[10px] text-[var(--text-muted)]">
+                      {project.formats.map((f) => formatConfig[f].label).join(', ')}
+                    </span>
+                  </div>
+                </button>
+              ))
+            )}
+          </div>
+        </>
+        )}
+
+        {/* Tab content: Queue */}
+        {activeTab === 'queue' && (
+        <div className="flex-1 flex flex-col overflow-hidden">
+          {/* Status summary */}
+          <div className="px-4 py-3 border-b border-[var(--border)] flex items-center gap-3 flex-wrap">
+            {Object.entries(queueCounts).map(([status, count]) => {
+              const cfg = STATUS_CONFIG[status as ResearchStatus];
+              return (
+                <div key={status} className="flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs" style={{ background: cfg.bg, color: cfg.color }}>
+                  <span>{cfg.icon}</span>
+                  <span className="font-semibold">{count}</span>
+                  <span className="opacity-70">{cfg.label}</span>
+                </div>
+              );
+            })}
+          </div>
+
+          {/* Add to queue */}
+          <div className="px-4 py-3 border-b border-[var(--border)] flex gap-2">
+            <input
+              value={newTopic}
+              onChange={(e) => setNewTopic(e.target.value)}
+              onKeyDown={(e) => e.key === 'Enter' && handleAddToQueue()}
+              placeholder="Research topic..."
+              className="flex-1 px-3 py-2 text-xs rounded-lg bg-[var(--bg-tertiary)] border border-[var(--border)] text-[var(--text)] placeholder:text-[var(--text-muted)] focus:outline-none focus:border-[var(--accent)]"
+            />
+            <select
+              value={newAgent}
+              onChange={(e) => setNewAgent(e.target.value)}
+              className="px-2 py-2 text-xs rounded-lg bg-[var(--bg-tertiary)] border border-[var(--border)] text-[var(--text)]"
+            >
+              {AGENTS.map((a) => <option key={a} value={a}>{a}</option>)}
+            </select>
+            <button
+              onClick={handleAddToQueue}
+              className="px-4 py-2 text-xs rounded-lg bg-[var(--accent)] text-white font-medium hover:opacity-90 transition-opacity"
+            >
+              + Add
+            </button>
+          </div>
+
+          {/* Queue list */}
+          <div className="flex-1 overflow-y-auto p-4">
+            {queue.length === 0 ? (
+              <div className="text-center py-12 text-xs text-[var(--text-muted)]">
+                <ListTodo className="w-8 h-8 mx-auto mb-2 opacity-30" />
+                <p>Queue is empty</p>
+                <p className="mt-1">Add topics to research them later</p>
+              </div>
+            ) : (
+              <div className="space-y-2">
+                {queue.map((task) => {
+                  const cfg = STATUS_CONFIG[task.status];
+                  const isExpanded = expandedQueueId === task.id;
+                  return (
+                    <div
+                      key={task.id}
+                      className="rounded-lg overflow-hidden border border-[var(--border)]"
+                      style={{ borderLeft: `3px solid ${cfg.color}` }}
+                    >
+                      <div
+                        onClick={() => setExpandedQueueId(isExpanded ? null : task.id)}
+                        className="px-3 py-2.5 flex items-center justify-between cursor-pointer bg-[var(--bg-secondary)] hover:bg-[var(--bg-tertiary)] transition-colors"
+                      >
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2">
+                            <span className="text-xs">{cfg.icon}</span>
+                            <span className="text-xs font-medium text-[var(--text)] truncate">{task.topic}</span>
+                          </div>
+                          <div className="flex items-center gap-3 mt-1 text-[10px] text-[var(--text-muted)]">
+                            <span>{task.agentId.replace('agent-', '')}</span>
+                            <span>{formatTime(task.createdAt)}</span>
+                          </div>
+                        </div>
+                        <span className="text-[var(--text-muted)] text-xs">{isExpanded ? '▲' : '▼'}</span>
+                      </div>
+
+                      {isExpanded && (
+                        <div className="px-3 py-2.5 border-t border-[var(--border)] bg-[var(--bg)]">
+                          {task.status === 'complete' && task.result && (
+                            <div className="mb-2">
+                              <p className="text-[10px] font-semibold text-[var(--text-muted)] uppercase mb-1">Result</p>
+                              <p className="text-xs text-[var(--text-secondary)] leading-relaxed">{task.result}</p>
+                              {task.summary && (
+                                <>
+                                  <p className="text-[10px] font-semibold text-[var(--text-muted)] uppercase mt-2 mb-1">Summary</p>
+                                  <p className="text-xs text-[var(--text-muted)] leading-relaxed">{task.summary}</p>
+                                </>
+                              )}
+                            </div>
+                          )}
+                          {task.status === 'failed' && (
+                            <p className="text-xs text-[var(--error)]">Research failed. Check agent logs.</p>
+                          )}
+                          <div className="flex items-center gap-2 mt-2">
+                            {task.status === 'queued' && (
+                              <button
+                                onClick={(e) => { e.stopPropagation(); handleSimulateQueue(task); }}
+                                className="flex items-center gap-1 px-2.5 py-1 text-[10px] rounded border border-[var(--info)] text-[var(--info)] hover:bg-[var(--info)]/10 transition-colors"
+                              >
+                                <Play className="w-3 h-3" /> Start Research
+                              </button>
+                            )}
+                            <button
+                              onClick={(e) => { e.stopPropagation(); deleteTask(task.id); }}
+                              className="flex items-center gap-1 px-2.5 py-1 text-[10px] rounded border border-[var(--error)] text-[var(--error)] hover:bg-[var(--error)]/10 transition-colors"
+                            >
+                              <Trash2 className="w-3 h-3" /> Delete
+                            </button>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        </div>
+        )}
       </div>
 
       {/* Right panel */}
@@ -324,4 +525,8 @@ function ProjectDetail({ project }: { project: ResearchProject }) {
       </div>
     </div>
   );
+}
+
+function generateFakeResult(topic: string): string {
+  return 'Based on extensive analysis of "' + topic + '", key findings indicate significant patterns in the domain. Multiple sources were consulted and cross-referenced for accuracy. The research reveals both opportunities and challenges that warrant further investigation. Recommended next steps include deeper analysis of the top 3 findings and stakeholder review.';
 }

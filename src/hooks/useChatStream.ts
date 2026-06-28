@@ -143,13 +143,28 @@ export function useChatStream({ sessionId, persona, model, systemPrompt }: SendM
         },
       });
 
-      // Auto-title: if session still has default title, generate one from first user message
+      // Auto-title: if session still has default title, generate one via AI
       const session = useSessionStore.getState().getSessionById(sessionId);
       if (session && /^Chat \d+$/.test(session.title)) {
-        const autoTitle = content.length > 50
-          ? content.slice(0, 47).trim() + '...'
-          : content;
-        useSessionStore.getState().renameSession(sessionId, autoTitle);
+        // Try AI-generated title first, fall back to truncation
+        fetch('/api/title', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ message: content }),
+        })
+          .then((r) => r.json())
+          .then((data) => {
+            if (data.title) {
+              useSessionStore.getState().renameSession(sessionId, data.title);
+            }
+          })
+          .catch(() => {
+            // Fallback: truncate
+            const fallback = content.length > 50
+              ? content.slice(0, 47).trim() + '...'
+              : content;
+            useSessionStore.getState().renameSession(sessionId, fallback);
+          });
       }
 
       // Auto-record journal entry for significant conversations

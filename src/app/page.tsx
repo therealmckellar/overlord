@@ -32,7 +32,6 @@ import AnalyticsDashboard from '@/components/AnalyticsDashboard';
 import SessionHistoryPanel from '@/components/SessionHistoryPanel';
 import FailureLogsPanel from '@/components/FailureLogsPanel';
 import InsightsPanel from '@/components/InsightsPanel';
-import ResearchQueuePanel from '@/components/ResearchQueuePanel';
 import { PERSONAS } from '@/lib/personas';
 import { StatusBar } from '@/components/status/StatusBar';
 import { Breadcrumbs } from '@/components/ui/Breadcrumbs';
@@ -48,7 +47,7 @@ import { AutomationQueuePanel } from '@/components/AutomationQueuePanel';
 import WorkspacePanel from '@/components/WorkspacePanel';
 
 
-type Panel = 'dashboard' | 'chat' | 'pipeline' | 'memory' | 'loop' | 'devtools' | 'research' | 'researchQueue' | 'substack' | 'agent' | 'jarvis' | 'designer' | 'spaces' | 'mission' | 'taskboard' | 'deploy' | 'skills' | 'goals' | 'journal' | 'analytics' | 'session' | 'failureLogs' | 'insights' | 'settings' | 'contentPipeline' | 'automationQueue' | 'workspaces';
+type Panel = 'dashboard' | 'chat' | 'pipeline' | 'memory' | 'loop' | 'devtools' | 'research' | 'substack' | 'agent' | 'jarvis' | 'designer' | 'spaces' | 'mission' | 'taskboard' | 'deploy' | 'skills' | 'goals' | 'journal' | 'analytics' | 'session' | 'failureLogs' | 'insights' | 'settings' | 'contentPipeline' | 'automationQueue' | 'workspaces';
 
 export default function Home() {
   const { isAuthenticated, isLoading } = useAuthCheck();
@@ -190,7 +189,6 @@ export default function Home() {
             {activePanel === 'journal' && 'Daily Journal'}
             {activePanel === 'analytics' && 'Analytics'}
             {activePanel === 'session' && 'Session History'}
-            {activePanel === 'researchQueue' && 'Research Queue'}
             {activePanel === 'failureLogs' && 'Failure Logs'}
             {activePanel === 'insights' && 'System Insights'}
             {activePanel === 'settings' && 'Settings'}
@@ -256,7 +254,6 @@ export default function Home() {
           {activePanel === 'journal' && <JournalPanel />}
           {activePanel === 'analytics' && <AnalyticsDashboard />}
           {activePanel === 'session' && <SessionHistoryPanel />}
-          {activePanel === 'researchQueue' && <ResearchQueuePanel />}
           {activePanel === 'failureLogs' && <FailureLogsPanel />}
           {activePanel === 'insights' && <InsightsPanel />}
           {activePanel === 'settings' && <SettingsPanel />}
