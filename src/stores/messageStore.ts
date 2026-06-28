@@ -6,7 +6,7 @@
 import { create } from 'zustand';
 import { generateId } from '@/utils/helpers';
 import type { Message } from '@/types';
-import { useJournalStore } from './journalStore';
+
 
 interface MessageState {
   // Map of sessionId -> messages
@@ -54,9 +54,6 @@ export const useMessageStore = create<MessageState>()((set, get) => ({
         [sessionId]: [...(state.messagesBySession[sessionId] || []), message],
       },
     }));
-
-    // Auto-log to journal
-    useJournalStore.getState().addEntry(sessionId, 'message', `${sender.role === 'user' ? 'User' : 'AI'} sent a message`);
 
     return message;
   },

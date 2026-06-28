@@ -23,4 +23,8 @@ export { usePipelineStore } from './pipelineStore';
 export { useAutomationQueueStore } from './automationQueueStore';
 export { useWorkspaceStore } from './workspaceStore';
 export { useGoalStore } from './goalStore';
+export { useGovernanceStore } from './governanceStore';
+export { useConnectorStore } from './connectorStore';
+export { useGraphStore } from './graphStore';
+export { usePromptStore } from './promptStore';
 export type { Milestone } from './goalStore';

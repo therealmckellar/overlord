@@ -1,6 +1,44 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import { LoopPattern, estimateMonthlyCost, getReadinessScore } from '@/lib/loop-patterns';
+
+// --- Inlined from lib/loop-patterns (deleted) ---
+interface LoopPattern {
+  id: string;
+  name: string;
+  description: string;
+  lane: string;
+  cadence: string;
+  maxIterations: number;
+  prompt: string;
+  estimatedTokensPerIteration: number;
+  readinessLevel: 'L1' | 'L2' | 'L3';
+  riskLevel: 'low' | 'medium' | 'high';
+  requiresSubAgents: boolean;
+  requiresMCP: boolean;
+  humanGateOn: 'never' | 'always' | 'risky';
+  version: string;
+  tags: string[];
+}
+
+function estimateMonthlyCost(pattern: LoopPattern): number {
+  const cadenceMinutes: Record<string, number> = { '15m': 15, '30m': 30, '1h': 60, '2h': 120, '6h': 360, '1d': 1440, '1w': 10080 };
+  const runsPerMonth = (30 * 24 * 60) / (cadenceMinutes[pattern.cadence] || 1440);
+  const costPerRun = (pattern.estimatedTokensPerIteration / 1000) * 0.01;
+  return Math.round(runsPerMonth * costPerRun * 100) / 100;
+}
+
+function getReadinessScore(pattern: LoopPattern): number {
+  let score = 0;
+  if (pattern.readinessLevel === 'L1') score += 30;
+  if (pattern.readinessLevel === 'L2') score += 60;
+  if (pattern.readinessLevel === 'L3') score += 90;
+  if (pattern.riskLevel === 'low') score += 10;
+  if (pattern.riskLevel === 'medium') score += 5;
+  if (!pattern.requiresSubAgents) score += 5;
+  if (!pattern.requiresMCP) score += 5;
+  return Math.min(100, score);
+}
+// --- End inlined ---
 
 export interface LoopResult {
   iteration: number;
