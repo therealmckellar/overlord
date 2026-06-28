@@ -1,8 +1,8 @@
 import { NextResponse } from 'next/server';
 
-export async function GET(req: Request, { params }: { params: { name: string } }) {
+export async function GET(req: Request, { params }: { params: Promise<{ name: string }> }) {
   try {
-    const name = params.name;
+    const { name } = await params;
     return NextResponse.json({
       name,
       details: 'Mock details for function ' + name,

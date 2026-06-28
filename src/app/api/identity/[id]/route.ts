@@ -1,8 +1,8 @@
 import { NextResponse } from 'next/server';
 import { useIdentityStore } from '@/stores/identityStore';
 
-export async function PATCH(request: Request, { params }: { params: { id: string } }) {
-  const { id } = params;
+export async function PATCH(request: Request, { params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
   const body = await request.json();
   
   const identity = useIdentityStore.getState().identities.find(i => i.id === id);

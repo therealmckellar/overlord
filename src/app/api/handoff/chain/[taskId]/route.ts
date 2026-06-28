@@ -5,8 +5,8 @@ import { NextResponse } from 'next/server';
 // For this task, we assume a shared in-memory store or DB is available.
 // We'll simulate the chain retrieval.
 
-export async function GET(request: Request, { params }: { params: { taskId: string } }) {
-  const { taskId } = params;
+export async function GET(request: Request, { params }: { params: Promise<{ taskId: string }> }) {
+  const { taskId } = await params;
   // Simulated chain for the taskId
   const chain = [
     { id: '1', taskId, fromAgent: 'Agent A', toAgent: 'Agent B', summary: 'Setup initial project structure', status: 'completed' },
