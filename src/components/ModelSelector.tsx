@@ -23,7 +23,7 @@ export const ModelSelector = () => {
         title="Select model from graph"
       >
         <Cpu className="w-3 h-3 text-zinc-500 group-hover:text-zinc-300" />
-        <span className="text-xs font-medium text-zinc-400 group-hover:text-zinc-200 max-w-[100px] truncate">
+        <span className="text-xs font-medium text-zinc-400 group-hover:text-zinc-200 max-w-[180px] truncate">
           {displayLabel}
         </span>
         <ChevronDown className={`w-3 h-3 text-zinc-500 transition-transform ${isOpen ? 'rotate-180' : ''}`} />
@@ -35,7 +35,7 @@ export const ModelSelector = () => {
             className="fixed inset-0 z-10"
             onClick={() => setIsOpen(false)}
           />
-          <div className="absolute right-0 mt-2 w-56 rounded-xl bg-zinc-900 border border-zinc-800 shadow-2xl z-20 py-1 overflow-hidden animate-in fade-in zoom-in-95 duration-100">
+          <div className="absolute right-0 mt-2 w-80 rounded-xl bg-zinc-900 border border-zinc-800 shadow-2xl z-20 py-1 overflow-hidden animate-in fade-in zoom-in-95 duration-100">
             <div className="px-3 py-1.5 text-[10px] uppercase tracking-wider text-zinc-500 font-medium">
               Model Graph
             </div>

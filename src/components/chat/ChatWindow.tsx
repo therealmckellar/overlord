@@ -146,13 +146,13 @@ export const ChatWindow = () => {
               className="flex items-center gap-1.5 px-2 py-1 rounded-lg bg-[var(--bg-tertiary)] hover:bg-[var(--bg)] border border-[var(--border)] transition-colors text-xs"
             >
               <Cpu className="w-3 h-3 text-[var(--text-muted)]" />
-              <span className="text-[var(--text-secondary)] max-w-[100px] truncate">{currentModelLabel}</span>
+              <span className="text-[var(--text-secondary)] max-w-[180px] truncate">{currentModelLabel}</span>
               <ChevronDown className="w-3 h-3 text-[var(--text-muted)]" />
             </button>
             {showModelDropdown && (
               <>
                 <div className="fixed inset-0 z-10" onClick={() => setShowModelDropdown(false)} />
-                <div className="absolute right-0 mt-1 w-60 max-h-64 overflow-y-auto rounded-xl bg-[var(--bg-secondary)] border border-[var(--border)] shadow-xl z-20 py-1">
+                <div className="absolute right-0 mt-1 w-80 max-h-64 overflow-y-auto rounded-xl bg-[var(--bg-secondary)] border border-[var(--border)] shadow-xl z-20 py-1">
                   <div className="px-3 py-1.5 text-[10px] uppercase tracking-wider text-[var(--text-muted)] font-medium">
                     Model Graph
                   </div>

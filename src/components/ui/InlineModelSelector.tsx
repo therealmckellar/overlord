@@ -23,7 +23,7 @@ export function InlineModelSelector({ value, onChange, compact = false, classNam
 
   const activeModel = value || globalModel;
   const currentInfo = UNIQUE_MODELS.find((m) => m.value === activeModel);
-  const displayLabel = currentInfo?.label || activeModel.split('/').pop()?.split(':')[0] || 'Model';
+  const displayLabel = currentInfo?.label || activeModel || 'Model';
 
   const handleChange = (modelValue: string) => {
     setGlobalModel(modelValue);
@@ -53,13 +53,13 @@ export function InlineModelSelector({ value, onChange, compact = false, classNam
         title="Change model / provider"
       >
         <Cpu className={`${compact ? 'w-3 h-3' : 'w-3.5 h-3.5'} text-[var(--text-muted)]`} />
-        <span className={`${compact ? 'text-[9px] max-w-[50px]' : 'text-[10px] max-w-[80px]'} font-medium text-[var(--text-secondary)] truncate`}>
+        <span className={`${compact ? 'text-[9px] max-w-[120px]' : 'text-[10px] max-w-[180px]'} font-medium text-[var(--text-secondary)] truncate`}>
           {displayLabel}
         </span>
       </button>
 
       {open && (
-        <div className="absolute bottom-full right-0 mb-1 w-52 rounded-lg bg-[var(--bg-secondary)] border border-[var(--border)] shadow-2xl z-50 py-1 max-h-[280px] overflow-y-auto">
+        <div className="absolute bottom-full right-0 mb-1 w-72 rounded-lg bg-[var(--bg-secondary)] border border-[var(--border)] shadow-2xl z-50 py-1 max-h-[280px] overflow-y-auto">
           <div className="px-2 py-1 text-[9px] uppercase tracking-wider text-[var(--text-muted)] font-medium sticky top-0 bg-[var(--bg-secondary)]">
             Model
           </div>

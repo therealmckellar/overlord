@@ -380,7 +380,7 @@ export const UNIQUE_MODELS: Array<{
   }
   return Array.from(byModel.entries()).map(([model, agents]) => ({
     value: model,
-    label: model.split('/').pop()!.split(':')[0].replace(/-/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase()),
+    label: model, // Full slug: "nvidia/nemotron-3-ultra-550b-a55b:free"
     agents,
   }));
 })();
