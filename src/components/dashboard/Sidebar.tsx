@@ -47,17 +47,18 @@ const navGroups = [
       { id: 'updates', label: 'Updates', icon: '🔔', panel: 'updates' },
     ],
   },
-  {
-    id: 'insight',
-    label: 'INSIGHT',
-    items: [
-      { id: 'analytics', label: 'Analytics', icon: '📈', panel: 'analytics' },
-      { id: 'achievements', label: 'Achievements', icon: '🏆', panel: 'achievements' },
-      { id: 'journal', label: 'Journal', icon: '📓', panel: 'journal' },
-      { id: 'failureLogs', label: 'Failure Logs', icon: '🔥', panel: 'failureLogs' },
-      { id: 'insights', label: 'Insights', icon: '💡', panel: 'insights' },
-    ],
-  },
+    {
+      id: 'insight',
+      label: 'INSIGHT',
+      items: [
+        { id: 'analytics', label: 'Analytics', icon: '📈', panel: 'analytics' },
+        { id: 'achievements', label: 'Achievements', icon: '🏆', panel: 'achievements' },
+        { id: 'journal', label: 'Journal', icon: '📓', panel: 'journal' },
+        { id: 'failureLogs', label: 'Failure Logs', icon: '🔥', panel: 'failureLogs' },
+        { id: 'insights', label: 'Insights', icon: '💡', panel: 'insights' },
+        { id: 'promptStudio', label: 'Prompt Studio', icon: '🪄', panel: 'promptStudio' },
+      ],
+    },
   {
     id: 'automate',
     label: 'AUTOMATE',

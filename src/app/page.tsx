@@ -50,6 +50,7 @@ import PluginPanel from '@/components/PluginPanel';
 import WorkspacePanel from '@/components/WorkspacePanel';
 import { WebhooksPanel } from '@/components/WebhooksPanel'; import { ChannelsPanel } from '@/components/ChannelsPanel';
 import { PairingPanel } from '@/components/PairingPanel'; import { MCPPanel } from '@/components/MCPPanel';
+import { PromptStudioPanel } from '@/components/PromptStudioPanel';
 import { TokenCostPanel } from '@/components/TokenCostPanel';
 import { DailyUpdatesPanel } from '@/components/DailyUpdatesPanel';
 import { AchievementsPanel } from '@/components/AchievementsPanel';
@@ -57,7 +58,7 @@ import { ConfigEditorPanel } from '@/components/ConfigEditorPanel';
 import { usePanelLayoutStore } from '@/stores/panelLayoutStore';
 
 
-type Panel = 'dashboard' | 'chat' | 'pipeline' | 'memory' | 'loop' | 'devtools' | 'research' | 'substack' | 'agent' | 'jarvis' | 'designer' | 'spaces' | 'mission' | 'taskboard' | 'deploy' | 'skills' | 'goals' | 'journal' | 'analytics' | 'session' | 'failureLogs' | 'insights' | 'settings' | 'contentPipeline' | 'automationQueue' | 'workspaces' | 'tokens' | 'updates' | 'cron' | 'plugins' | 'achievements' | 'configEditor' | 'webhooks' | 'channels' | 'pairing' | 'mcp' | 'social';
+type Panel = 'dashboard' | 'chat' | 'pipeline' | 'memory' | 'loop' | 'devtools' | 'research' | 'substack' | 'agent' | 'jarvis' | 'designer' | 'spaces' | 'mission' | 'taskboard' | 'deploy' | 'skills' | 'goals' | 'journal' | 'analytics' | 'session' | 'failureLogs' | 'insights' | 'settings' | 'contentPipeline' | 'automationQueue' | 'workspaces' | 'tokens' | 'updates' | 'cron' | 'plugins' | 'achievements' | 'configEditor' | 'webhooks' | 'channels' | 'pairing' | 'mcp' | 'social' | 'promptStudio';
 
 export default function Home() {
   const { isAuthenticated, isLoading } = useAuthCheck();
@@ -209,6 +210,7 @@ export default function Home() {
             {activePanel === 'session' && 'Session History'}
             {activePanel === 'failureLogs' && 'Failure Logs'}
             {activePanel === 'insights' && 'System Insights'}
+            {activePanel === 'promptStudio' && 'Prompt Studio'}
             {activePanel === 'settings' && 'Settings'}
             {activePanel === 'contentPipeline' && 'Content Pipeline'}
             {activePanel === 'automationQueue' && 'Automation Queue'}
@@ -283,6 +285,7 @@ export default function Home() {
           {activePanel === 'session' && <SessionHistoryPanel />}
           {activePanel === 'failureLogs' && <FailureLogsPanel />}
           {activePanel === 'insights' && <InsightsPanel />}
+          {activePanel === 'promptStudio' && <PromptStudioPanel />}
           {activePanel === 'settings' && <SettingsPanel />}
           {activePanel === 'contentPipeline' && <ContentPipelinePanel />}
           {activePanel === 'social' && <SocialPanel />}
