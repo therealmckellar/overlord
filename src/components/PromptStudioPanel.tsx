@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { usePromptStore, type PromptTemplate, type StudioTab, type GeneratedPrompt, type ArenaRun, ARENA_MODELS, GENERATOR_MODELS, CATEGORY_LABELS, CATEGORY_COLORS } from '@/stores/promptStore';
-import { Search, Sparkles, Trophy, Library, Save, Trash2, ChevronRight, Loader2, Model, Layers, MessageSquare } from 'lucide-react';
+import { Search, Sparkles, Trophy, Library, Save, Trash2, ChevronRight, Loader2, Cpu, Layers, MessageSquare } from 'lucide-react';
 
 export function PromptStudioPanel() {
   const {
@@ -216,10 +216,10 @@ export function PromptStudioPanel() {
             </div>
 
             <div className="space-y-4">
-              <h3 className="text-sm font-semibold flex items-center gap-2">
-                <MessageSquare className="w-4 h-4 text-[var(--accent)]" />
-                Recent Generations
-              </h3>
+                    <h3 className="text-sm font-semibold flex items-center gap-2">
+                      <Cpu className="w-4 h-4 text-[var(--accent)]" />
+                      Arena History
+                    </h3>
               {generatedPrompts.length === 0 && (
                 <div className="text-center py-12 text-xs text-[var(--text-muted)] italic">
                   No generated prompts yet. Start by describing your intent above.
