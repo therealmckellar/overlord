@@ -145,7 +145,7 @@ export function useChatStream({ sessionId, persona, model, systemPrompt }: SendM
 
       // Auto-title: if session still has default title, generate one via AI
       const session = useSessionStore.getState().getSessionById(sessionId);
-      if (session && /^Chat \d+$/.test(session.title)) {
+      if (session && (/^Chat \d+$/.test(session.title) || session.title === 'New Chat')) {
         // Try AI-generated title first, fall back to truncation
         fetch('/api/title', {
           method: 'POST',

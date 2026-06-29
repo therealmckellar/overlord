@@ -82,6 +82,20 @@ export const ChatWindow = () => {
     return () => window.removeEventListener('overlord-voice-input', handleVoiceInput);
   }, [handleSend]);
 
+  // Auto-send prompt from Prompt Library ("Use in Chat")
+  useEffect(() => {
+    const pendingPrompt = sessionStorage.getItem('overlord-chat-prompt');
+    if (pendingPrompt && messages && messages.length === 0) {
+      // Clear it first so we don't re-send on re-render
+      sessionStorage.removeItem('overlord-chat-prompt');
+      // Small delay to ensure the session is fully set up
+      const timer = setTimeout(() => {
+        handleSend(pendingPrompt);
+      }, 300);
+      return () => clearTimeout(timer);
+    }
+  }, [activeSessionId, messages, handleSend]);
+
   const handleStop = useCallback(() => {
     cancelStream();
   }, [cancelStream]);

@@ -205,10 +205,75 @@ const BUILT_IN_TEMPLATES: Omit<PromptTemplate, 'createdAt' | 'updatedAt'>[] = [
   },
 ];
 
+// ── Prompt Studio types ──────────────────────────────────────────
+
+export interface GeneratedPrompt {
+  id: string;
+  prompt: string;
+  variables: string[];
+  model: string;
+  intent: string;
+  category: PromptCategory;
+  createdAt: number;
+}
+
+export interface ArenaModelResult {
+  model: string;
+  response: string;
+  tokensUsed: number;
+  latencyMs: number;
+  error?: string;
+}
+
+export interface ArenaRun {
+  id: string;
+  prompt: string;
+  models: string[];
+  aggregatorModel: string;
+  results: ArenaModelResult[];
+  aggregation: { response: string; model: string; tokensUsed: number } | null;
+  totalTokens: number;
+  createdAt: number;
+}
+
+export type StudioTab = 'library' | 'generator' | 'arena';
+
+// ── Available models for selection ────────────────────────────────
+
+export const ARENA_MODELS = [
+  { value: 'openrouter/owl-alpha', label: 'OWL Alpha', category: 'flagship' },
+  { value: 'nvidia/nemotron-3-ultra-550b-a55b:free', label: 'Nemotron Ultra 550B', category: 'heavy' },
+  { value: 'openai/gpt-oss-120b:free', label: 'GPT-OSS 120B', category: 'heavy' },
+  { value: 'moonshotai/kimi-k2.6:free', label: 'Kimi K2.6', category: 'research' },
+  { value: 'google/gemma-4-31b-it:free', label: 'Gemma 4 31B', category: 'balanced' },
+  { value: 'google/gemma-4-26b-a4b-it:free', label: 'Gemma 4 26B', category: 'balanced' },
+  { value: 'nvidia/nemotron-3-super-120b-a12b:free', label: 'Nemotron Super 120B', category: 'heavy' },
+  { value: 'nex-agi/nex-n2-pro:free', label: 'Nex N2 Pro', category: 'fast' },
+  { value: 'poolside/laguna-m.1:free', label: 'Laguna M.1', category: 'fixer' },
+  { value: 'cohere/north-mini-code:free', label: 'North Mini Code', category: 'fast' },
+  { value: 'openai/gpt-oss-20b:free', label: 'GPT-OSS 20B', category: 'light' },
+  { value: 'meta-llama/llama-3.2-3b-instruct:free', label: 'Llama 3.2 3B', category: 'light' },
+] as const;
+
+export const GENERATOR_MODELS = [
+  { value: 'google/gemma-4-31b-it:free', label: 'Gemma 4 31B' },
+  { value: 'openai/gpt-oss-120b:free', label: 'GPT-OSS 120B' },
+  { value: 'nvidia/nemotron-3-ultra-550b-a55b:free', label: 'Nemotron Ultra 550B' },
+  { value: 'moonshotai/kimi-k2.6:free', label: 'Kimi K2.6' },
+  { value: 'openrouter/owl-alpha', label: 'OWL Alpha' },
+] as const;
+
 interface PromptState {
   templates: PromptTemplate[];
   searchQuery: string;
   selectedCategory: PromptCategory | 'all';
+
+  // Studio state
+  studioTab: StudioTab;
+  generatedPrompts: GeneratedPrompt[];
+  arenaRuns: ArenaRun[];
+  isGenerating: boolean;
+  isRunningArena: boolean;
 
   // Actions
   addTemplate: (template: Omit<PromptTemplate, 'id' | 'createdAt' | 'updatedAt' | 'isBuiltIn' | 'variables'>) => PromptTemplate;
@@ -217,6 +282,13 @@ interface PromptState {
   setSearchQuery: (query: string) => void;
   setSelectedCategory: (category: PromptCategory | 'all') => void;
   getFilteredTemplates: () => PromptTemplate[];
+  setStudioTab: (tab: StudioTab) => void;
+  setGenerating: (v: boolean) => void;
+  setRunningArena: (v: boolean) => void;
+  addGeneratedPrompt: (gp: Omit<GeneratedPrompt, 'id' | 'createdAt'>) => GeneratedPrompt;
+  addArenaRun: (run: Omit<ArenaRun, 'id' | 'createdAt'>) => ArenaRun;
+  deleteArenaRun: (id: string) => void;
+  deleteGeneratedPrompt: (id: string) => void;
 }
 
 export const usePromptStore = create<PromptState>()(
@@ -229,6 +301,30 @@ export const usePromptStore = create<PromptState>()(
       })),
       searchQuery: '',
       selectedCategory: 'all',
+      studioTab: 'library',
+      generatedPrompts: [],
+      arenaRuns: [],
+      isGenerating: false,
+      isRunningArena: false,
+
+      setStudioTab: (tab) => set({ studioTab: tab }),
+      setGenerating: (v) => set({ isGenerating: v }),
+      setRunningArena: (v) => set({ isRunningArena: v }),
+
+      addGeneratedPrompt: (gp) => {
+        const newGp: GeneratedPrompt = { ...gp, id: generateId(), createdAt: Date.now() };
+        set((state) => ({ generatedPrompts: [newGp, ...state.generatedPrompts] }));
+        return newGp;
+      },
+
+      addArenaRun: (run) => {
+        const newRun: ArenaRun = { ...run, id: generateId(), createdAt: Date.now() };
+        set((state) => ({ arenaRuns: [newRun, ...state.arenaRuns] }));
+        return newRun;
+      },
+
+      deleteArenaRun: (id) => set((state) => ({ arenaRuns: state.arenaRuns.filter((r) => r.id !== id) })),
+      deleteGeneratedPrompt: (id) => set((state) => ({ generatedPrompts: state.generatedPrompts.filter((g) => g.id !== id) })),
 
       addTemplate: (template) => {
         const content = template.content;

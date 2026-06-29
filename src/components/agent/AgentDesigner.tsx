@@ -1,9 +1,11 @@
 'use client';
 
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import { usePromptStore, CATEGORY_LABELS, CATEGORY_COLORS, type PromptCategory, type PromptTemplate } from '@/stores/promptStore';
 import { UNIQUE_MODELS } from '@/lib/model-graph';
-import { Save, Rocket, Trash2, Play, FileCode, BookOpen, MessageSquare, ArrowRight, Plus, Search, X } from 'lucide-react';
+import { useSessionStore } from '@/stores/sessionStore';
+import { useUIStore } from '@/stores/uiStore';
+import { Save, Rocket, Trash2, Play, FileCode, BookOpen, MessageSquare, ArrowRight, Plus, Search, X, Cpu, Send } from 'lucide-react';
 
 const AVAILABLE_TOOLS = [
   { id: 'web_search', label: 'Web Search' },
@@ -191,10 +193,16 @@ function PromptLibrary() {
   const deleteTemplate = usePromptStore((s) => s.deleteTemplate);
   const updateTemplate = usePromptStore((s) => s.updateTemplate);
 
+  const createSession = useSessionStore((s) => s.createSession);
+  const setActiveSession = useSessionStore((s) => s.setActiveSession);
+  const setSelectedModel = useUIStore((s) => s.setSelectedModel);
+
   const [selectedPrompt, setSelectedPrompt] = useState<PromptTemplate | null>(null);
   const [isEditing, setIsEditing] = useState(false);
   const [isNewPrompt, setIsNewPrompt] = useState(false);
   const [editForm, setEditForm] = useState({ name: '', description: '', category: 'research' as PromptCategory, content: '' });
+  const [showModelModal, setShowModelModal] = useState(false);
+  const [pendingPrompt, setPendingPrompt] = useState<PromptTemplate | null>(null);
 
   const categories: (PromptCategory | 'all')[] = ['all', 'research', 'writing', 'coding', 'sales', 'analysis', 'operations', 'creative'];
 
@@ -236,13 +244,27 @@ function PromptLibrary() {
   };
 
   const handleUseInChat = () => {
-    // Navigate to chat panel with the prompt
     if (!selectedPrompt) return;
-    // Store the prompt content for the chat to pick up
-    sessionStorage.setItem('overlord-chat-prompt', selectedPrompt.content);
-    // Dispatch custom event that ChatWindow can listen to
-    window.dispatchEvent(new CustomEvent('overlord-use-prompt', { detail: selectedPrompt }));
+    setPendingPrompt(selectedPrompt);
+    setShowModelModal(true);
   };
+
+  const handleLaunchChat = useCallback((model: string) => {
+    if (!pendingPrompt) return;
+    // 1. Set the model
+    setSelectedModel(model);
+    // 2. Create a new session with the prompt name
+    const session = createSession(pendingPrompt.name);
+    // 3. Set it active
+    setActiveSession(session.id);
+    // 4. Store the prompt for ChatWindow to pick up and auto-send
+    sessionStorage.setItem('overlord-chat-prompt', pendingPrompt.content);
+    // 5. Navigate to chat panel
+    window.dispatchEvent(new CustomEvent('overlord-navigate', { detail: 'chat' }));
+    // 6. Clean up
+    setShowModelModal(false);
+    setPendingPrompt(null);
+  }, [pendingPrompt, setSelectedModel, createSession, setActiveSession]);
 
   return (
     <div className="flex-1 flex overflow-hidden">
@@ -409,6 +431,55 @@ function PromptLibrary() {
               <BookOpen className="w-8 h-8 text-[var(--text-muted)] mx-auto mb-2" />
               <p className="text-sm text-[var(--text-secondary)]">Select a prompt template</p>
               <p className="text-xs text-[var(--text-muted)] mt-1">or create a new one</p>
+            </div>
+          </div>
+        )}
+
+        {/* Model Picker Modal */}
+        {showModelModal && pendingPrompt && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
+            <div className="w-full max-w-md bg-[var(--bg-secondary)] border border-[var(--border)] rounded-2xl shadow-2xl overflow-hidden">
+              {/* Header */}
+              <div className="px-5 py-4 border-b border-[var(--border)] flex items-center justify-between">
+                <div>
+                  <h3 className="text-sm font-semibold text-[var(--text)]">Start Chat</h3>
+                  <p className="text-xs text-[var(--text-muted)] mt-0.5">"{pendingPrompt.name}"</p>
+                </div>
+                <button
+                  onClick={() => { setShowModelModal(false); setPendingPrompt(null); }}
+                  className="p-1.5 rounded-lg hover:bg-[var(--bg-tertiary)] text-[var(--text-muted)] hover:text-[var(--text)] transition-colors"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+
+              {/* Prompt preview */}
+              <div className="px-5 py-3 border-b border-[var(--border)] bg-[var(--bg)]">
+                <p className="text-[10px] uppercase tracking-wider text-[var(--text-muted)] mb-1.5">Prompt Preview</p>
+                <pre className="text-xs text-[var(--text-secondary)] font-mono whitespace-pre-wrap line-clamp-3 max-h-20 overflow-hidden">
+                  {pendingPrompt.content}
+                </pre>
+              </div>
+
+              {/* Model selection */}
+              <div className="px-5 py-4 space-y-3">
+                <div className="flex items-center gap-2">
+                  <Cpu className="w-3.5 h-3.5 text-[var(--accent)]" />
+                  <p className="text-xs font-medium text-[var(--text)]">Choose a Model</p>
+                </div>
+                <div className="grid grid-cols-1 gap-1.5 max-h-64 overflow-y-auto">
+                  {UNIQUE_MODELS.map((m) => (
+                    <button
+                      key={m.value}
+                      onClick={() => handleLaunchChat(m.value)}
+                      className="flex items-center justify-between px-3 py-2.5 rounded-lg border border-[var(--border)] hover:border-[var(--accent)]/50 hover:bg-[var(--accent)]/5 transition-all group text-left"
+                    >
+                      <span className="text-xs font-medium text-[var(--text)] group-hover:text-[var(--accent)] transition-colors">{m.label}</span>
+                      <Send className="w-3 h-3 text-[var(--text-muted)] group-hover:text-[var(--accent)] transition-colors" />
+                    </button>
+                  ))}
+                </div>
+              </div>
             </div>
           </div>
         )}
