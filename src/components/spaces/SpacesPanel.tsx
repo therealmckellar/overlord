@@ -301,6 +301,7 @@ function ThreadChatView({ space, thread }: { space: Space; thread: SpaceThread }
       const response = await fetch('/api/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
+        credentials: 'same-origin',
         body: JSON.stringify({
           messages: allMessages.map((m) => ({ sender: { role: m.role }, content: m.content })),
           model: space.model,
