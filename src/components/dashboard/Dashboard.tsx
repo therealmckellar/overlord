@@ -6,6 +6,7 @@ import { StatsGrid } from './StatsGrid';
 import { ActivityTimeline } from './ActivityTimeline';
 import { QuickActions } from './QuickActions';
 import { SystemHealth } from './SystemHealth';
+import { TrendingNowWidget } from './TrendingNowWidget';
 import { usePWAInstall } from '@/hooks/usePWAInstall';
 import { Download, X } from 'lucide-react';
 
@@ -104,15 +105,20 @@ export function Dashboard() {
         <StatsGrid stats={stats} loading={loading} />
 
         {/* Main Grid */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
           {/* Left: Quick Actions + System Health */}
           <div className="space-y-6">
             <QuickActions onNewChat={handleNewChat} />
             <SystemHealth stats={stats} />
           </div>
 
-          {/* Right: Activity Timeline (2 cols) */}
+          {/* Middle: Trending Now */}
           <div className="lg:col-span-2">
+            <TrendingNowWidget />
+          </div>
+
+          {/* Right: Activity Timeline */}
+          <div>
             <ActivityTimeline />
           </div>
         </div>

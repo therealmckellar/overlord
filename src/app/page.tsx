@@ -43,6 +43,7 @@ import { JarvisPanel } from '@/components/JarvisPanel';
 import { SpacesPanel } from '@/components/spaces/SpacesPanel';
 import SettingsPanel from '@/components/SettingsPanel';
 import { ContentPipelinePanel } from '@/components/ContentPipelinePanel';
+import { SocialPanel } from '@/components/social/SocialPanel';
 import { AutomationQueuePanel } from '@/components/AutomationQueuePanel';
 import CronPanel from '@/components/CronPanel';
 import PluginPanel from '@/components/PluginPanel';
@@ -56,7 +57,7 @@ import { ConfigEditorPanel } from '@/components/ConfigEditorPanel';
 import { usePanelLayoutStore } from '@/stores/panelLayoutStore';
 
 
-type Panel = 'dashboard' | 'chat' | 'pipeline' | 'memory' | 'loop' | 'devtools' | 'research' | 'substack' | 'agent' | 'jarvis' | 'designer' | 'spaces' | 'mission' | 'taskboard' | 'deploy' | 'skills' | 'goals' | 'journal' | 'analytics' | 'session' | 'failureLogs' | 'insights' | 'settings' | 'contentPipeline' | 'automationQueue' | 'workspaces' | 'tokens' | 'updates' | 'cron' | 'plugins' | 'achievements' | 'configEditor' | 'webhooks' | 'channels' | 'pairing' | 'mcp';
+type Panel = 'dashboard' | 'chat' | 'pipeline' | 'memory' | 'loop' | 'devtools' | 'research' | 'substack' | 'agent' | 'jarvis' | 'designer' | 'spaces' | 'mission' | 'taskboard' | 'deploy' | 'skills' | 'goals' | 'journal' | 'analytics' | 'session' | 'failureLogs' | 'insights' | 'settings' | 'contentPipeline' | 'automationQueue' | 'workspaces' | 'tokens' | 'updates' | 'cron' | 'plugins' | 'achievements' | 'configEditor' | 'webhooks' | 'channels' | 'pairing' | 'mcp' | 'social';
 
 export default function Home() {
   const { isAuthenticated, isLoading } = useAuthCheck();
@@ -284,6 +285,7 @@ export default function Home() {
           {activePanel === 'insights' && <InsightsPanel />}
           {activePanel === 'settings' && <SettingsPanel />}
           {activePanel === 'contentPipeline' && <ContentPipelinePanel />}
+          {activePanel === 'social' && <SocialPanel />}
           {activePanel === 'automationQueue' && <AutomationQueuePanel />}
           {activePanel === 'cron' && <CronPanel />}
           {activePanel === 'plugins' && <PluginPanel />}

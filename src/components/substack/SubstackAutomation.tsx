@@ -17,8 +17,9 @@ import { PERSONAS } from '@/lib/personas';
 import { getAgentDisplayInfo } from '@/hooks/useAgentTask';
 import type { TaskCategory } from '@/lib/model-graph';
 import { InlineModelSelector } from '@/components/ui/InlineModelSelector';
+import { PerformanceRadar, ContentRecycler } from '@/components/content/PerformanceRadar';
 
-type StudioMode = 'image' | 'video' | 'design' | 'canvas' | 'report' | 'mindmap' | 'flashcard' | 'kanban';
+type StudioMode = 'image' | 'video' | 'design' | 'canvas' | 'report' | 'mindmap' | 'flashcard' | 'kanban' | 'radar';
 type Tool = 'select' | 'brush' | 'eraser' | 'text' | 'shape' | 'eyedropper' | 'move' | 'zoom';
 
 interface GenerationConfig {
@@ -143,6 +144,7 @@ const MODE_TASK_CATEGORY: Record<StudioMode, TaskCategory> = {
   mindmap: 'mindmap',
   flashcard: 'flashcards',
   kanban: 'kanban-task',
+  radar: 'deep-research',
 };
 
 const MODE_CONFIG: Record<StudioMode, { icon: React.ElementType; label: string; description: string }> = {
@@ -154,6 +156,7 @@ const MODE_CONFIG: Record<StudioMode, { icon: React.ElementType; label: string; 
   mindmap: { icon: Brain, label: 'Mind Maps', description: 'Create visual mind maps' },
   flashcard: { icon: BookOpen, label: 'Flashcards', description: 'Build study flashcard decks' },
   kanban: { icon: LayoutGrid, label: 'Kanban', description: 'Manage tasks visually' },
+  radar: { icon: BarChart3, label: 'Radar', description: 'Content performance analytics' },
 };
 
 interface ContentStudioProps {
@@ -391,6 +394,18 @@ export function ContentStudio({ isOpen, onClose }: ContentStudioProps) {
               onMouseUp={handleCanvasMouseUp}
               onMouseLeave={handleCanvasMouseUp}
             />
+          </div>
+        </div>
+      );
+    }
+
+    // Radar mode
+    if (mode === 'radar') {
+      return (
+        <div className="flex-1 overflow-y-auto">
+          <div className="max-w-3xl mx-auto p-4 space-y-6">
+            <PerformanceRadar />
+            <ContentRecycler />
           </div>
         </div>
       );
@@ -835,6 +850,7 @@ export function ContentStudio({ isOpen, onClose }: ContentStudioProps) {
                 { id: 'mindmap', icon: Brain },
                 { id: 'flashcard', icon: BookOpen },
                 { id: 'kanban', icon: LayoutGrid },
+                { id: 'radar', icon: BarChart3 },
               ] as const).map((m) => (
                 <button
                   key={m.id}

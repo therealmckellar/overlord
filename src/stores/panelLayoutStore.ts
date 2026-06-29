@@ -13,7 +13,8 @@ export type PanelId =
   | 'analytics' | 'session' | 'failureLogs' | 'insights' | 'settings'
   | 'contentPipeline' | 'automationQueue' | 'workspaces'
   | 'tokens' | 'updates'
-  | 'cron' | 'plugins' | 'achievements' | 'configEditor' | 'webhooks' | 'channels' | 'pairing' | 'mcp';
+  | 'cron' | 'plugins' | 'achievements' | 'configEditor' | 'webhooks' | 'channels' | 'pairing' | 'mcp'
+  | 'social';
 
 export interface PanelConfig {
   id: PanelId;
@@ -52,8 +53,9 @@ const DEFAULT_PANELS: PanelConfig[] = [
   // Automate
   { id: 'research', label: 'Research', visible: true, order: 40, group: 'automate' },
   { id: 'contentPipeline', label: 'Content Pipeline', visible: true, order: 41, group: 'automate' },
-  { id: 'automationQueue', label: 'Auto Queue', visible: true, order: 42, group: 'automate' },
-  { id: 'substack', label: 'Content', visible: true, order: 43, group: 'automate' },
+  { id: 'social', label: 'Social', visible: true, order: 42, group: 'automate' },
+  { id: 'automationQueue', label: 'Auto Queue', visible: true, order: 43, group: 'automate' },
+  { id: 'substack', label: 'Content', visible: true, order: 44, group: 'automate' },
   // Jarvis
   { id: 'jarvis', label: 'Jarvis', visible: true, order: 50, group: 'jarvis' },
   // Config
