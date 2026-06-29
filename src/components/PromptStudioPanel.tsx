@@ -216,10 +216,10 @@ export function PromptStudioPanel() {
             </div>
 
             <div className="space-y-4">
-                    <h3 className="text-sm font-semibold flex items-center gap-2">
-                      <Cpu className="w-4 h-4 text-[var(--accent)]" />
-                      Arena History
-                    </h3>
+              <h3 className="text-sm font-semibold flex items-center gap-2">
+                <MessageSquare className="w-4 h-4 text-[var(--accent)]" />
+                Recent Generations
+              </h3>
               {generatedPrompts.length === 0 && (
                 <div className="text-center py-12 text-xs text-[var(--text-muted)] italic">
                   No generated prompts yet. Start by describing your intent above.
@@ -320,9 +320,8 @@ export function PromptStudioPanel() {
 
             <div className="space-y-4">
               <h3 className="text-sm font-semibold flex items-center gap-2">
-                <Model className="w-4 h-4 text-[var(--accent)]" />
+                <Cpu className="w-4 h-4 text-[var(--accent)]" />
                 Arena History
- la
               </h3>
               {arenaRuns.length === 0 && (
                 <div className="text-center py-12 text-xs text-[var(--text-muted)] italic">

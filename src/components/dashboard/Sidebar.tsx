@@ -148,9 +148,7 @@ export function Sidebar({ activePanel, onNavigate }: { activePanel: string; onNa
     >
       {/* Logo */}
       <div className="flex items-center gap-2 px-4 h-[52px] border-b border-[var(--border)] shrink-0">
-        <div className="w-7 h-7 rounded-lg bg-[var(--accent)] flex items-center justify-center">
-          <span className="text-white font-bold text-xs">O</span>
-        </div>
+        <img src="/logo.svg" alt="Overlord" className="w-7 h-7" />
         <span className="font-semibold text-sm">Overlord</span>
         <span className="ml-auto text-[10px] text-[var(--text-muted)] font-mono">v0.1</span>
       </div>

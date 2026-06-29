@@ -7,6 +7,15 @@ export const metadata: Metadata = {
   description: "Unified agent control plane for Rich's businesses",
   manifest: "/manifest.json",
   themeColor: "#6366f1",
+  icons: {
+    icon: "/logo.svg",
+    apple: "/logo.svg",
+  },
+  openGraph: {
+    title: "Overlord — Agent OS",
+    description: "Unified agent control plane for Rich's businesses",
+    images: ["/logo.svg"],
+  },
   appleWebApp: {
     capable: true,
     statusBarStyle: "black-translucent",

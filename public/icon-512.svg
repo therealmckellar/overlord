@@ -1,0 +1,29 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" fill="none">
+  <defs>
+    <linearGradient id="shield-grad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#6366f1"/>
+      <stop offset="100%" stop-color="#8b5cf6"/>
+    </linearGradient>
+    <linearGradient id="eye-grad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#a5b4fc"/>
+      <stop offset="100%" stop-color="#c4b5fd"/>
+    </linearGradient>
+  </defs>
+  
+  <!-- Shield outline -->
+  <path d="M256 32 L448 112 L448 272 Q448 400 256 480 Q64 400 64 272 L64 112 Z" 
+        fill="url(#shield-grad)" stroke="#818cf8" stroke-width="8"/>
+  
+  <!-- Inner ring -->
+  <circle cx="256" cy="240" r="128" fill="none" stroke="#a5b4fc" stroke-width="6" opacity="0.4"/>
+  
+  <!-- Central eye/AI iris -->
+  <circle cx="256" cy="240" r="80" fill="url(#eye-grad)" opacity="0.9"/>
+  <circle cx="256" cy="240" r="40" fill="#1e1b4b"/>
+  <circle cx="256" cy="240" r="18" fill="#fff" opacity="0.9"/>
+  
+  <!-- Decorative lines emanating -->
+  <path d="M256 112 L256 160" stroke="#a5b4fc" stroke-width="8" opacity="0.6"/>
+  <path d="M336 160 L304 192" stroke="#a5b4fc" stroke-width="8" opacity="0.6"/>
+  <path d="M176 160 L208 192" stroke="#a5b4fc" stroke-width="8" opacity="0.6"/>
+</svg>

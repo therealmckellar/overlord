@@ -1,0 +1,33 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" fill="none">
+  <defs>
+    <linearGradient id="shield-grad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#6366f1"/>
+      <stop offset="100%" stop-color="#8b5cf6"/>
+    </linearGradient>
+    <linearGradient id="eye-grad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#a5b4fc"/>
+      <stop offset="100%" stop-color="#c4b5fd"/>
+    </linearGradient>
+  </defs>
+  
+  <!-- Shield outline -->
+  <path d="M64 8 L112 28 L112 68 Q112 100 64 120 Q16 100 16 68 L16 28 Z" 
+        fill="url(#shield-grad)" stroke="#818cf8" stroke-width="2"/>
+  
+  <!-- Inner ring -->
+  <circle cx="64" cy="60" r="32" fill="none" stroke="#a5b4fc" stroke-width="1.5" opacity="0.4"/>
+  
+  <!-- Central eye/AI iris -->
+  <circle cx="64" cy="60" r="20" fill="url(#eye-grad)" opacity="0.9"/>
+  <circle cx="64" cy="60" r="10" fill="#1e1b4b"/>
+  <circle cx="64" cy="60" r="5" fill="#fff" opacity="0.9"/>
+  
+  <!-- Decorative lines emanating -->
+  <path d="M64 28 L64 40" stroke="#a5b4fc" stroke-width="2" opacity="0.6"/>
+  <path d="M84 40 L76 48" stroke="#a5b4fc" stroke-width="2" opacity="0.6"/>
+  <path d="M44 40 L52 48" stroke="#a5b4fc" stroke-width="2" opacity="0.6"/>
+  
+  <!-- "O" mark at bottom -->
+  <text x="64" y="108" text-anchor="middle" font-family="system-ui, sans-serif" 
+        font-size="18" font-weight="700" fill="#a5b4fc" opacity="0.7">OVERLORD</text>
+</svg>
