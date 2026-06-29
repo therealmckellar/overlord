@@ -88,6 +88,6 @@ export const useKanbanStore = create<KanbanState>()(
       getTasksByStatus: (status) => get().tasks.filter((t) => t.status === status),
       getTasksByAgent: (agentName) => get().tasks.filter((t) => t.assignee === agentName),
     }),
-    { name: 'overlord-kanban' }
+    { name: 'overlord-kanban', partialize: (state) => ({ tasks: state.tasks.slice(0, 200) }) }
   )
 );

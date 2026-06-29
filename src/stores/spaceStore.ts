@@ -453,6 +453,7 @@ export const useSpaceStore = create<SpaceState>()(
     }),
     {
       name: 'overlord-space-store',
+      partialize: (state) => ({ spaces: state.spaces.slice(0, 30).map(s => ({ ...s, threads: s.threads.slice(0, 20).map(t => ({ ...t, messages: t.messages.slice(-50) })) })), activeSpaceId: state.activeSpaceId }),
     }
   )
 );

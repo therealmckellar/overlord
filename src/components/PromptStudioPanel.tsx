@@ -25,6 +25,7 @@ export function PromptStudioPanel() {
     deleteGeneratedPrompt,
     deleteArenaRun,
     addTemplate,
+    deleteTemplate,
   } = usePromptStore();
 
   const [generatorIntent, setGeneratorIntent] = useState('');
@@ -186,7 +187,7 @@ export function PromptStudioPanel() {
                   <label className="text-xs font-medium text-[var(--text-muted)]">Model</label>
                   <select
                     value={generatorModel}
-                    onChange={(e) => setGeneratorModel(e.target.value)}
+                    onChange={(e) => setGeneratorModel(e.target.value as any)}
                     className="w-full p-2 rounded-lg bg-[var(--bg-main)] border border-[var(--border)] text-sm outline-none"
                   >
                     {GENERATOR_MODELS.map(m => <option key={m.value} value={m.value}>{m.label}</option>)}
@@ -298,7 +299,7 @@ export function PromptStudioPanel() {
                   <label className="text-xs font-medium text-[var(--text-muted)]">Aggregator Model</label>
                   <select
                     value={arenaAggregator}
-                    onChange={(e) => setArenaAggregator(e.target.value)}
+                    onChange={(e) => setArenaAggregator(e.target.value as any)}
                     className="w-full p-2 rounded-lg bg-[var(--bg-main)] border border-[var(--border)] text-sm outline-none"
                   >
                     {ARENA_MODELS.map(m => <option key={m.value} value={m.value}>{m.label}</option>)}

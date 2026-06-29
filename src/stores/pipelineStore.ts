@@ -86,6 +86,6 @@ export const usePipelineStore = create<PipelineState>()(
         set((state) => ({ tasks: state.tasks.filter((t) => t.status !== 'complete') }));
       },
     }),
-    { name: 'overlord-pipeline' }
+{ name: 'overlord-pipeline', partialize: (state) => ({ tasks: state.tasks.slice(0, 50) }) }
   )
 );

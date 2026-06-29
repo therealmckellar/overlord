@@ -100,6 +100,6 @@ export const useSkillsStore = create<SkillsState>()(
           .map((step) => get().skills.find((s) => s.id === step.skillId))
           .filter((s): s is Skill => s !== undefined),
     }),
-    { name: 'overlord-skills' }
+    { name: 'overlord-skills', partialize: (state) => ({ skills: state.skills, playbooks: state.playbooks }) }
   )
 );

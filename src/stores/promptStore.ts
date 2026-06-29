@@ -383,6 +383,7 @@ export const usePromptStore = create<PromptState>()(
     }),
     {
       name: 'overlord-prompt-store',
+      partialize: (state) => ({ templates: state.templates.slice(0, 50) }),
     }
   )
 );

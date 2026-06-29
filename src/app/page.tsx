@@ -60,6 +60,89 @@ import { usePanelLayoutStore } from '@/stores/panelLayoutStore';
 
 type Panel = 'dashboard' | 'chat' | 'pipeline' | 'memory' | 'loop' | 'devtools' | 'research' | 'substack' | 'agent' | 'jarvis' | 'designer' | 'spaces' | 'mission' | 'taskboard' | 'deploy' | 'skills' | 'goals' | 'journal' | 'analytics' | 'session' | 'failureLogs' | 'insights' | 'settings' | 'contentPipeline' | 'automationQueue' | 'workspaces' | 'tokens' | 'updates' | 'cron' | 'plugins' | 'achievements' | 'configEditor' | 'webhooks' | 'channels' | 'pairing' | 'mcp' | 'social' | 'promptStudio';
 
+const PANEL_COMPONENTS: Record<Panel, React.FC<any>> = {
+  dashboard: Dashboard,
+  chat: ChatWindow,
+  pipeline: PipelineView as any,
+  memory: MemoryGalaxy as any,
+  loop: LoopEngineering as any,
+  devtools: StudioView as any,
+  research: ResearchMultiFormat as any,
+  substack: ContentStudio as any,
+  agent: AgentPanel,
+  jarvis: JarvisPanel,
+  designer: AgentDesigner,
+  spaces: SpacesPanel,
+  mission: MissionControl,
+  taskboard: KanbanBoard,
+  deploy: AgentDeploymentPanel,
+  skills: SkillsPanel,
+  goals: GoalsPanel,
+  journal: JournalPanel,
+  analytics: AnalyticsDashboard,
+  session: SessionHistoryPanel,
+  failureLogs: FailureLogsPanel,
+  insights: InsightsPanel,
+  settings: SettingsPanel,
+  contentPipeline: ContentPipelinePanel,
+  social: SocialPanel,
+  automationQueue: AutomationQueuePanel,
+  cron: CronPanel,
+  plugins: PluginPanel,
+  achievements: AchievementsPanel,
+  configEditor: ConfigEditorPanel,
+  webhooks: WebhooksPanel,
+  channels: ChannelsPanel,
+  pairing: PairingPanel,
+  mcp: MCPPanel,
+  workspaces: WorkspacePanel,
+  tokens: TokenCostPanel,
+  updates: DailyUpdatesPanel,
+  promptStudio: PromptStudioPanel,
+};
+
+const PANEL_TITLES: Record<Panel, string> = {
+  dashboard: 'Dashboard',
+  chat: 'Chat',
+  pipeline: 'Idea → Implement Pipeline',
+  memory: 'Memory Galaxy',
+  loop: 'Loop Engineering',
+  devtools: 'DevTools',
+  research: 'Research',
+  substack: 'Content Studio',
+  agent: 'Agent Roster',
+  jarvis: 'Jarvis',
+  designer: 'Agent Designer',
+  spaces: 'Spaces',
+  mission: 'Mission Control',
+  taskboard: 'Task Board',
+  deploy: 'Deployments',
+  skills: 'Skills',
+  goals: 'Goals',
+  journal: 'Journal',
+  analytics: 'Analytics',
+  session: 'Sessions',
+  failureLogs: 'Failure Logs',
+  insights: 'Insights',
+  settings: 'Settings',
+  contentPipeline: 'Content Pipeline',
+  social: 'Social',
+  automationQueue: 'Automation Queue',
+  cron: 'Cron',
+  plugins: 'Plugins',
+  achievements: 'Achievements',
+  configEditor: 'Config Editor',
+  webhooks: 'Webhooks',
+  channels: 'Channels',
+  pairing: 'Pairing',
+  mcp: 'MCP Servers',
+  workspaces: 'Workspaces',
+  tokens: 'Token Costs',
+  updates: 'Updates',
+  promptStudio: 'Prompt Library',
+};
+
+
 export default function Home() {
   const { isAuthenticated, isLoading } = useAuthCheck();
   const { theme, setTheme } = useTheme();
@@ -188,43 +271,7 @@ export default function Home() {
           </button>
 
           <h1 className="text-sm font-medium flex-1">
-            {activePanel === 'dashboard' && 'Dashboard'}
-            {activePanel === 'chat' && 'Chat'}
-            {activePanel === 'pipeline' && 'Idea → Implement Pipeline'}
-            {activePanel === 'memory' && 'Memory Galaxy'}
-            {activePanel === 'loop' && 'Loop Engineering'}
-            {activePanel === 'devtools' && 'DevTools'}
-            {activePanel === 'research' && 'Research'}
-            {activePanel === 'substack' && 'Content Studio'}
-            {activePanel === 'agent' && 'Agent Roster'}
-            {activePanel === 'jarvis' && 'Jarvis'}
-            {activePanel === 'designer' && 'Agent Designer'}
-            {activePanel === 'spaces' && 'Spaces'}
-            {activePanel === 'mission' && 'Mission Control'}
-            {activePanel === 'taskboard' && 'Task Board'}
-            {activePanel === 'deploy' && 'Deployments'}
-            {activePanel === 'skills' && 'Skills & Playbooks'}
-            {activePanel === 'goals' && 'Goals'}
-            {activePanel === 'journal' && 'Daily Journal'}
-            {activePanel === 'analytics' && 'Analytics'}
-            {activePanel === 'session' && 'Session History'}
-            {activePanel === 'failureLogs' && 'Failure Logs'}
-            {activePanel === 'insights' && 'System Insights'}
-            {activePanel === 'promptStudio' && 'Prompt Studio'}
-            {activePanel === 'settings' && 'Settings'}
-            {activePanel === 'contentPipeline' && 'Content Pipeline'}
-            {activePanel === 'automationQueue' && 'Automation Queue'}
-            {activePanel === 'cron' && 'Cron Jobs'}
-            {activePanel === 'plugins' && 'Plugins'}
-            {activePanel === 'achievements' && 'Achievements'}
-            {activePanel === 'configEditor' && 'Config Editor'}
-            {activePanel === 'webhooks' && 'Webhooks'}
-            {activePanel === 'channels' && 'Channels'}
-            {activePanel === 'pairing' && 'Pairing'}
-            {activePanel === 'mcp' && 'MCP Servers'}
-            {activePanel === 'workspaces' && 'Workspaces'}
-            {activePanel === 'tokens' && 'Token Costs'}
-            {activePanel === 'updates' && 'Daily Updates'}
+{PANEL_TITLES[activePanel] || activePanel}
           </h1>
 
           {/* Persona Selector - hidden on mobile */}
@@ -250,59 +297,14 @@ export default function Home() {
 
         {/* Content Area */}
         <main className="flex-1 flex flex-col overflow-hidden">
-          <Breadcrumbs />
-          {activePanel === 'dashboard' && <Dashboard />}
-          {activePanel === 'chat' && <ChatWindow />}
-          {activePanel === 'pipeline' && (
-            <PipelineView isOpen={true} onClose={() => setActivePanel('dashboard')} />
-          )}
-          {activePanel === 'memory' && (
-            <MemoryGalaxy isOpen={true} onClose={() => setActivePanel('dashboard')} />
-          )}
-          {activePanel === 'loop' && (
-            <LoopEngineering isOpen={true} onClose={() => setActivePanel('dashboard')} />
-          )}
-          {activePanel === 'devtools' && (
-            <StudioView isOpen={true} onClose={() => setActivePanel('dashboard')} />
-          )}
-          {activePanel === 'research' && (
-            <ResearchMultiFormat isOpen={true} onClose={() => setActivePanel('dashboard')} />
-          )}
-          {activePanel === 'substack' && (
-            <ContentStudio isOpen={true} onClose={() => setActivePanel('dashboard')} />
-          )}
-          {activePanel === 'agent' && <AgentPanel />}
-          {activePanel === 'jarvis' && <JarvisPanel />}
-          {activePanel === 'designer' && <AgentDesigner />}
-          {activePanel === 'spaces' && <SpacesPanel />}
-          {activePanel === 'mission' && <MissionControl />}
-          {activePanel === 'taskboard' && <KanbanBoard />}
-          {activePanel === 'deploy' && <AgentDeploymentPanel />}
-          {activePanel === 'skills' && <SkillsPanel />}
-          {activePanel === 'goals' && <GoalsPanel />}
-          {activePanel === 'journal' && <JournalPanel />}
-          {activePanel === 'analytics' && <AnalyticsDashboard />}
-          {activePanel === 'session' && <SessionHistoryPanel />}
-          {activePanel === 'failureLogs' && <FailureLogsPanel />}
-          {activePanel === 'insights' && <InsightsPanel />}
-          {activePanel === 'promptStudio' && <PromptStudioPanel />}
-          {activePanel === 'settings' && <SettingsPanel />}
-          {activePanel === 'contentPipeline' && <ContentPipelinePanel />}
-          {activePanel === 'social' && <SocialPanel />}
-          {activePanel === 'automationQueue' && <AutomationQueuePanel />}
-          {activePanel === 'cron' && <CronPanel />}
-          {activePanel === 'plugins' && <PluginPanel />}
-          {activePanel === 'achievements' && <AchievementsPanel />}
-          {activePanel === 'configEditor' && <ConfigEditorPanel />}
-          {activePanel === 'webhooks' && <WebhooksPanel />}
-          {activePanel === 'channels' && <ChannelsPanel />}
-          {activePanel === 'pairing' && <PairingPanel />}
-          {activePanel === 'mcp' && <MCPPanel />}
-          {activePanel === 'workspaces' && <WorkspacePanel />}
-          {activePanel === 'tokens' && <TokenCostPanel />}
-          {activePanel === 'updates' && <DailyUpdatesPanel />}
+          <ErrorBoundary>
+            {(() => {
+              const Panel = PANEL_COMPONENTS[activePanel];
+              if (!Panel) return null;
+              return <Panel />;
+            })()}
+          </ErrorBoundary>
         </main>
-
         {/* Status Bar */}
         <StatusBar sessionId={activeSession} />
       </div>

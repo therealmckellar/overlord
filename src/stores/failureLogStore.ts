@@ -44,6 +44,6 @@ export const useFailureLogStore = create<FailureLogState>()(
       },
       clearLogs: () => set({ logs: [] }),
     }),
-    { name: 'overlord-failure-logs' }
+    { name: 'overlord-failure-logs', partialize: (state) => ({ logs: state.logs.slice(0, 100) }) }
   )
 );

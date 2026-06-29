@@ -56,6 +56,6 @@ export const useResearchStore = create<ResearchState>()(
         set((state) => ({ queue: state.queue.filter((t) => t.id !== id) }));
       },
     }),
-    { name: 'overlord-research' }
+    { name: 'overlord-research', partialize: (state) => ({ queue: state.queue.slice(0, 20) }) }
   )
 );

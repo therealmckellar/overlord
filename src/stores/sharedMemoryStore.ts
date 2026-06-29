@@ -159,6 +159,6 @@ export const useSharedMemoryStore = create<SharedMemoryState>()(
       getRecentSessions: (count) => get().sessions.slice(-count),
       getSessionsByTopic: (topic) => get().sessions.filter((s) => s.topic === topic),
     }),
-    { name: 'overlord-shared-memory' }
+    { name: 'overlord-shared-memory', partialize: (state) => ({ memory: state.memory.slice(0, 200), journal: state.journal.slice(0, 100), goals: state.goals.slice(0, 50) }) }
   )
 );

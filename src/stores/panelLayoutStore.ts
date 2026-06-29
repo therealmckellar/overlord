@@ -143,6 +143,7 @@ export const usePanelLayoutStore = create<PanelLayoutState>()(
     }),
     {
       name: 'agent-os-panel-layout',
+      partialize: (state) => ({ panels: state.panels, layoutPreset: state.layoutPreset }),
       storage: createJSONStorage(() => localStorage),
     }
   )

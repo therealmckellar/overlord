@@ -91,6 +91,7 @@ export const useIdentityStore = create<IdentityState>()(
     }),
     {
       name: 'overlord-identity',
+      partialize: (state) => ({ identities: state.identities.map(i => ({ ...i, sessionHistory: i.sessionHistory.slice(0, 20) })), }),
     }
   )
 );

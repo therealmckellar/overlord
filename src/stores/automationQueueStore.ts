@@ -99,6 +99,6 @@ export const useAutomationQueueStore = create<AutomationQueueState>()(
       },
       clearAll: () => set({ tasks: [] }),
     }),
-    { name: 'overlord-automation-queue' }
+    { name: 'overlord-automation-queue', partialize: (state) => ({ tasks: state.tasks.slice(0, 50) }) }
   )
 );

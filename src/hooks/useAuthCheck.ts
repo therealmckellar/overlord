@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useCallback, useRef } from 'react';
+import { useEffect, useCallback, useRef, useState } from 'react';
 import { useAuthStore } from '@/stores/authStore';
 import { getMe, logout as logoutApi, refreshToken } from '@/lib/auth/api';
 
@@ -11,11 +11,32 @@ import { getMe, logout as logoutApi, refreshToken } from '@/lib/auth/api';
 export function useAuthCheck() {
   const user = useAuthStore((s) => s.user);
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
-  const isLoading = useAuthStore((s) => s.isLoading);
   const setUser = useAuthStore((s) => s.setUser);
   const clearAuth = useAuthStore((s) => s.clearAuth);
   const setLoading = useAuthStore((s) => s.setLoading);
   const refreshExpiry = useAuthStore((s) => s.refreshExpiry);
+
+  // Track whether Zustand persist has finished rehydrating from localStorage.
+  // We stay in "loading" mode until hydration completes so we don't flash
+  // the login screen while waiting for persist to restore auth state.
+  const [hasHydrated, setHasHydrated] = useState(
+    () => typeof window === 'undefined' || !useAuthStore.persist?.hasHydrated?.()
+  );
+
+  useEffect(() => {
+    // Zustand v5 persist rehydrates asynchronously — subscribe for the signal
+    const unsub = useAuthStore.persist.onFinishHydration(() => {
+      setHasHydrated(true);
+    });
+    // In case hydration already finished by the time we subscribe
+    if (useAuthStore.persist.hasHydrated()) {
+      setHasHydrated(true);
+    }
+    return unsub;
+  }, []);
+
+  // Derive loading from hydration state — keep spinner during rehydration
+  const isLoading = !hasHydrated;
 
   // Track whether a fresh login just happened (persists across effect re-runs)
   const justLoggedInRef = useRef(false);
@@ -34,6 +55,9 @@ export function useAuthCheck() {
   isAuthenticatedRef.current = isAuthenticated;
 
   useEffect(() => {
+    // Don't validate before persist has rehydrated — auth state is stale
+    if (!hasHydrated) return;
+
     let cancelled = false;
 
     async function check() {
@@ -78,9 +102,9 @@ export function useAuthCheck() {
     return () => {
       cancelled = true;
     };
-    // Only run on mount — auth state changes are handled by the store directly
+    // Re-run once hydration finishes
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [hasHydrated]);
 
   // Set up token refresh (proactive, before expiry)
   useEffect(() => {

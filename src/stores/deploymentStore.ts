@@ -101,6 +101,6 @@ export const useDeploymentStore = create<DeploymentState>()(
       getActiveDeployments: () =>
         get().deployments.filter((d) => ['pending', 'building', 'deploying'].includes(d.status)),
     }),
-    { name: 'overlord-deployments' }
+    { name: 'overlord-deployments', partialize: (state) => ({ deployments: state.deployments.slice(0, 20).map(d => ({ ...d, logs: d.logs.slice(-20) })) }) }
   )
 );

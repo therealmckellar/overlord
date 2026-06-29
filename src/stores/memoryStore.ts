@@ -111,6 +111,7 @@ export const useMemoryStore = create<MemoryState>()(
     }),
     {
       name: 'overlord-memories',
+      partialize: (state) => ({ memories: state.memories.slice(0, 200) }),
       storage: createJSONStorage(() => localStorage),
     }
   )

@@ -369,6 +369,6 @@ export const useConnectorStore = create<ConnectorState>()(
         });
       },
     }),
-    { name: 'overlord-connectors' }
+    { name: 'overlord-connectors', partialize: (state) => ({ apiKeys: state.apiKeys, mcpServers: state.mcpServers, webhooks: state.webhooks, modelDefaults: state.modelDefaults, notifications: state.notifications, security: state.security, system: state.system }) }
   )
 );
