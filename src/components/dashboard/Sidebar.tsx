@@ -93,6 +93,7 @@ const navGroups = [
 
 export function Sidebar({ activePanel, onNavigate }: { activePanel: string; onNavigate: (panel: string) => void }) {
   const sidebarOpen = useUIStore((s) => s.sidebarOpen);
+  const toggleSidebar = useUIStore((s) => s.toggleSidebar);
   const connectionStatus = useUIStore((s) => s.connectionStatus);
   const sessions = useSessionStore((s) => s.sessions);
   const activeSessionId = useSessionStore((s) => s.activeSessionId);
@@ -102,6 +103,11 @@ export function Sidebar({ activePanel, onNavigate }: { activePanel: string; onNa
   const getVisiblePanels = usePanelLayoutStore((s) => s.getVisiblePanels);
   const visiblePanels = getVisiblePanels();
   const visibleIds = new Set(visiblePanels.map((p) => p.id as string));
+
+  const handleNavigate = (panel: string) => {
+    onNavigate(panel);
+    if (window.innerWidth < 768) toggleSidebar();
+  };
 
   const [systemStats, setSystemStats] = useState({ sessions: 0, memory: 0 });
   const [editingSessionId, setEditingSessionId] = useState<string | null>(null);
@@ -114,12 +120,28 @@ export function Sidebar({ activePanel, onNavigate }: { activePanel: string; onNa
     });
   }, [sessions.length, memoryEntries.length]);
 
+  // Auto-close sidebar on mobile → desktop transition fixes
+  useEffect(() => {
+    const mql = window.matchMedia('(min-width: 768px)');
+    const handler = (e: MediaQueryListEvent) => {
+      // When crossing to mobile, keep current state
+      // When crossing to desktop, ensure open
+      if (e.matches) useUIStore.getState().setSidebarOpen(true);
+    };
+    mql.addEventListener('change', handler);
+    // On mount, if mobile, start closed
+    if (!mql.matches) useUIStore.getState().setSidebarOpen(false);
+    return () => mql.removeEventListener('change', handler);
+  }, []);
+
   return (
     <aside
       className={`
         shrink-0 flex flex-col border-r border-[var(--border)] bg-[var(--bg-secondary)]
         transition-[width] duration-200 ease
-        ${sidebarOpen ? 'w-[260px]' : 'w-0 overflow-hidden'}
+        fixed md:relative z-40 h-full
+        ${sidebarOpen ? 'w-[260px]' : 'w-0 md:w-0 overflow-hidden'}
+        ${sidebarOpen ? 'max-md:shadow-2xl' : ''}
       `}
     >
       {/* Logo */}
@@ -168,7 +190,7 @@ export function Sidebar({ activePanel, onNavigate }: { activePanel: string; onNa
                 .map((item) => (
                 <button
                   key={item.id}
-                  onClick={() => onNavigate(item.panel)}
+                  onClick={() => handleNavigate(item.panel)}
                   className={`
                     w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm
                     transition-colors duration-150

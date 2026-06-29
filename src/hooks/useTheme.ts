@@ -13,10 +13,11 @@ export function useTheme() {
     const root = document.documentElement;
     // Set data-theme attribute for CSS selector targeting
     root.setAttribute('data-theme', theme);
-    // Apply theme colors as CSS custom properties
+    // Apply theme colors as CSS custom properties (convert camelCase → kebab-case)
     const c = getThemeColors(theme);
     Object.entries(c).forEach(([key, value]) => {
-      root.style.setProperty(`--${key}`, value);
+      const cssVar = key.replace(/([A-Z])/g, '-$1').toLowerCase();
+      root.style.setProperty(`--${cssVar}`, value);
     });
   }, [theme]);
 

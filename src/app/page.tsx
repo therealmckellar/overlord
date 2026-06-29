@@ -155,6 +155,14 @@ export default function Home() {
       {/* Command Palette Overlay */}
       <CommandPalette onSelect={handleCommandSelect} />
 
+      {/* Mobile sidebar backdrop */}
+      {sidebarOpen && (
+        <div
+          className="fixed inset-0 bg-[var(--overlay)] z-30 md:hidden"
+          onClick={toggleSidebar}
+        />
+      )}
+
       {/* Sidebar */}
       <Sidebar activePanel={activePanel} onNavigate={(panel) => setActivePanel(panel as Panel)} />
 
@@ -216,18 +224,17 @@ export default function Home() {
             {activePanel === 'updates' && 'Daily Updates'}
           </h1>
 
-          {/* Persona Selector */}
-          <PersonaSelector />
+          {/* Persona Selector - hidden on mobile */}
+          <div className="hidden md:block"><PersonaSelector /></div>
 
-          {/* Model Selector (from graph) */}
-          <ModelSelector />
+          {/* Model Selector - hidden on mobile */}
+          <div className="hidden md:block"><ModelSelector /></div>
 
+          {/* Reasoning Effort - hidden on mobile */}
+          <div className="hidden md:block"><ReasoningEffort /></div>
 
-          {/* Reasoning Effort */}
-          <ReasoningEffort />
-
-          {/* Voice Controls */}
-          <VoiceControls />
+          {/* Voice Controls - hidden on mobile */}
+          <div className="hidden md:block"><VoiceControls /></div>
 
           {/* Connection Status */}
           <div className="flex items-center gap-2 text-xs text-[var(--text-secondary)]">

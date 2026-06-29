@@ -63,7 +63,7 @@ export function Dashboard() {
   }, [createSession, setActiveSession]);
 
   return (
-    <div className="flex-1 overflow-y-auto p-6">
+    <div className="flex-1 overflow-y-auto p-3 md:p-6">
       <div className="max-w-6xl mx-auto space-y-6">
         {/* PWA Install Banner */}
         {isInstallable && showBanner && (
