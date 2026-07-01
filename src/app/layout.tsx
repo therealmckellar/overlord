@@ -25,16 +25,16 @@ export const metadata: Metadata = {
 
 const criticalCSS = `
 :root {
-  --bg: #0d0d0d;
-  --bg-secondary: #1a1a1a;
-  --bg-tertiary: #242424;
+  --bg: #050505;
+  --bg-secondary: #0c0c0c;
+  --bg-tertiary: #141414;
   --text: #e8e8e8;
   --text-secondary: #a0a0a0;
   --text-muted: #666666;
-  --border: #2a2a2a;
-  --accent: #6366f1;
-  --accent-hover: #818cf8;
-  --accent-muted: #4338ca;
+  --border: #1f1f1f;
+  --accent: #4f46e5;
+  --accent-hover: #6366f1;
+  --accent-muted: #3730a3;
   --success: #22c55e;
   --warning: #f59e0b;
   --error: #ef4444;
@@ -43,7 +43,7 @@ const criticalCSS = `
   --assistant-bubble: #1a1a1a;
   --code-bg: #111111;
   --code-text: #c9d1d9;
-  --shadow: rgba(0, 0, 0, 0.4);
+  --shadow: rgba(0, 0, 0, 0.6);
   --overlay: rgba(0, 0, 0, 0.7);
   --background: var(--bg);
   --foreground: var(--text);

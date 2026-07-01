@@ -72,7 +72,7 @@ export async function middleware(req: NextRequest) {
       response.headers.set('x-user-email', payload.email);
       response.headers.set('x-user-role', payload.role);
       return response;
-    } catch (error: any) {
+    } catch {
       // Token expired or invalid — clear cookie and 401
       const response = NextResponse.json(
         { error: 'Invalid or expired token' },

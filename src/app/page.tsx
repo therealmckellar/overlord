@@ -38,7 +38,6 @@ import { Breadcrumbs } from '@/components/ui/Breadcrumbs';
 import { useAuthCheck } from '@/hooks/useAuthCheck';
 import { AuthGate } from '@/components/auth/AuthGate';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
-import { useChatStream } from '@/hooks/useChatStream';
 import { JarvisPanel } from '@/components/JarvisPanel';
 import { SpacesPanel } from '@/components/spaces/SpacesPanel';
 import SettingsPanel from '@/components/SettingsPanel';
@@ -48,8 +47,10 @@ import { AutomationQueuePanel } from '@/components/AutomationQueuePanel';
 import CronPanel from '@/components/CronPanel';
 import PluginPanel from '@/components/PluginPanel';
 import WorkspacePanel from '@/components/WorkspacePanel';
-import { WebhooksPanel } from '@/components/WebhooksPanel'; import { ChannelsPanel } from '@/components/ChannelsPanel';
-import { PairingPanel } from '@/components/PairingPanel'; import { MCPPanel } from '@/components/MCPPanel';
+import { WebhooksPanel } from '@/components/WebhooksPanel';
+import { ChannelsPanel } from '@/components/ChannelsPanel';
+import { PairingPanel } from '@/components/PairingPanel';
+import { MCPPanel } from '@/components/MCPPanel';
 import { PromptStudioPanel } from '@/components/PromptStudioPanel';
 import { TokenCostPanel } from '@/components/TokenCostPanel';
 import { DailyUpdatesPanel } from '@/components/DailyUpdatesPanel';
@@ -59,8 +60,7 @@ import { usePanelLayoutStore } from '@/stores/panelLayoutStore';
 
 
 type Panel = 'dashboard' | 'chat' | 'pipeline' | 'memory' | 'loop' | 'devtools' | 'research' | 'substack' | 'agent' | 'jarvis' | 'designer' | 'spaces' | 'mission' | 'taskboard' | 'deploy' | 'skills' | 'goals' | 'journal' | 'analytics' | 'session' | 'failureLogs' | 'insights' | 'settings' | 'contentPipeline' | 'automationQueue' | 'workspaces' | 'tokens' | 'updates' | 'cron' | 'plugins' | 'achievements' | 'configEditor' | 'webhooks' | 'channels' | 'pairing' | 'mcp' | 'social' | 'promptStudio';
-
-const PANEL_COMPONENTS: Record<Panel, React.FC<any>> = {
+const PANEL_COMPONENTS: Record<Panel, React.ComponentType> = {
   dashboard: Dashboard,
   chat: ChatWindow,
   pipeline: PipelineView as any,
@@ -141,7 +141,6 @@ const PANEL_TITLES: Record<Panel, string> = {
   updates: 'Updates',
   promptStudio: 'Prompt Library',
 };
-
 
 export default function Home() {
   const { isAuthenticated, isLoading } = useAuthCheck();

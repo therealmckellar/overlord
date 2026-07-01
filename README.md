@@ -71,10 +71,8 @@ Overlord is a **multi-agent command center** built on Next.js that orchestrates 
 
 ## Tech Stack
 
-- **Next.js 15** — App router, React Server Components
-- **React Flow** — Interactive model graph visualization
+- **Next.js 16** — App router, React Server Components
 - **Tailwind CSS** — Utility-first styling
-- **Radix UI** — Accessible component primitives
 - **Zustand** — State management
 - **OpenRouter** — Multi-provider model routing (all `:free` models)
 
