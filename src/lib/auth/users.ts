@@ -10,6 +10,7 @@
 
 import Database from 'better-sqlite3';
 import path from 'path';
+import { mkdirSync } from 'fs';
 import { hashPassword, verifyPassword } from './hash';
 
 export interface User {
@@ -29,6 +30,8 @@ function getDb(): Database.Database {
   if (db) return db;
 
   const dbPath = process.env.DB_PATH || path.join(process.cwd(), 'data', 'overlord.db');
+  // Ensure the data directory exists before opening
+  mkdirSync(path.dirname(dbPath), { recursive: true });
   db = new Database(dbPath);
 
   // Enable WAL mode for better concurrent read performance

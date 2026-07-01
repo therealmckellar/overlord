@@ -81,7 +81,7 @@ export default function Pipeline() {
                 </section>
 
                 <section>
-                  <h4 className="text-xs font-medium text-slate-500 uppercase mb-2">Output</td>
+                  <h4 className="text-xs font-medium text-slate-500 uppercase mb-2">Output</h4>
                   <div className={`p-3 rounded-lg text-xs font-mono border border-slate-800 ${
                     selectedNode.outputData ? 'bg-slate-950 text-slate-300' : 'bg-slate-900/50 text-slate-600 italic'
                   }`}>

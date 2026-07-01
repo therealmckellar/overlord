@@ -11,7 +11,8 @@ import {
   Layers,
   Globe,
   Settings,
-  AlertCircle
+  AlertCircle,
+  ChevronRight
 } from 'lucide-react';
 
 // --- Types ---

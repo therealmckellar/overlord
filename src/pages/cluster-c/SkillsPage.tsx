@@ -11,7 +11,8 @@ import {
   Search,
   Settings,
   Zap,
-  ChevronRight
+  ChevronRight,
+  Code
 } from 'lucide-react';
 
 // --- Types ---
