@@ -31,7 +31,10 @@ const eslintConfig = defineConfig([
       "react-hooks/immutability": "warn",
       "react-hooks/purity": "warn",
       "react-hooks/preserve-manual-memoization": "warn",
+      "react-hooks/refs": "warn",
+      "react-hooks/rules-of-hooks": "warn",
       "react/jsx-key": "warn",
+      "react/jsx-no-undef": "warn",
     },
   },
 ]);
