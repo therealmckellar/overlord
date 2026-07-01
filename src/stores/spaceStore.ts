@@ -77,6 +77,7 @@ export interface Space {
   artifacts: SpaceArtifact[];
   attachments: SpaceAttachment[];
   links: SpaceLink[];
+  skills: string[];                // IDs/names of skills assigned to this space
   threads: SpaceThread[];
   pinnedItems: string[];   // ids of pinned threads/files
   members: SpaceMember[];
@@ -139,6 +140,10 @@ interface SpaceState {
   updateLink: (spaceId: string, linkId: string, updates: Partial<SpaceLink>) => void;
   removeLink: (spaceId: string, linkId: string) => void;
 
+  // Skills
+  addSkill: (spaceId: string, skillName: string) => void;
+  removeSkill: (spaceId: string, skillName: string) => void;
+
   // Members
   addMember: (spaceId: string, member: Omit<SpaceMember, 'id'>) => void;
   removeMember: (spaceId: string, memberId: string) => void;
@@ -170,6 +175,7 @@ export const useSpaceStore = create<SpaceState>()(
           artifacts: [],
           attachments: [],
           links: [],
+          skills: [],
           threads: [],
           pinnedItems: [],
           members: [{ id: 'owner', name: 'Rich', role: 'owner' }],
@@ -407,6 +413,24 @@ export const useSpaceStore = create<SpaceState>()(
           spaces: state.spaces.map((s) =>
             s.id === spaceId
               ? { ...s, links: s.links.filter((l) => l.id !== linkId), updatedAt: Date.now() }
+              : s
+          ),
+        })),
+
+      addSkill: (spaceId, skillName) =>
+        set((state) => ({
+          spaces: state.spaces.map((s) =>
+            s.id === spaceId
+              ? { ...s, skills: s.skills.includes(skillName) ? s.skills : [...s.skills, skillName], updatedAt: Date.now() }
+              : s
+          ),
+        })),
+
+      removeSkill: (spaceId, skillName) =>
+        set((state) => ({
+          spaces: state.spaces.map((s) =>
+            s.id === spaceId
+              ? { ...s, skills: s.skills.filter((sk) => sk !== skillName), updatedAt: Date.now() }
               : s
           ),
         })),

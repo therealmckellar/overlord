@@ -23,7 +23,7 @@ export async function POST(req: NextRequest) {
     systemPrompt?: string;
   };
 
-  const selectedModel = model || process.env.OPENROUTER_MODEL || 'openrouter/owl-alpha';
+  const selectedModel = model || process.env.OPENROUTER_MODEL || 'google/gemma-4-31b-it:free';
 
   // Build OpenAI-format messages
   const openaiMessages: ChatMessage[] = [];

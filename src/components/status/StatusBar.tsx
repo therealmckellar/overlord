@@ -43,17 +43,18 @@ export function StatusBar({ sessionId }: StatusBarProps) {
 
   return (
     <div className="flex items-center justify-between px-4 py-1.5 border-t border-[var(--border)] bg-[var(--bg-secondary)] text-[11px] text-[var(--text-muted)]">
-      {/* Left: Connection status */}
+      {/* Left: Connection status + streaming */}
       <div className="flex items-center gap-3">
-        <div className={`flex items-center gap-1.5 ${connectionColor}`}>
-          <ConnectionIcon className={`w-3.5 h-3.5 ${connectionStatus === 'reconnecting' ? 'animate-spin' : ''}`} />
-          <span>{connectionLabel}</span>
-        </div>
-
         {isStreaming && (
           <div className="flex items-center gap-1.5 text-[var(--accent)]">
             <Zap className="w-3.5 h-3.5 animate-pulse" />
             <span>Streaming</span>
+          </div>
+        )}
+        {!isStreaming && (
+          <div className={`flex items-center gap-1.5 ${connectionColor}`}>
+            <ConnectionIcon className={`w-3.5 h-3.5 ${connectionStatus === 'reconnecting' ? 'animate-spin' : ''}`} />
+            <span>{connectionLabel}</span>
           </div>
         )}
       </div>

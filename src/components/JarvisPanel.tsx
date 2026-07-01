@@ -64,8 +64,14 @@ export function JarvisPanel() {
       return;
     }
     if (lowerCmd.includes('agent') || lowerCmd.includes('designer')) {
-      window.dispatchEvent(new CustomEvent('overlord-navigate', { detail: 'designer' }));
-      setMessages(prev => [...prev, { id: `jarvis-${Date.now()}`, type: 'jarvis', text: 'Opening Agent Designer.', timestamp: new Date() }]);
+      // Only navigate if explicitly asked to "open" or "go to"
+      if (lowerCmd.includes('open') || lowerCmd.includes('go to')) {
+        window.dispatchEvent(new CustomEvent('overlord-navigate', { detail: 'designer' }));
+        setMessages(prev => [...prev, { id: `jarvis-${Date.now()}`, type: 'jarvis', text: 'Opening Agent Designer.', timestamp: new Date() }]);
+        return;
+      }
+      // Otherwise, treat as a prompt to create/edit an agent
+      await sendChatMessage(`I want to ${command}. Please guide me through the agent creation/design process.`);
       return;
     }
     if (lowerCmd.includes('kanban') || lowerCmd.includes('task') || lowerCmd.includes('board')) {

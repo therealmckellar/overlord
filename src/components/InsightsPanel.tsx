@@ -1,188 +1,198 @@
 'use client';
 
 import React, { useState, useMemo } from 'react';
-import { useSharedMemoryStore, type MemoryEntry, type JournalEntry } from '@/stores/sharedMemoryStore';
+import { PanelWrapper } from '@/components/ui/PanelWrapper';
+import { Zap, Target, TrendingDown, Lightbulb, ArrowRight, AlertCircle } from 'lucide-react';
 
-const TYPE_COLORS: Record<string, string> = {
-  insight: '#8b5cf6',
-  fact: '#3b82f6',
-  todo: '#f59e0b',
-  decision: '#10b981',
-  context: '#6b7280',
-};
+// Types based on IMPLEMENTATION_PLAN_CLUSTER_B.md
+interface SystemBottleneck {
+  metric: 'verbosity' | 'latency' | 'retries' | 'hallucinations' | 'context';
+  score: number;
+  trend: 'improving' | 'stable' | 'degrading';
+}
 
-const JOURNAL_COLORS: Record<string, string> = {
-  built: '#10b981',
-  blocked: '#ef4444',
-  learned: '#3b82f6',
-  decided: '#f59e0b',
-};
+interface InsightCard {
+  id: string;
+  title: string;
+  category: 'cost' | 'performance' | 'quality';
+  description: string;
+  impact: string;
+  actionable: boolean;
+}
+
+interface PromptOptimization {
+  original: string;
+  suggested: string;
+  reasoning: string;
+  expectedGain: string;
+}
+
+// Mock Data
+const generateMockBottlenecks = (): SystemBottleneck[] => [
+  { metric: 'verbosity', score: 72, trend: 'degrading' },
+  { metric: 'latency', score: 45, trend: 'stable' },
+  { metric: 'retries', score: 30, trend: 'improving' },
+  { metric: 'hallucinations', score: 12, trend: 'stable' },
+  { metric: 'context', score: 58, trend: 'degrading' },
+];
+
+const generateMockInsights = (): InsightCard[] => [
+  {
+    id: 'ins-1',
+    title: 'Redundant Tool Calls',
+    category: 'performance',
+    description: 'Agents are repeatedly calling "get_user_profile" within the same turn.',
+    impact: 'Saving $12/day & -200ms latency',
+    actionable: true,
+  },
+  {
+    id: 'ins-2',
+    title: 'Prompt Verbosity Leak',
+    category: 'cost',
+    description: 'System prompts for "Researcher" agent contain 200+ tokens of redundant instructions.',
+    impact: 'Reducing token burn by 15%',
+    actionable: true,
+  },
+  {
+    id: 'ins-3',
+    title: 'Hallucination Pattern',
+    category: 'quality',
+    description: 'Frequent failure in "Fact-Check" tool when processing legal PDFs.',
+    impact: 'Improving reliability by 20%',
+    actionable: false,
+  },
+];
+
+const generateMockOptimizations = (): PromptOptimization[] => [
+  {
+    original: 'Please provide a detailed and comprehensive analysis of the following text, making sure to include all possible points...',
+    suggested: 'Analyze the following text concisely. Extract key points and evidence only.',
+    reasoning: 'Excessive politeness and phrasing increase input tokens without adding semantic value.',
+    expectedGain: 'Reduce Latency by 15%',
+  },
+  {
+    original: 'You are an expert researcher. Your goal is to find information...',
+    suggested: 'Expert Researcher: Synthesize evidence from sources. Prioritize primary data.',
+    reasoning: 'Direct role-setting reduces steering drift in long contexts.',
+    expectedGain: 'Improve Accuracy by 10%',
+  },
+];
 
 export default function InsightsPanel() {
-  const memory = useSharedMemoryStore((s) => s.memory);
-  const journal = useSharedMemoryStore((s) => s.journal);
-  const [activeTab, setActiveTab] = useState<'tags' | 'themes' | 'timeline'>('tags');
-
-  // Tag frequency analysis
-  const tagFrequencies = useMemo(() => {
-    const counts: Record<string, number> = {};
-    memory.forEach((m) => m.tags.forEach((t) => { counts[t] = (counts[t] || 0) + 1; }));
-    return Object.entries(counts)
-      .sort(([, a], [, b]) => b - a)
-      .slice(0, 15);
-  }, [memory]);
-
-  const maxTagCount = tagFrequencies.length > 0 ? tagFrequencies[0][1] : 1;
-
-  // Journal type clustering
-  const journalClusters = useMemo(() => {
-    const counts: Record<string, number> = {};
-    const byType: Record<string, JournalEntry[]> = {};
-    journal.forEach((j) => {
-      counts[j.type] = (counts[j.type] || 0) + 1;
-      if (!byType[j.type]) byType[j.type] = [];
-      byType[j.type].push(j);
-    });
-    return { counts, byType };
-  }, [journal]);
-
-  // Merged timeline (memory + journal, sorted by recency)
-  const timeline = useMemo(() => {
-    const items: Array<{ id: string; content: string; timestamp: number; source: string; type: string; color: string }> = [];
-    memory.forEach((m) => items.push({ id: m.id, content: m.content, timestamp: m.timestamp, source: m.source, type: m.type, color: TYPE_COLORS[m.type] || '#6b7280' }));
-    journal.forEach((j) => items.push({ id: j.id, content: j.content, timestamp: j.timestamp, source: j.agentName || 'System', type: j.type, color: JOURNAL_COLORS[j.type] || '#6b7280' }));
-    return items.sort((a, b) => b.timestamp - a.timestamp).slice(0, 30);
-  }, [memory, journal]);
-
-  const formatTime = (ts: number) => {
-    const d = new Date(ts);
-    return d.toLocaleString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
-  };
-
-  const tabs = [
-    { id: 'tags' as const, label: '🏷️ Top Tags', icon: '📊' },
-    { id: 'themes' as const, label: '🔄 Themes', icon: '🧩' },
-    { id: 'timeline' as const, label: '📋 Timeline', icon: '⏱️' },
-  ];
+  const bottlenecks = useMemo(() => generateMockBottlenecks(), []);
+  const insights = useMemo(() => generateMockInsights(), []);
+  const optimizations = useMemo(() => generateMockOptimizations(), []);
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
-      {/* Header */}
-      <div style={{ padding: '16px 20px', borderBottom: '1px solid #1e293b' }}>
-        <h2 style={{ margin: 0, fontSize: '18px', fontWeight: 700, color: '#f1f5f9' }}>💡 Insights</h2>
-        <p style={{ margin: '4px 0 0', fontSize: '12px', color: '#64748b' }}>
-          Patterns across {memory.length} memories · {journal.length} journal entries
-        </p>
-      </div>
-
-      {/* Tab Bar */}
-      <div style={{ display: 'flex', borderBottom: '1px solid #1e293b', padding: '0 20px' }}>
-        {tabs.map((tab) => (
-          <button
-            key={tab.id}
-            onClick={() => setActiveTab(tab.id)}
-            style={{
-              padding: '10px 16px',
-              border: 'none',
-              background: 'transparent',
-              color: activeTab === tab.id ? '#f1f5f9' : '#64748b',
-              fontSize: '12px',
-              fontWeight: activeTab === tab.id ? 600 : 400,
-              cursor: 'pointer',
-              borderBottom: activeTab === tab.id ? '2px solid #3b82f6' : '2px solid transparent',
-              transition: 'all 0.15s',
-            }}
-          >
-            {tab.label}
-          </button>
-        ))}
-      </div>
-
-      {/* Content */}
-      <div style={{ flex: 1, overflowY: 'auto', padding: '16px 20px' }}>
-        {/* TAGS TAB */}
-        {activeTab === 'tags' && (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-            <p style={{ margin: '0 0 8px', fontSize: '12px', color: '#64748b' }}>Most frequent tags across all memory entries</p>
-            {tagFrequencies.map(([tag, count]) => (
-              <div key={tag} style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                <span style={{ fontSize: '12px', color: '#e2e8f0', minWidth: '120px', textAlign: 'right' }}>{tag}</span>
-                <div style={{ flex: 1, background: '#1e293b', borderRadius: '4px', height: '20px', overflow: 'hidden' }}>
-                  <div style={{ width: String((count / maxTagCount) * 100) + '%', height: '100%', background: 'linear-gradient(90deg, #3b82f6, #8b5cf6)', borderRadius: '4px', transition: 'width 0.3s' }} />
+    <div className="flex flex-col h-full gap-4 p-4 bg-transparent overflow-y-auto">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        {/* Bottleneck Radar (Simulated as a Gauge List) */}
+        <PanelWrapper title="Bottleneck Radar">
+          <div className="space-y-4">
+            {bottlenecks.map((b) => (
+              <div key={b.metric} className="flex items-center gap-4">
+                <span className="text-xs text-slate-400 w-24 capitalize">{b.metric}</span>
+                <div className="flex-1 h-2 bg-slate-800 rounded-full overflow-hidden relative">
+                  <div 
+                    className={`h-full transition-all duration-1000 ${b.score > 60 ? 'bg-red-500' : b.score > 40 ? 'bg-yellow-500' : 'bg-green-500'}`} 
+                    style={{ width: `${b.score}%` }} 
+                  />
                 </div>
-                <span style={{ fontSize: '11px', color: '#94a3b8', fontFamily: 'monospace', minWidth: '24px' }}>{count}</span>
+                <div className="flex items-center gap-2 w-20 justify-end">
+                  <span className="text-xs font-mono text-slate-300">{b.score}</span>
+                  <span className={`text-[10px] ${b.trend === 'improving' ? 'text-green-400' : b.trend === 'degrading' ? 'text-red-400' : 'text-slate-500'}`}>
+                    {b.trend === 'improving' ? '↑' : b.trend === 'degrading' ? '↓' : '→'}
+                  </span>
+                </div>
               </div>
             ))}
-            {tagFrequencies.length === 0 && (
-              <p style={{ textAlign: 'center', color: '#64748b', padding: '40px' }}>No tags found</p>
-            )}
           </div>
-        )}
+        </PanelWrapper>
 
-        {/* THEMES TAB */}
-        {activeTab === 'themes' && (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-            {/* Journal type clusters */}
-            <div>
-              <p style={{ margin: '0 0 10px', fontSize: '12px', color: '#64748b', fontWeight: 600, textTransform: 'uppercase' }}>Journal Themes</p>
-              <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
-                {Object.entries(journalClusters.counts).map(([type, count]) => (
-                  <div key={type} style={{ background: JOURNAL_COLORS[type] + '15', border: `1px solid ${JOURNAL_COLORS[type]}44`, borderRadius: '8px', padding: '12px 16px', minWidth: '140px' }}>
-                    <div style={{ fontSize: '24px', fontWeight: 700, color: JOURNAL_COLORS[type] }}>{count}</div>
-                    <div style={{ fontSize: '11px', color: '#94a3b8', textTransform: 'capitalize', marginTop: '2px' }}>{type}</div>
-                  </div>
-                ))}
+        {/* Agent Efficiency Matrix (2x2 Simplified) */}
+        <PanelWrapper title="Efficiency Matrix (Cost vs Performance)">
+          <div className="grid grid-cols-2 grid-rows-2 gap-2 h-48">
+            <div className="bg-green-500/5 border border-green-500/20 rounded-lg p-2 flex flex-col justify-center items-center text-center">
+              <span className="text-[10px] text-green-500 font-bold uppercase mb-1">High Perf / Low Cost</span>
+              <div className="flex flex-wrap gap-1 justify-center">
+                <span className="px-1.5 py-0.5 bg-green-500/20 text-green-300 text-[10px] rounded border border-green-500/30">Sentinel-01</span>
               </div>
             </div>
-
-            {/* Recent entries by type */}
-            {Object.entries(journalClusters.byType).map(([type, entries]) => (
-              <div key={type}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '6px' }}>
-                  <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: JOURNAL_COLORS[type] }} />
-                  <span style={{ fontSize: '12px', fontWeight: 600, color: '#e2e8f0', textTransform: 'capitalize' }}>{type}</span>
-                </div>
-                <div style={{ paddingLeft: '16px', display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                  {entries.slice(0, 3).map((entry) => (
-                    <p key={entry.id} style={{ margin: 0, fontSize: '12px', color: '#94a3b8', lineHeight: 1.4 }}>
-                      {entry.content}
-                    </p>
-                  ))}
-                </div>
+            <div className="bg-yellow-500/5 border border-yellow-500/20 rounded-lg p-2 flex flex-col justify-center items-center text-center">
+              <span className="text-[10px] text-yellow-500 font-bold uppercase mb-1">High Perf / High Cost</span>
+              <div className="flex flex-wrap gap-1 justify-center">
+                <span className="px-1.5 py-0.5 bg-yellow-500/20 text-yellow-300 text-[10px] rounded border border-yellow-500/30">Researcher-Prime</span>
               </div>
-            ))}
+            </div>
+            <div className="bg-red-500/5 border border-red-500/20 rounded-lg p-2 flex flex-col justify-center items-center text-center">
+              <span className="text-[10px] text-red-500 font-bold uppercase mb-1">Low Perf / Low Cost</span>
+              <div className="flex flex-wrap gap-1 justify-center">
+                <span className="px-1.5 py-0.5 bg-red-500/20 text-red-300 text-[10px] rounded border border-red-500/30">Tuner-01</span>
+              </div>
+            </div>
+            <div className="bg-slate-500/5 border border-slate-500/20 rounded-lg p-2 flex flex-col justify-center items-center text-center">
+              <span className="text-[10px] text-slate-500 font-bold uppercase mb-1">Low Perf / High Cost</span>
+              <div className="flex flex-wrap gap-1 justify-center">
+                <span className="px-1.5 py-0.5 bg-slate-500/20 text-slate-300 text-[10px] rounded border border-slate-500/30">Legacy-Proxy</span>
+              </div>
+            </div>
           </div>
-        )}
+        </PanelWrapper>
+      </div>
 
-        {/* TIMELINE TAB */}
-        {activeTab === 'timeline' && (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '0' }}>
-            {timeline.map((item, i) => (
-              <div key={item.id} style={{ display: 'flex', gap: '12px', padding: '10px 0', position: 'relative' }}>
-                {/* Timeline line */}
-                {i < timeline.length - 1 && (
-                  <div style={{ position: 'absolute', left: '7px', top: '28px', bottom: '-10px', width: '1px', background: '#1e293b' }} />
-                )}
-                {/* Dot */}
-                <div style={{ width: '16px', height: '16px', borderRadius: '50%', background: item.color + '33', border: `2px solid ${item.color}`, flexShrink: 0, marginTop: '2px' }} />
-                {/* Content */}
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '8px' }}>
-                    <span style={{ fontSize: '11px', fontWeight: 600, color: item.color, textTransform: 'uppercase' }}>{item.type}</span>
-                    <span style={{ fontSize: '10px', color: '#64748b', flexShrink: 0 }}>{formatTime(item.timestamp)}</span>
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        {/* Pattern Detection Feed */}
+        <PanelWrapper title="Intelligence Feed">
+          <div className="space-y-3">
+            {insights.map((ins) => (
+              <div key={ins.id} className="p-3 rounded-lg bg-slate-800/40 border border-slate-800 group hover:border-indigo-500/50 transition-all">
+                <div className="flex justify-between items-start mb-2">
+                  <div className="flex items-center gap-2">
+                    <span className={`w-2 h-2 rounded-full ${
+                      ins.category === 'cost' ? 'bg-yellow-500' : ins.category === 'performance' ? 'bg-blue-500' : 'bg-purple-500'
+                    }`} />
+                    <span className="text-xs font-semibold text-slate-200">{ins.title}</span>
                   </div>
-                  <p style={{ margin: '4px 0 0', fontSize: '12px', color: '#cbd5e1', lineHeight: 1.4, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                    {item.content}
-                  </p>
-                  <span style={{ fontSize: '10px', color: '#475569' }}>via {item.source}</span>
+                  {ins.actionable && (
+                    <button className="text-[10px] px-2 py-0.5 bg-indigo-600 text-white rounded hover:bg-indigo-500 transition-colors">
+                      Optimize Now
+                    </button>
+                  )}
+                </div>
+                <p className="text-xs text-slate-400 mb-2">{ins.description}</p>
+                <div className="flex items-center gap-1 text-[10px] text-green-400 font-medium">
+                  <TrendingDown className="w-3 h-3" /> {ins.impact}
                 </div>
               </div>
             ))}
-            {timeline.length === 0 && (
-              <p style={{ textAlign: 'center', color: '#64748b', padding: '40px' }}>No activity yet</p>
-            )}
           </div>
-        )}
+        </PanelWrapper>
+
+        {/* Heuristic Table */}
+        <PanelWrapper title="Prompt Optimizations">
+          <div className="space-y-4">
+            {optimizations.map((opt, i) => (
+              <div key={i} className="p-3 rounded-lg bg-slate-950 border border-slate-800 space-y-3">
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <span className="text-[10px] text-slate-500 uppercase block mb-1">Original</span>
+                    <p className="text-xs text-slate-400 line-clamp-2 italic">{opt.original}</p>
+                  </div>
+                  <div>
+                    <span className="text-[10px] text-indigo-400 uppercase block mb-1">Suggested</span>
+                    <p className="text-xs text-slate-200 font-medium">{opt.suggested}</p>
+                  </div>
+                </div>
+                <div className="flex justify-between items-center pt-2 border-t border-slate-800">
+                  <span className="text-[10px] text-slate-500">{opt.reasoning}</span>
+                  <span className="text-[10px] px-1.5 py-0.5 bg-green-500/10 text-green-400 rounded border border-green-500/20">
+                    {opt.expectedGain}
+                  </span>
+                </div>
+              </div>
+            ))}
+          </div>
+        </PanelWrapper>
       </div>
     </div>
   );

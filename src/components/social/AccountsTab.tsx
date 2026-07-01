@@ -25,21 +25,23 @@ export function AccountsTab() {
     syncAccounts();
   }, [syncAccounts]);
 
-  const handleConnect = async (platform: string) => {
-    setConnecting(platform);
-    try {
-      await fetch(`/api/social/accounts/connect/${platform}`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ account_name: '' }),
-      });
-      connectAccount(platform);
-    } catch {
-      // silent
-    } finally {
-      setConnecting(null);
-    }
-  };
+    const handleConnect = async (platform: string) => {
+      setConnecting(platform);
+      try {
+        const res = await fetch(`/api/social/accounts/connect/${platform}`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ account_name: '' }),
+        });
+        if (res.ok) {
+          await syncAccounts();
+        }
+      } catch {
+        // silent
+      } finally {
+        setConnecting(null);
+      }
+    };
 
   const handleDisconnect = (id: string) => {
     disconnectAccount(id);

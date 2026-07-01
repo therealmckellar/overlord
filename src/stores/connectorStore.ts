@@ -140,7 +140,7 @@ export const useConnectorStore = create<ConnectorState>()(
           service: 'openrouter',
           key: '', // populated from env or user input
           baseUrl: 'https://openrouter.ai/api/v1',
-          model: 'openrouter/owl-alpha',
+          model: 'google/gemma-4-31b-it:free',
           enabled: true,
           status: 'disconnected',
           lastTested: null,
@@ -149,7 +149,7 @@ export const useConnectorStore = create<ConnectorState>()(
       mcpServers: [],
       webhooks: [],
       modelDefaults: {
-        defaultModel: 'openrouter/owl-alpha',
+        defaultModel: 'google/gemma-4-31b-it:free',
         fallbackModel: 'openai/gpt-oss-120b:free',
         defaultTemperature: 0.7,
         defaultMaxTokens: 4096,

@@ -42,7 +42,7 @@ export async function GET() {
       key: maskKey(process.env.OPENROUTER_API_KEY!),
       maskedKey: maskKey(process.env.OPENROUTER_API_KEY!),
       baseUrl: process.env.OPENROUTER_BASE_URL || 'https://openrouter.ai/api/v1',
-      model: process.env.OPENROUTER_MODEL || 'openrouter/owl-alpha',
+      model: process.env.OPENROUTER_MODEL || 'google/gemma-4-31b-it:free',
       enabled: true,
       source: 'env',
     });
@@ -285,7 +285,7 @@ export async function GET() {
   const systemConfig = {
     appUrl: process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:9125',
     nodeEnv: process.env.NODE_ENV || 'development',
-    defaultModel: process.env.OPENROUTER_MODEL || 'openrouter/owl-alpha',
+    defaultModel: process.env.OPENROUTER_MODEL || 'google/gemma-4-31b-it:free',
     dbPath: process.env.DB_PATH || './data/overlord.db',
     jwtExpiresIn: process.env.JWT_EXPIRES_IN || '1h',
   };

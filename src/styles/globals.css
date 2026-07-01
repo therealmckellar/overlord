@@ -12,22 +12,22 @@
 /* ---------- Theme Tokens (defaults — dark mode) ---------- */
 :root {
   /* Surfaces */
-  --bg: #0d0d0d;
-  --bg-secondary: #1a1a1a;
-  --bg-tertiary: #242424;
+  --bg: #0a0a1a;
+  --bg-secondary: #111128;
+  --bg-tertiary: #0d0d24;
 
   /* Text */
-  --text: #e8e8e8;
-  --text-secondary: #a0a0a0;
-  --text-muted: #666666;
+  --text: #f8fafc;
+  --text-secondary: #94a3b8;
+  --text-muted: #64748b;
 
   /* Accent */
-  --accent: #6366f1;
-  --accent-hover: #818cf8;
-  --accent-muted: #4338ca;
+  --accent: #06b6d4;
+  --accent-hover: #8b5cf6;
+  --accent-muted: #0891b2;
 
   /* Borders */
-  --border: #2a2a2a;
+  --border: #1e293b;
 
   /* Status */
   --success: #22c55e;
@@ -37,15 +37,15 @@
 
   /* Chat bubbles */
   --user-bubble: #1e1b4b;
-  --assistant-bubble: #1a1a1a;
+  --assistant-bubble: #111128;
 
   /* Code */
-  --code-bg: #111111;
+  --code-bg: #050510;
   --code-text: #c9d1d9;
 
   /* Shadows & Overlays */
-  --shadow: rgba(0,0,0,0.4);
-  --overlay: rgba(0,0,0,0.7);
+  --shadow: rgba(0,0,0,0.6);
+  --overlay: rgba(0,0,0,0.8);
 
   /* Derived aliases (used by components) */
   --bg-primary: var(--bg);
@@ -98,8 +98,8 @@
   /* Scrollbar */
   --scrollbar-width: 6px;
   --scrollbar-bg: transparent;
-  --scrollbar-thumb: #333660;
-  --scrollbar-thumb-hover: #4a4d7a;
+  --scrollbar-thumb: #1e293b;
+  --scrollbar-thumb-hover: #334155;
 }
 
 /* ---------- Scrollbar Styles ---------- */

@@ -43,7 +43,11 @@ export function useChatStream({ sessionId, persona, model, systemPrompt }: SendM
 
     setIsStreaming(true);
     setStreamingContent('');
-    setConnectionStatus('connecting');
+    // Only show "connecting" if we're not already connected
+    const currentStatus = useUIStore.getState().connectionStatus;
+    if (currentStatus !== 'connected') {
+      setConnectionStatus('connecting');
+    }
 
     // Build message history (last 20 messages)
     const allMessages = useMessageStore.getState().messagesBySession[sessionId] || [];

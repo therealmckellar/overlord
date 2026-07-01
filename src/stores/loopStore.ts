@@ -69,6 +69,8 @@ export interface LoopTask {
   estimatedMonthlyCost?: number; // USD
   readinessScore?: number;      // 0-100
   riskLevel?: 'low' | 'medium' | 'high';
+  rubric?: string[];              // Ship readiness criteria
+  rubricStatus?: ('pending' | 'passed' | 'failed')[];
 }
 
 interface LoopState {
@@ -110,14 +112,14 @@ export const useLoopStore = create<LoopState>()(
           id,
           name: pattern.name,
           description: pattern.description,
-          model: model || 'openrouter/owl-alpha',
+          model: model || 'google/gemma-4-31b-it:free',
           maxIterations: pattern.maxIterations,
           prompt: pattern.prompt,
           status: 'idle',
           currentIteration: 0,
           results: [],
           bestScore: 0,
-          bestModel: model || 'openrouter/owl-alpha',
+          bestModel: model || 'google/gemma-4-31b-it:free',
           createdAt: Date.now(),
           patternId: pattern.id,
           lane: pattern.lane,

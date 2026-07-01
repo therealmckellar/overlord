@@ -102,6 +102,11 @@ export function getAgentDisplayInfo(task: TaskCategory): {
     fast: '#6366f1',
     trading: '#f97316',
     utility: '#6b7280',
+    'kanban-orchestrator': '#8b5cf6',
+    'kanban-worker': '#3b82f6',
+    marketing: '#06b6d4',
+    'content-creator': '#8b5cf6',
+    'content-editor': '#f59e0b',
   };
   return {
     name: config.role.charAt(0).toUpperCase() + config.role.slice(1),

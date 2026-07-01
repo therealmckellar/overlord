@@ -59,19 +59,19 @@ const navGroups = [
         { id: 'promptStudio', label: 'Prompt Studio', icon: '🪄', panel: 'promptStudio' },
       ],
     },
-  {
-    id: 'automate',
-    label: 'AUTOMATE',
-    items: [
-      { id: 'research', label: 'Research', icon: '🔬', panel: 'research' },
-      { id: 'contentPipeline', label: 'Content Pipeline', icon: '⚡', panel: 'contentPipeline' },
-      { id: 'social', label: 'Social', icon: '📡', panel: 'social' },
-      { id: 'automationQueue', label: 'Auto Queue', icon: '🔄', panel: 'automationQueue' },
-      { id: 'cron', label: 'Cron', icon: '⏰', panel: 'cron' },
-      { id: 'webhooks', label: 'Webhooks', icon: '🪝', panel: 'webhooks' },
-      { id: 'substack', label: 'Content', icon: '✨', panel: 'substack' },
-    ],
-  },
+    {
+      id: 'automate',
+      label: 'AUTOMATE',
+      items: [
+        { id: 'research', label: 'Research', icon: '🔬', panel: 'research' },
+        { id: 'social', label: 'Social', icon: '📡', panel: 'social' },
+        { id: 'automationQueue', label: 'Auto Queue', icon: '🔄', panel: 'automationQueue' },
+        { id: 'cron', label: 'Cron', icon: '⏰', panel: 'cron' },
+        { id: 'webhooks', label: 'Webhooks', icon: '🪝', panel: 'webhooks' },
+        { id: 'substack', label: 'Content', icon: '✨', panel: 'substack' },
+        { id: 'contentPipeline', label: 'Content Pipeline', icon: '⚡', panel: 'contentPipeline' },
+      ],
+    },
   {
     id: 'jarvis',
     label: 'JARVIS',
@@ -139,7 +139,7 @@ export function Sidebar({ activePanel, onNavigate }: { activePanel: string; onNa
   return (
     <aside
       className={`
-        shrink-0 flex flex-col border-r border-[var(--border)] bg-[var(--bg-secondary)]
+        shrink-0 flex flex-col border-r border-[var(--border)] bg-[var(--bg-secondary)]/80 backdrop-blur-md glass-panel
         transition-[width] duration-200 ease
         fixed md:relative z-40 h-full
         ${sidebarOpen ? 'w-[260px]' : 'w-0 md:w-0 overflow-hidden'}
@@ -195,8 +195,8 @@ export function Sidebar({ activePanel, onNavigate }: { activePanel: string; onNa
                     w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm
                     transition-colors duration-150
                     ${activePanel === item.panel
-                      ? 'bg-[var(--accent)] text-white'
-                      : 'text-[var(--text-secondary)] hover:bg-[var(--bg-tertiary)] hover:text-[var(--text)]'
+                      ? 'bg-[var(--accent)] shadow-[0_0_15px_rgba(79,70,229,0.4)] text-white'
+                      : 'text-[var(--text-secondary)] hover:bg-[var(--bg-tertiary)]/50 hover:backdrop-blur-sm hover:text-[var(--text)]'
                     }
                   `}
                 >

@@ -1,156 +1,156 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
-import { useUIStore, useSessionStore } from '@/stores';
-import { StatsGrid } from './StatsGrid';
-import { ActivityTimeline } from './ActivityTimeline';
-import { QuickActions } from './QuickActions';
-import { SystemHealth } from './SystemHealth';
-import { TrendingNowWidget } from './TrendingNowWidget';
-import { usePWAInstall } from '@/hooks/usePWAInstall';
-import { Download, X } from 'lucide-react';
+import React from 'react';
+import { PanelWrapper } from '@/components/ui/PanelWrapper';
+import { useMockHealthData, useMockMissionsData } from '@/hooks/use-mock-data';
+import { MissionSummary } from '@/types/cluster-a';
+import { Activity, Cpu, Zap, AlertCircle, Play, Square, Plus } from 'lucide-react';
 
-interface DashboardStats {
-  activeSessions: number;
-  totalTokens: number;
-  costToday: number;
-  activeAgents: number;
-  uptime: number;
-  errorsLast24h: number;
-  messagesToday: number;
-}
+export default function Dashboard() {
+  const health = useMockHealthData();
+  const missions = useMockMissionsData();
 
-export function Dashboard() {
-  const { isInstallable, install } = usePWAInstall();
-  const [showBanner, setShowBanner] = useState(true);
-  const connectionStatus = useUIStore((s) => s.connectionStatus);
-  const sessions = useSessionStore((s) => s.sessions);
-  const activeSessionId = useSessionStore((s) => s.activeSessionId);
-  const createSession = useSessionStore((s) => s.createSession);
-  const setActiveSession = useSessionStore((s) => s.setActiveSession);
-
-  const [stats, setStats] = useState<DashboardStats>({
-    activeSessions: 0,
-    totalTokens: 0,
-    costToday: 0,
-    activeAgents: 0,
-    uptime: 0,
-    errorsLast24h: 0,
-    messagesToday: 0,
-  });
-  const [loading, setLoading] = useState(true);
-
-  const loadStats = useCallback(async () => {
-    try {
-      const res = await fetch('/api/stats');
-      if (res.ok) {
-        const data = await res.json();
-        setStats(data);
-      }
-    } catch {} finally {
-      setLoading(false);
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case 'running': return 'text-green-400';
+      case 'paused': return 'text-yellow-400';
+      case 'failed': return 'text-red-400';
+      default: return 'text-slate-400';
     }
-  }, []);
-
-  useEffect(() => {
-    loadStats();
-    const interval = setInterval(loadStats, 30000);
-    return () => clearInterval(interval);
-  }, [loadStats]);
-
-  const handleNewChat = useCallback(() => {
-    const s = createSession('New Chat');
-    setActiveSession(s.id);
-  }, [createSession, setActiveSession]);
+  };
 
   return (
-    <div className="flex-1 overflow-y-auto p-3 md:p-6">
-      <div className="max-w-6xl mx-auto space-y-6">
-        {/* PWA Install Banner */}
-        {isInstallable && showBanner && (
-          <div className="flex items-center justify-between px-4 py-2.5 rounded-xl bg-[var(--accent)]/10 border border-[var(--accent)]/20">
-            <div className="flex items-center gap-3">
-              <Download className="w-4 h-4 text-[var(--accent)]" />
-              <span className="text-xs text-[var(--text)]">Install Overlord as an app on your device</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <button onClick={install} className="px-3 py-1 text-xs rounded-lg bg-[var(--accent)] text-white hover:opacity-90 transition-opacity">Install</button>
-              <button onClick={() => setShowBanner(false)} className="p-1 text-[var(--text-muted)] hover:text-[var(--text)]">
-                <X className="w-3.5 h-3.5" />
-              </button>
-            </div>
-          </div>
-        )}
-        {/* Header */}
-        <div className="flex items-center justify-between">
-          <div>
-            <h2 className="text-xl font-semibold text-[var(--text)]">Dashboard</h2>
-            <p className="text-sm text-[var(--text-muted)] mt-0.5">
-              System overview at {new Date().toLocaleTimeString()}
-            </p>
-          </div>
-          <div className="flex items-center gap-2 text-xs">
-            <span
-              className={`w-2 h-2 rounded-full ${
-                connectionStatus === 'connected' ? 'bg-[var(--success)]' :
-                connectionStatus === 'reconnecting' ? 'bg-[var(--warning)] animate-pulse' :
-                'bg-[var(--error)]'
-              }`}
-            />
-            <span className="text-[var(--text-secondary)] capitalize">{connectionStatus}</span>
-          </div>
+    <div className="flex flex-col gap-6 p-6 animate-fade-in">
+      {/* Header / Quick Actions */}
+      <div className="flex justify-between items-center">
+        <div>
+          <h1 className="text-2xl font-bold text-white">Mission Control</h1>
+          <p className="text-sm text-slate-400">System Operational Status: Nominal</p>
         </div>
-
-        {/* Stats Grid */}
-        <StatsGrid stats={stats} loading={loading} />
-
-        {/* Main Grid */}
-        <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
-          {/* Left: Quick Actions + System Health */}
-          <div className="space-y-6">
-            <QuickActions onNewChat={handleNewChat} />
-            <SystemHealth stats={stats} />
-          </div>
-
-          {/* Middle: Trending Now */}
-          <div className="lg:col-span-2">
-            <TrendingNowWidget />
-          </div>
-
-          {/* Right: Activity Timeline */}
-          <div>
-            <ActivityTimeline />
-          </div>
+        <div className="flex gap-3">
+          <button className="flex items-center gap-2 px-4 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-medium transition-colors">
+            <Plus size={16} />
+            Spawn Agent
+          </button>
+          <button className="px-4 py-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-white text-sm font-medium border border-slate-700 transition-colors">
+            New Workspace
+          </button>
+          <button className="px-4 py-2 rounded-lg bg-red-900/30 hover:bg-red-900/50 text-red-400 text-sm font-medium border border-red-900/50 transition-colors">
+            Emergency Stop
+          </button>
         </div>
-
-        {/* Sessions Overview */}
-        {sessions.length > 0 && (
-          <div className="rounded-xl border border-[var(--border)] bg-[var(--bg-secondary)] p-4">
-            <h3 className="text-sm font-medium text-[var(--text)] mb-3">Recent Sessions</h3>
-            <div className="space-y-2">
-              {sessions.slice(0, 5).map((s) => (
-                <button
-                  key={s.id}
-                  onClick={() => setActiveSession(s.id)}
-                  className={`w-full flex items-center justify-between px-3 py-2 rounded-lg text-left transition-colors ${
-                    s.id === activeSessionId
-                      ? 'bg-[var(--accent)]/10 border border-[var(--accent)]/30'
-                      : 'hover:bg-[var(--bg-tertiary)]'
-                  }`}
-                >
-                  <div className="flex items-center gap-3 min-w-0">
-                    <span className="text-sm">💬</span>
-                    <span className="text-sm truncate text-[var(--text)]">{s.title}</span>
-                  </div>
-                  <span className="text-xs text-[var(--text-muted)]">
-                    {new Date(s.updatedAt).toLocaleDateString()}
-                  </span>
-                </button>
-              ))}
-            </div>
-          </div>
-        )}
       </div>
+
+      {/* Health Grid */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        <HealthCard 
+          title="System Load" 
+          value={`${health.cpuUsage.toFixed(1)}%`} 
+          icon={<Cpu size={18} />} 
+          trend="up"
+          color="var(--accent)"
+        />
+        <HealthCard 
+          title="Active Agents" 
+          value={health.activeAgents.toString()} 
+          icon={<Activity size={18} />} 
+          trend="stable"
+          color="var(--success)"
+        />
+        <HealthCard 
+          title="Token Velocity" 
+          value={`${Math.floor(health.tokenThroughput)} t/s`} 
+          icon={<Zap size={18} />} 
+          trend="up"
+          color="var(--info)"
+        />
+        <HealthCard 
+          title="Error Rate" 
+          value={`${(health.errorRate * 100).toFixed(2)}%`} 
+          icon={<AlertCircle size={18} />} 
+          trend="down"
+          color={health.errorRate > 0.05 ? 'var(--error)' : 'var(--success)'}
+        />
+      </div>
+
+      {/* Main Content: Missions Table */}
+      <PanelWrapper title="Active Missions">
+        <div className="overflow-x-auto">
+          <table className="w-full text-left text-sm">
+            <thead className="text-slate-400 border-b border-slate-800">
+              <tr>
+                <th className="pb-3 font-medium">Mission ID</th>
+                <th className="pb-3 font-medium">Agent</th>
+                <th className="pb-3 font-medium">Objective</th>
+                <th className="pb-3 font-medium">Status</th>
+                <th className="pb-3 font-medium">Progress</th>
+                <th className="pb-3 font-medium text-right">Action</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-800">
+              {missions.map((mission) => (
+                <tr key={mission.id} className="group hover:bg-slate-800/30 transition-colors">
+                  <td className="py-4 font-mono text-indigo-400">{mission.id}</td>
+                  <td className="py-4">
+                    <div className="flex flex-col">
+                      <span className="text-white font-medium">{mission.agentName}</span>
+                      <span className="text-xs text-slate-500">{mission.agentId}</span>
+                    </div>
+                  </td>
+                  <td className="py-4 text-slate-300 max-w-md truncate">{mission.objective}</td>
+                  <td className="py-4">
+                    <div className="flex items-center gap-2">
+                      <div className={`w-2 h-2 rounded-full ${mission.status === 'running' ? 'bg-green-500 animate-pulse' : 'bg-slate-500'}`} />
+                      <span className={`capitalize ${getStatusColor(mission.status)}`}>{mission.status}</span>
+                    </div>
+                  </td>
+                  <td className="py-4 w-48">
+                    <div className="flex items-center gap-3">
+                      <div className="flex-1 h-1.5 bg-slate-800 rounded-full overflow-hidden">
+                        <div 
+                          className="h-full bg-indigo-500 transition-all duration-500" 
+                          style={{ width: `${mission.progress}%` }} 
+                        />
+                      </div>
+                      <span className="text-xs text-slate-400">{mission.progress}%</span>
+                    </div>
+                  </td>
+                  <td className="py-4 text-right">
+                    <button className="p-2 rounded-md bg-slate-800 hover:bg-slate-700 text-slate-300 transition-colors opacity-0 group-hover:opacity-100">
+                      <Play size={14} />
+                    </button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </PanelWrapper>
     </div>
+  );
+}
+
+function HealthCard({ title, value, icon, trend, color }: { title: string, value: string, icon: React.ReactNode, trend: 'up' | 'down' | 'stable', color: string }) {
+  return (
+    <PanelWrapper className="relative overflow-hidden group">
+      <div className="flex justify-between items-start mb-2">
+        <div className="p-2 rounded-lg bg-slate-800/50 text-slate-400 group-hover:text-white transition-colors">
+          {icon}
+        </div>
+        <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${
+          trend === 'up' ? 'bg-green-500/10 text-green-400' : 
+          trend === 'down' ? 'bg-red-500/10 text-red-400' : 
+          'bg-slate-800 text-slate-400'
+        }`}>
+          {trend === 'up' ? '↑' : trend === 'down' ? '↓' : '→'}
+        </span>
+      </div>
+      <div className="text-2xl font-bold text-white mb-1">{value}</div>
+      <div className="text-xs text-slate-500 uppercase tracking-wider">{title}</div>
+      <div 
+        className="absolute bottom-0 left-0 h-1 bg-current opacity-30 transition-all group-hover:opacity-100" 
+        style={{ color, width: '100%' }}
+      />
+    </PanelWrapper>
   );
 }

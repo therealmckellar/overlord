@@ -29,7 +29,6 @@ export const ChatWindow = () => {
   const setSelectedModel = useUIStore((s) => s.setSelectedModel);
   const activePersona = useUIStore((s) => s.activePersona);
   const setActivePersona = useUIStore((s) => s.setActivePersona);
-  const connectionStatus = useUIStore((s) => s.connectionStatus);
   const isStreaming = useMessageStore((s) => s.isStreaming);
   const streamingContent = useMessageStore((s) => s.streamingContent);
 
@@ -111,14 +110,10 @@ export const ChatWindow = () => {
     <div className="flex flex-col h-full bg-[var(--bg)]">
       {/* Header bar with controls */}
       <div className="px-4 py-2.5 border-b border-[var(--border)] flex items-center justify-between bg-[var(--bg-secondary)] gap-2">
-        <div className="flex items-center gap-2">
-          {/* Connection indicator */}
-          <div className={`w-2 h-2 rounded-full ${
-            connectionStatus === 'connected' ? 'bg-[var(--success)]' :
-            connectionStatus === 'connecting' || connectionStatus === 'reconnecting' ? 'bg-[var(--warning)] animate-pulse' :
-            'bg-[var(--error)]'
-          }`} />
+        <div className="flex items-center gap-3">
           <span className="text-xs text-[var(--text-muted)]">Chat</span>
+          <span className="text-[10px] text-[var(--text-muted)]">•</span>
+          <span className="text-xs text-[var(--text-secondary)]">{currentPersona.name}</span>
         </div>
 
         <div className="flex items-center gap-2">
@@ -212,15 +207,16 @@ export const ChatWindow = () => {
       </div>
 
       {/* Messages area */}
-      <div ref={scrollRef} className="flex-1 overflow-y-auto p-4 space-y-4 scroll-smooth">
+      <div ref={scrollRef} className="flex-1 overflow-y-auto scroll-smooth">
+        <div className="max-w-3xl mx-auto px-4 py-6 space-y-6">
         {!messages && !isStreaming && (
-          <div className="h-full flex flex-col items-center justify-center gap-3">
-            <div className="w-12 h-12 rounded-xl bg-[var(--bg-tertiary)] flex items-center justify-center">
-              <UserCircle className="w-6 h-6 text-[var(--text-muted)]" />
+          <div className="h-full flex flex-col items-center justify-center gap-3 py-20">
+            <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-[var(--accent)]/20 to-[var(--accent)]/5 border border-[var(--accent)]/20 flex items-center justify-center">
+              <UserCircle className="w-7 h-7 text-[var(--accent)]" />
             </div>
             <div className="text-center">
-              <p className="text-sm text-[var(--text-secondary)]">Start a conversation</p>
-              <p className="text-xs text-[var(--text-muted)] mt-1">Using {currentModelLabel} as {currentPersona.name}</p>
+              <p className="text-base text-[var(--text-primary)] font-medium">Start a conversation</p>
+              <p className="text-sm text-[var(--text-muted)] mt-1">Using {currentModelLabel} as {currentPersona.name}</p>
             </div>
           </div>
         )}
@@ -233,13 +229,13 @@ export const ChatWindow = () => {
         {isStreaming && streamingContent && (
           <div className="group flex gap-3">
             <div className="flex-shrink-0 w-8 h-8 rounded-lg flex items-center justify-center bg-[var(--bg-tertiary)]">
-              <svg className="w-4 h-4 text-[var(--text-secondary)] animate-pulse" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <svg className="w-4 h-4 text-[var(--accent)] animate-pulse" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
               </svg>
             </div>
-            <div className="flex-1 max-w-[85%]">
+            <div className="flex-1">
               <div className="rounded-xl px-4 py-3 bg-[var(--bg-secondary)] border border-[var(--border)]">
-                <div className="text-sm text-[var(--text)] whitespace-pre-wrap">{streamingContent}</div>
+                <div className="text-sm text-[var(--text)] whitespace-pre-wrap leading-relaxed">{streamingContent}<span className="inline-block w-1.5 h-4 bg-[var(--accent)] animate-pulse ml-0.5 align-text-bottom" /></div>
               </div>
             </div>
           </div>
@@ -247,6 +243,7 @@ export const ChatWindow = () => {
 
         {/* Typing indicator (before first chunk) */}
         {isStreaming && !streamingContent && <TypingIndicator />}
+        </div>
       </div>
 
       {/* Error bar */}

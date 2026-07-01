@@ -31,9 +31,9 @@ export function TypingIndicator({ agentName = 'Assistant', persona }: TypingIndi
         <div className="rounded-xl px-4 py-3 bg-[var(--bg-secondary)] border border-[var(--border)]">
           <div className="flex items-center gap-1.5">
             <div className="flex gap-1">
-              <span className="w-2 h-2 rounded-full bg-[var(--text-muted)] animate-bounce" style={{ animationDelay: '0ms', animationDuration: '1.4s' }} />
-              <span className="w-2 h-2 rounded-full bg-[var(--text-muted)] animate-bounce" style={{ animationDelay: '200ms', animationDuration: '1.4s' }} />
-              <span className="w-2 h-2 rounded-full bg-[var(--text-muted)] animate-bounce" style={{ animationDelay: '400ms', animationDuration: '1.4s' }} />
+              <span className="w-2 h-2 rounded-full bg-[var(--accent)] animate-bounce" style={{ animationDelay: '0ms', animationDuration: '1.4s' }} />
+              <span className="w-2 h-2 rounded-full bg-[var(--accent)] animate-bounce" style={{ animationDelay: '200ms', animationDuration: '1.4s' }} />
+              <span className="w-2 h-2 rounded-full bg-[var(--accent)] animate-bounce" style={{ animationDelay: '400ms', animationDuration: '1.4s' }} />
             </div>
             <span className="text-xs text-[var(--text-muted)] ml-1">thinking…</span>
           </div>

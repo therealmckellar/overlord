@@ -241,7 +241,7 @@ export type StudioTab = 'library' | 'generator' | 'arena';
 // ── Available models for selection ────────────────────────────────
 
 export const ARENA_MODELS = [
-  { value: 'openrouter/owl-alpha', label: 'OWL Alpha', category: 'flagship' },
+  { value: 'google/gemma-4-31b-it:free', label: 'Gemma 4 31B', category: 'flagship' },
   { value: 'nvidia/nemotron-3-ultra-550b-a55b:free', label: 'Nemotron Ultra 550B', category: 'heavy' },
   { value: 'openai/gpt-oss-120b:free', label: 'GPT-OSS 120B', category: 'heavy' },
   { value: 'moonshotai/kimi-k2.6:free', label: 'Kimi K2.6', category: 'research' },
@@ -260,7 +260,7 @@ export const GENERATOR_MODELS = [
   { value: 'openai/gpt-oss-120b:free', label: 'GPT-OSS 120B' },
   { value: 'nvidia/nemotron-3-ultra-550b-a55b:free', label: 'Nemotron Ultra 550B' },
   { value: 'moonshotai/kimi-k2.6:free', label: 'Kimi K2.6' },
-  { value: 'openrouter/owl-alpha', label: 'OWL Alpha' },
+  { value: 'google/gemma-4-31b-it:free', label: 'Gemma 4 31B' },
 ] as const;
 
 interface PromptState {

@@ -25,7 +25,12 @@ export type AgentRole =
   | 'refactor'        // Refactoring
   | 'fast'            // Quick fixes
   | 'trading'         // Trading analysis
-  | 'utility';        // Glue/cleanup
+  | 'utility'         // Glue/cleanup
+  | 'kanban-orchestrator' // Kanban multi-agent dispatch
+  | 'kanban-worker'   // Kanban ticket executor
+  | 'marketing'       // Marketing campaigns
+  | 'content-creator'  // Content creation (MCF)
+  | 'content-editor';  // Content review (MCF)
 
 export type TaskCategory =
   | 'image-generation'
@@ -66,7 +71,7 @@ export interface AgentConfig {
 export const MODEL_GRAPH: Record<AgentRole, AgentConfig> = {
   orchestrator: {
     role: 'orchestrator',
-    model: 'openrouter/owl-alpha',
+    model: 'google/gemma-4-31b-it:free',
     provider: 'openrouter',
     agentFlag: 'hermes',
     maxTokens: 4096,
@@ -256,13 +261,70 @@ export const MODEL_GRAPH: Record<AgentRole, AgentConfig> = {
 
   utility: {
     role: 'utility',
-    model: 'meta-llama/llama-3.2-3b-instruct:free',
+    model: 'google/gemma-4-31b-it:free',
     provider: 'openrouter',
     agentFlag: 'utility',
     maxTokens: 4096,
     allowedTasks: [
       'kanban-task',
       'general',
+    ],
+  },
+  'kanban-orchestrator': {
+    role: 'kanban-orchestrator',
+    model: 'nvidia/nemotron-3-ultra-550b-a55b:free',
+    provider: 'openrouter',
+    agentFlag: 'kanban-orchestrator',
+    maxTokens: 16384,
+    allowedTasks: [
+      'deep-research',
+      'report-generation',
+      'data-analysis',
+    ],
+  },
+  'kanban-worker': {
+    role: 'kanban-worker',
+    model: 'openai/gpt-oss-120b:free',
+    provider: 'openrouter',
+    agentFlag: 'kanban-worker',
+    maxTokens: 16384,
+    allowedTasks: [
+      'code-build',
+      'refactor',
+      'docs-copy',
+    ],
+  },
+  marketing: {
+    role: 'marketing',
+    model: 'google/gemma-4-31b-it:free',
+    provider: 'openrouter',
+    agentFlag: 'marketing-agent',
+    maxTokens: 8192,
+    allowedTasks: [
+      'docs-copy',
+      'report-generation',
+    ],
+  },
+  'content-creator': {
+    role: 'content-creator',
+    model: 'google/gemma-4-31b-it:free',
+    provider: 'openrouter',
+    agentFlag: 'content-creator-mcf',
+    maxTokens: 8192,
+    allowedTasks: [
+      'docs-copy',
+      'report-generation',
+    ],
+  },
+  'content-editor': {
+    role: 'content-editor',
+    model: 'google/gemma-4-31b-it:free',
+    provider: 'openrouter',
+    agentFlag: 'content-editor',
+    maxTokens: 8192,
+    allowedTasks: [
+      'docs-copy',
+      'code-review',
     ],
   },
 };
@@ -276,18 +338,18 @@ export const TASK_ROUTING: Record<TaskCategory, AgentRole> = {
   'design-graphics':     'builder',
   'canvas-drawing':      'builder',
   'landing-page':        'builder',
-  'code-build':          'builder',
-  'kanban-task':         'utility',
+  'code-build':          'kanban-worker',
+  'kanban-task':         'kanban-orchestrator',
   'deep-research':       'researcher',
-  'report-generation':   'researcher',
+  'report-generation':   'content-creator',
   'pitch-deck':          'researcher',
   'mindmap':             'researcher',
   'flashcards':          'researcher',
   'data-analysis':       'trading',
-  'code-review':         'reviewer',
+  'code-review':         'content-editor',
   'security-audit':      'security',
   'performance-audit':   'perf',
-  'docs-copy':           'docs',
+  'docs-copy':           'marketing',
   'sdr-outreach':        'sdr',
   'e2e-test':            'e2e',
   'codebase-explore':    'explorer',
@@ -301,7 +363,7 @@ export const TASK_ROUTING: Record<TaskCategory, AgentRole> = {
 export const PERSONA_AGENT_MAP: Record<string, AgentRole> = {
   hermes: 'orchestrator',
   david: 'sdr',          // Promo/merch → SDR outreach
-  josh: 'researcher',   // Funding → researcher (pitch decks, reports)
+  josh: 'content-creator',   // Funding → content creator (pitch decks, reports)
   steve: 'researcher',   // Consulting → researcher (strategy, analysis)
   fathom: 'researcher',  // Real estate → researcher (market analysis)
 };

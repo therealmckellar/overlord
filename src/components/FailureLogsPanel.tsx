@@ -1,150 +1,243 @@
 'use client';
 
 import React, { useState, useMemo } from 'react';
-import { useFailureLogStore, type FailureLog } from '@/stores/failureLogStore';
+import { PanelWrapper } from '@/components/ui/PanelWrapper';
+import { AlertTriangle, Search, XCircle, Play, RotateCcw, Terminal, ChevronRight, ChevronDown, Zap } from 'lucide-react';
 
-const TYPE_COLORS: Record<string, string> = {
-  runtime: '#ef4444',
-  api: '#f59e0b',
-  timeout: '#8b5cf6',
-  logic: '#3b82f6',
-};
+// Types based on IMPLEMENTATION_PLAN_CLUSTER_B.md
+interface FailureEvent {
+  traceId: string;
+  timestamp: string;
+  severity: 'low' | 'medium' | 'high' | 'critical';
+  errorCode: string;
+  message: string;
+  agentId: string;
+  missionId: string;
+  stackTrace: string;
+}
 
-const TYPE_ICONS: Record<string, string> = {
-  runtime: '💥',
-  api: '🌐',
-  timeout: '⏱️',
-  logic: '🧠',
+interface TraceStep {
+  stepId: string;
+  timestamp: string;
+  component: string;
+  action: string;
+  status: 'success' | 'error';
+  payload: {
+    request: any;
+    response: any;
+  };
+}
+
+interface RCASummary {
+  hypothesis: string;
+  evidence: string[];
+  suggestedFix: string;
+  confidence: number;
+}
+
+// Mock Data
+const generateMockFailures = (): FailureEvent[] => [
+  {
+    traceId: 'tr-9901',
+    timestamp: new Date().toISOString(),
+    severity: 'critical',
+    errorCode: 'ERR_TOOL_TIMEOUT',
+    message: 'Unexpected token in Tool: PythonExec - Process exceeded 30s limit',
+    agentId: 'agent-01',
+    missionId: 'mission-alpha',
+    stackTrace: 'Error: Timeout at internal/process/task_queues.js:95:5\n    at async executeTool (tool_runtime.ts:142:12)\n    at async Agent.step (agent_core.ts:88:4)',
+  },
+  {
+    traceId: 'tr-9902',
+    timestamp: new Date(Date.now() - 3600000).toISOString(),
+    severity: 'high',
+    errorCode: 'ERR_LLM_HALLUCINATION',
+    message: 'Latency Spike: 4.2s on LLM-Call - Response format invalid for JSON parser',
+    agentId: 'agent-03',
+    missionId: 'mission-beta',
+    stackTrace: 'JSONParseError: Unexpected token < in JSON at position 0\n    at JSON.parse (<anonymous>)\n    at parseLLMResponse (parser.ts:22:10)',
+  },
+  {
+    traceId: 'tr-9903',
+    timestamp: new Date(Date.now() - 7200000).toISOString(),
+    severity: 'medium',
+    errorCode: 'ERR_API_403',
+    message: 'Access Denied: Search tool returned 403 Forbidden for domain "internal.docs"',
+    agentId: 'agent-02',
+    missionId: 'mission-alpha',
+    stackTrace: 'HttpError: 403 Forbidden\n    at searchProvider.ts:45:18\n    at async Tool.call (tool.ts:12:4)',
+  },
+];
+
+const generateTraceFor = (traceId: string): TraceStep[] => [
+  { stepId: 's1', timestamp: '10:00:01', component: 'Orchestrator', action: 'Plan Generation', status: 'success', payload: { request: { goal: 'Audit API' }, response: { plan: ['search', 'execute'] } } },
+  { stepId: 's2', timestamp: '10:00:02', component: 'MCP-Server', action: 'Tool Call: search', status: 'success', payload: { request: { query: 'api endpoints' }, response: { results: ['/api/v1/user', '/api/v1/auth'] } } },
+  { stepId: 's3', timestamp: '10:00:05', component: 'PythonExec', action: 'Tool Call: scan_port', status: 'error', payload: { request: { target: 'internal.docs' }, response: { error: 'Timeout' } } },
+];
+
+const generateRCA = (errorCode: string): RCASummary => {
+  if (errorCode === 'ERR_TOOL_TIMEOUT') {
+    return {
+      hypothesis: 'Recursive loop in PythonExec script caused process hang.',
+      evidence: ['CPU spiked to 100% before timeout', 'Input contains nested array of 1000+ elements'],
+      suggestedFix: 'Implement strict recursion depth limits in PythonExec tool definition.',
+      confidence: 0.85,
+    };
+  }
+  return {
+    hypothesis: 'Upstream API instability.',
+    evidence: ['Multiple 5xx errors observed in neighboring agents'],
+    suggestedFix: 'Increase retry backoff strategy.',
+    confidence: 0.6,
+  };
 };
 
 export default function FailureLogsPanel() {
-  const logs = useFailureLogStore((s) => s.logs);
-  const resolveLog = useFailureLogStore((s) => s.resolveLog);
-  const deleteLog = useFailureLogStore((s) => s.deleteLog);
+  const [failures] = useState(generateMockFailures());
+  const [selectedTraceId, setSelectedTraceId] = useState<string | null>(null);
 
-  const [filterAgent, setFilterAgent] = useState<string>('all');
-  const [filterType, setFilterType] = useState<string>('all');
-  const [expandedId, setExpandedId] = useState<string | null>(null);
-
-  const agents = useMemo(() => [...new Set(logs.map((l) => l.agentName))], [logs]);
-  const types = useMemo(() => [...new Set(logs.map((l) => l.type))], [logs]);
-
-  const filtered = useMemo(() => {
-    return logs.filter((l) => {
-      if (filterAgent !== 'all' && l.agentName !== filterAgent) return false;
-      if (filterType !== 'all' && l.type !== filterType) return false;
-      return true;
-    });
-  }, [logs, filterAgent, filterType]);
-
-  const unresolved = filtered.filter((l) => !l.resolved).length;
-  const resolved = filtered.filter((l) => l.resolved).length;
-
-  const formatTime = (ts: number) => {
-    const d = new Date(ts);
-    return d.toLocaleString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
-  };
+  const selectedFailure = failures.find(f => f.traceId === selectedTraceId);
+  const trace = selectedTraceId ? generateTraceFor(selectedTraceId) : [];
+  const rca = selectedFailure ? generateRCA(selectedFailure.errorCode) : null;
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
-      {/* Header */}
-      <div style={{ padding: '16px 20px', borderBottom: '1px solid #1e293b', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <div>
-          <h2 style={{ margin: 0, fontSize: '18px', fontWeight: 700, color: '#f1f5f9' }}>🔥 Failure Logs</h2>
-          <p style={{ margin: '4px 0 0', fontSize: '12px', color: '#64748b' }}>
-            {filtered.length} logs · {unresolved} unresolved · {resolved} resolved
-          </p>
+    <div className="flex h-full overflow-hidden bg-transparent">
+      {/* Error Aggregator */}
+      <div className="w-1/3 border-r border-slate-800 flex flex-col bg-slate-900/20">
+        <div className="p-4 border-b border-slate-800 flex justify-between items-center">
+          <h3 className="text-sm font-semibold text-slate-200 flex items-center gap-2">
+            <AlertTriangle className="w-4 h-4 text-red-400" /> Failure Logs
+          </h3>
+          <span className="text-[10px] bg-red-500/10 text-red-400 px-2 py-0.5 rounded-full border border-red-500/20">
+            {failures.length} Active
+          </span>
+        </div>
+        <div className="flex-1 overflow-y-auto p-3 space-y-2">
+          {failures.map(f => (
+            <div 
+              key={f.traceId}
+              onClick={() => setSelectedTraceId(f.traceId)}
+              className={`p-3 rounded-lg border cursor-pointer transition-all ${
+                selectedTraceId === f.traceId 
+                ? 'bg-indigo-500/10 border-indigo-500/50 shadow-[0_0_10px_rgba(79,70,229,0.1)]' 
+                : 'bg-slate-800/40 border-slate-800 hover:border-slate-700'
+              }`}
+            >
+              <div className="flex justify-between items-start mb-1">
+                <span className={`text-[10px] font-bold uppercase px-1.5 py-0.5 rounded ${
+                  f.severity === 'critical' ? 'bg-red-500/20 text-red-400' : 
+                  f.severity === 'high' ? 'bg-orange-500/20 text-orange-400' : 'bg-yellow-500/20 text-yellow-400'
+                }`}>
+                  {f.severity}
+                </span>
+                <span className="text-[10px] text-slate-500 font-mono">{f.traceId}</span>
+              </div>
+              <p className="text-xs text-slate-200 line-clamp-2 mb-2">{f.message}</p>
+              <div className="flex justify-between items-center text-[10px] text-slate-500">
+                <span className="flex items-center gap-1">🤖 {f.agentId}</span>
+                <span>{new Date(f.timestamp).toLocaleTimeString()}</span>
+              </div>
+            </div>
+          ))}
         </div>
       </div>
 
-      {/* Filters */}
-      <div style={{ padding: '12px 20px', borderBottom: '1px solid #1e293b', display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
-        <select
-          value={filterAgent}
-          onChange={(e) => setFilterAgent(e.target.value)}
-          style={{ padding: '6px 10px', borderRadius: '6px', border: '1px solid #334155', background: '#1e293b', color: '#f1f5f9', fontSize: '12px' }}
-        >
-          <option value="all">All Agents</option>
-          {agents.map((a) => <option key={a} value={a}>{a}</option>)}
-        </select>
-        <select
-          value={filterType}
-          onChange={(e) => setFilterType(e.target.value)}
-          style={{ padding: '6px 10px', borderRadius: '6px', border: '1px solid #334155', background: '#1e293b', color: '#f1f5f9', fontSize: '12px' }}
-        >
-          <option value="all">All Types</option>
-          {types.map((t) => <option key={t} value={t}>{TYPE_ICONS[t]} {t}</option>)}
-        </select>
-      </div>
+      {/* Trace & Analysis View */}
+      <div className="flex-1 flex flex-col overflow-hidden">
+        {selectedFailure ? (
+          <div className="flex-1 overflow-y-auto p-6 space-y-6">
+            {/* RCA Summary Panel */}
+            <PanelWrapper title="AI-Powered Root Cause Analysis" className="border-indigo-500/30 bg-indigo-500/5">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="space-y-3">
+                  <div className="flex items-center gap-2 text-xs font-semibold text-indigo-300 uppercase">
+                    <Zap className="w-3 h-3" /> Hypothesis
+                  </div>
+                  <p className="text-sm text-slate-300 leading-relaxed">{rca?.hypothesis}</p>
+                </div>
+                <div className="space-y-3">
+                  <div className="flex items-center gap-2 text-xs font-semibold text-indigo-300 uppercase">
+                    <Search className="w-3 h-3" /> Evidence
+                  </div>
+                  <ul className="text-xs text-slate-400 space-y-1">
+                    {rca?.evidence.map((e, i) => (
+                      <li key={i} className="flex gap-2">
+                        <span className="text-indigo-500">•</span> {e}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              </div>
+              <div className="mt-4 pt-4 border-t border-indigo-500/20 flex justify-between items-center">
+                <div className="text-xs">
+                  <span className="text-slate-500">Suggested Fix: </span>
+                  <span className="text-slate-200 italic">{rca?.suggestedFix}</span>
+                </div>
+                <div className="text-[10px] bg-indigo-500/20 text-indigo-400 px-2 py-1 rounded border border-indigo-500/30">
+                  Confidence: {(rca?.confidence || 0) * 100}%
+                </div>
+              </div>
+            </PanelWrapper>
 
-      {/* Logs List */}
-      <div style={{ flex: 1, overflowY: 'auto', padding: '12px 20px' }}>
-        {filtered.length === 0 ? (
-          <div style={{ textAlign: 'center', padding: '40px', color: '#64748b' }}>
-            <p style={{ fontSize: '14px' }}>No failure logs found</p>
+            {/* Trace Viewer */}
+            <PanelWrapper title="Execution Trace">
+              <div className="relative pl-6 space-y-6 before:content-[''] before:absolute before:left-2 before:top-0 before:bottom-0 before:w-px before:bg-slate-800">
+                {trace.map((step, i) => (
+                  <div key={step.stepId} className="relative group">
+                    <div className={`absolute -left-[13px] top-1 w-2 h-2 rounded-full ${
+                      step.status === 'success' ? 'bg-green-500 shadow-[0_0_5px_rgba(34,197,94,0.5)]' : 'bg-red-500 shadow-[0_0_5px_rgba(239,68,68,0.5)]'
+                    }`} />
+                    <div className="flex justify-between items-start">
+                      <div>
+                        <div className="flex items-center gap-2 mb-1">
+                          <span className="text-[10px] font-mono text-slate-500">{step.timestamp}</span>
+                          <span className="text-xs font-medium text-slate-300">{step.component}</span>
+                          <span className={`text-[10px] px-1.5 py-0.5 rounded ${
+                            step.status === 'success' ? 'bg-green-500/10 text-green-400' : 'bg-red-500/10 text-red-400'
+                          }`}>
+                            {step.action}
+                          </span>
+                        </div>
+                        <div className="mt-2">
+                          <details className="group">
+                            <summary className="text-xs text-slate-500 cursor-pointer hover:text-slate-300 flex items-center gap-1">
+                              <ChevronRight className="w-3 h-3 group-open:rotate-90 transition-transform" />
+                              View Payload
+                            </summary>
+                            <div className="mt-2 p-3 bg-slate-950 rounded-lg border border-slate-800 font-mono text-[10px] text-indigo-300 overflow-x-auto">
+                              <div className="mb-2 text-slate-500">// Request</div>
+                              <pre>{JSON.stringify(step.payload.request, null, 2)}</pre>
+                              <div className="mt-2 mb-2 text-slate-500">// Response</div>
+                              <pre>{JSON.stringify(step.payload.response, null, 2)}</pre>
+                            </div>
+                          </details>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </PanelWrapper>
+
+            {/* Quick Fix Hub */}
+            <div className="flex gap-3 justify-end">
+              <button className="flex items-center gap-2 px-3 py-1.5 text-xs rounded-lg bg-slate-800 text-slate-300 hover:bg-slate-700 transition-colors border border-slate-700">
+                <RotateCcw className="w-3 h-3" /> Clear Cache
+              </button>
+              <button className="flex items-center gap-2 px-3 py-1.5 text-xs rounded-lg bg-slate-800 text-slate-300 hover:bg-slate-700 transition-colors border border-slate-700">
+                <Terminal className="w-3 h-3" /> Restart Agent
+              </button>
+              <button className="flex items-center gap-2 px-3 py-1.5 text-xs rounded-lg bg-indigo-600 text-white hover:bg-indigo-500 transition-colors shadow-lg shadow-indigo-500/20">
+                <Play className="w-3 h-3" /> Force Re-run Step
+              </button>
+            </div>
           </div>
         ) : (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-            {filtered.map((log) => (
-              <div
-                key={log.id}
-                style={{
-                  background: log.resolved ? '#0f172a' : '#1a1028',
-                  border: `1px solid ${log.resolved ? '#1e293b' : TYPE_COLORS[log.type] + '44'}`,
-                  borderLeft: `3px solid ${TYPE_COLORS[log.type]}`,
-                  borderRadius: '8px',
-                  overflow: 'hidden',
-                }}
-              >
-                <div
-                  onClick={() => setExpandedId(expandedId === log.id ? null : log.id)}
-                  style={{ padding: '12px 14px', cursor: 'pointer', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}
-                >
-                  <div style={{ flex: 1 }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
-                      <span style={{ fontSize: '14px' }}>{TYPE_ICONS[log.type]}</span>
-                      <span style={{ fontSize: '11px', fontWeight: 600, color: TYPE_COLORS[log.type], textTransform: 'uppercase' }}>{log.type}</span>
-                      {log.resolved && <span style={{ fontSize: '10px', background: '#10b98133', color: '#10b981', padding: '1px 6px', borderRadius: '4px' }}>RESOLVED</span>}
-                    </div>
-                    <p style={{ margin: 0, fontSize: '13px', color: '#e2e8f0', lineHeight: 1.4 }}>{log.message}</p>
-                    <div style={{ display: 'flex', gap: '12px', marginTop: '6px', fontSize: '11px', color: '#64748b' }}>
-                      <span>🤖 {log.agentName}</span>
-                      <span>🕐 {formatTime(log.timestamp)}</span>
-                    </div>
-                  </div>
-                  <span style={{ color: '#64748b', fontSize: '12px' }}>{expandedId === log.id ? '▲' : '▼'}</span>
-                </div>
-
-                {expandedId === log.id && (
-                  <div style={{ padding: '0 14px 12px', borderTop: '1px solid #1e293b' }}>
-                    {log.stack && (
-                      <div style={{ marginTop: '10px' }}>
-                        <p style={{ margin: '0 0 4px', fontSize: '10px', fontWeight: 600, color: '#64748b', textTransform: 'uppercase' }}>Stack Trace</p>
-                        <pre style={{ margin: 0, padding: '8px', background: '#0f172a', borderRadius: '4px', fontSize: '11px', color: '#94a3b8', overflow: 'auto', whiteSpace: 'pre-wrap' }}>
-                          {log.stack}
-                        </pre>
-                      </div>
-                    )}
-                    <div style={{ marginTop: '10px', display: 'flex', gap: '8px' }}>
-                      {!log.resolved && (
-                        <button
-                          onClick={(e) => { e.stopPropagation(); resolveLog(log.id); }}
-                          style={{ padding: '4px 10px', borderRadius: '4px', border: '1px solid #10b981', background: '#10b98122', color: '#10b981', fontSize: '11px', cursor: 'pointer' }}
-                        >
-                          Mark Resolved
-                        </button>
-                      )}
-                      <button
-                        onClick={(e) => { e.stopPropagation(); deleteLog(log.id); }}
-                        style={{ padding: '4px 10px', borderRadius: '4px', border: '1px solid #ef4444', background: '#ef444422', color: '#ef4444', fontSize: '11px', cursor: 'pointer' }}
-                      >
-                        Delete
-                      </button>
-                    </div>
-                  </div>
-                )}
-              </div>
-            ))}
+          <div className="flex-1 flex flex-col items-center justify-center text-slate-500 gap-3">
+            <div className="p-4 rounded-full bg-slate-800/50">
+              <Search className="w-8 h-8 opacity-20" />
+            </div>
+            <p className="text-sm">Select a failure log to analyze the trace</p>
           </div>
         )}
       </div>

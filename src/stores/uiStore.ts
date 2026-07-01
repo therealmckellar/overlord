@@ -166,7 +166,7 @@ export const useUIStore = create<UIState>()(
         set((s) => ({ shortcutsHelpOpen: !s.shortcutsHelpOpen })),
 
       // Model
-      selectedModel: 'openrouter/owl-alpha',
+      selectedModel: 'google/gemma-4-31b-it:free',
       setSelectedModel: (model) => set({ selectedModel: model }),
       availableModels: ['openrouter/owl-alpha', 'openai/gpt-oss-120b:free', 'moonshotai/kimi-k2.6:free', 'google/gemma-4-31b-it:free', 'nvidia/nemotron-3-super-120b-a12b:free', 'meta-llama/llama-3.2-3b-instruct:free', 'nex-agi/nex-n2-pro:free', 'openai/gpt-oss-20b:free'],
       setAvailableModels: (models) => set({ availableModels: models }),

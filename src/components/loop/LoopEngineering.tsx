@@ -96,6 +96,7 @@ export function LoopEngineering({ isOpen, onClose }: LoopEngineeringProps) {
   const [formModel, setFormModel] = useState(UNIQUE_MODELS[0]?.value || 'google/gemma-4-31b-it:free');
   const [formMaxIter, setFormMaxIter] = useState(5);
   const [formPrompt, setFormPrompt] = useState('');
+  const [formRubric, setFormRubric] = useState('');
 
   // Edit form state
   const [editName, setEditName] = useState('');
@@ -113,14 +114,16 @@ export function LoopEngineering({ isOpen, onClose }: LoopEngineeringProps) {
       model: formModel,
       maxIterations: formMaxIter,
       prompt: formPrompt.trim(),
+      rubric: formRubric.trim().split('\n').filter(Boolean),
     });
     setSelectedLoopId(id);
     setShowForm(false);
     setFormName('');
     setFormDescription('');
     setFormPrompt('');
+    setFormRubric('');
     addToast({ type: 'success', message: `Loop "${formName.trim()}" created`, duration: 3000 });
-  }, [formName, formDescription, formModel, formMaxIter, formPrompt, createLoop, addToast]);
+  }, [formName, formDescription, formModel, formMaxIter, formPrompt, formRubric, createLoop, addToast]);
 
   const handleStartLoop = useCallback((id: string) => {
     startLoop(id);
@@ -427,6 +430,16 @@ function NewLoopForm({
             className="w-full bg-[var(--bg)] border border-[var(--border)] rounded-lg px-3 py-2 text-sm text-[var(--text)] font-mono focus:outline-none focus:ring-1 focus:ring-[var(--accent)] resize-none"
           />
         </div>
+        <div>
+          <label className="block text-xs font-medium text-[var(--text-muted)] mb-1.5">Ship Readiness Rubric (one per line)</label>
+          <textarea
+            value={formRubric}
+            onChange={(e) => setFormRubric(e.target.value)}
+            rows={4}
+            placeholder="e.g. Tests pass&#10;Build passes&#10;Docs updated"
+            className="w-full bg-[var(--bg)] border border-[var(--border)] rounded-lg px-3 py-2 text-sm text-[var(--text)] font-mono focus:outline-none focus:ring-1 focus:ring-[var(--accent)] resize-none"
+          />
+        </div>
         <div className="flex gap-3 pt-2">
           <button
             onClick={onSubmit}
@@ -546,34 +559,74 @@ function LoopDetail({ loop, onStart, onStop }: { loop: LoopTask; onStart: () => 
               <span className="text-[var(--text-secondary)]">Model:</span>
               <span className="font-medium text-[var(--text)]">{loop.model.split('/').pop()}</span>
             </div>
-            <div className="flex items-center gap-1.5 text-xs">
+        <div className="flex items-center gap-1.5 text-xs">
               <RefreshCw className="w-3.5 h-3.5 text-[var(--text-muted)]" />
               <span className="text-[var(--text-secondary)]">Progress:</span>
               <span className="font-medium text-[var(--text)]">{loop.currentIteration}/{loop.maxIterations}</span>
             </div>
           </div>
         </div>
-        <div className="flex gap-2">
-          {loop.status === 'running' ? (
-            <button
-              onClick={onStop}
-              className="px-4 py-2 text-sm bg-red-500/10 text-red-400 border border-red-500/20 rounded-lg font-medium hover:bg-red-500/20 transition-colors flex items-center gap-2"
+      </div>
+
+      <div className="flex-1 overflow-y-auto">
+        {/* Rubric Section */}
+        {loop.rubric && loop.rubric.length > 0 && (
+          <div className="px-6 py-4 border-b border-[var(--border)] bg-[var(--bg-secondary)]/50">
+            <h4 className="text-xs font-semibold text-[var(--text-muted)] uppercase tracking-wider mb-3">Ship Readiness Rubric</h4>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+              {loop.rubric.map((criterion, i) => (
+                <div key={i} className="flex items-center gap-2 p-2 rounded bg-[var(--bg)] border border-[var(--border)] text-xs">
+                  <div className={`w-2 h-2 rounded-full ${
+                    loop.rubricStatus?.[i] === 'passed' ? 'bg-green-500' : 
+                    loop.rubricStatus?.[i] === 'failed' ? 'bg-red-500' : 'bg-gray-400'
+                  }`} />
+                  <span className={loop.rubricStatus?.[i] === 'passed' ? 'text-[var(--text)] line-through opacity-50' : 'text-[var(--text)]'}>
+                    {criterion}
+                  </span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Score chart */}
+        {loop.results.length > 0 && (
             >
               <Square className="w-3.5 h-3.5" /> Stop Loop
             </button>
           ) : (
             <button
               onClick={onStart}
-              disabled={loop.status === 'complete'}
-              className="px-4 py-2 text-sm bg-[var(--accent)] text-white rounded-lg font-medium hover:opacity-90 transition-opacity flex items-center gap-2 disabled:opacity-50"
-            >
-              <Play className="w-3.5 h-3.5" /> {loop.currentIteration > 0 ? 'Resume' : 'Start'}
-            </button>
-          )}
+        <div className="flex items-center gap-1.5 text-xs">
+              <RefreshCw className="w-3.5 h-3.5 text-[var(--text-muted)]" />
+              <span className="text-[var(--text-secondary)]">Progress:</span>
+              <span className="font-medium text-[var(--text)]">{loop.currentIteration}/{loop.maxIterations}</span>
+            </div>
+          </div>
         </div>
       </div>
 
       <div className="flex-1 overflow-y-auto">
+        {/* Rubric Section */}
+        {loop.rubric && loop.rubric.length > 0 && (
+          <div className="px-6 py-4 border-b border-[var(--border)] bg-[var(--bg-secondary)]/50">
+            <h4 className="text-xs font-semibold text-[var(--text-muted)] uppercase tracking-wider mb-3">Ship Readiness Rubric</h4>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+              {loop.rubric.map((criterion, i) => (
+                <div key={i} className="flex items-center gap-2 p-2 rounded bg-[var(--bg)] border border-[var(--border)] text-xs">
+                  <div className={`w-2 h-2 rounded-full ${
+                    loop.rubricStatus?.[i] === 'passed' ? 'bg-green-500' : 
+                    loop.rubricStatus?.[i] === 'failed' ? 'bg-red-500' : 'bg-gray-400'
+                  }`} />
+                  <span className={loop.rubricStatus?.[i] === 'passed' ? 'text-[var(--text)] line-through opacity-50' : 'text-[var(--text)]'}>
+                    {criterion}
+                  </span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
         {/* Score chart */}
         {loop.results.length > 0 && (
           <div className="px-6 py-4 border-b border-[var(--border)]">

@@ -255,7 +255,7 @@ export default function Home() {
       <div id="main-content" className="flex-1 flex flex-col min-w-0 relative" role="main">
         {/* Header */}
         <header
-          className="h-[52px] border-b border-[var(--border)] flex items-center px-4 gap-2 bg-[var(--bg)]"
+          className="h-[52px] border-b border-[var(--border)] flex items-center px-4 gap-2 bg-[var(--bg)]/60 backdrop-blur-md sticky top-0 z-30"
           role="banner"
         >
           <button
@@ -271,7 +271,7 @@ export default function Home() {
           </button>
 
           <h1 className="text-sm font-medium flex-1">
-{PANEL_TITLES[activePanel] || activePanel}
+            {activePanel === 'chat' ? '' : (PANEL_TITLES[activePanel] || activePanel)}
           </h1>
 
           {/* Persona Selector - hidden on mobile */}
@@ -286,13 +286,15 @@ export default function Home() {
           {/* Voice Controls - hidden on mobile */}
           <div className="hidden md:block"><VoiceControls /></div>
 
-          {/* Connection Status */}
-          <div className="flex items-center gap-2 text-xs text-[var(--text-secondary)]">
-            <span
-              className={`w-2 h-2 rounded-full ${connectionStatus === 'connected' ? 'bg-[var(--success)]' : connectionStatus === 'reconnecting' ? 'bg-[var(--warning)] animate-pulse' : 'bg-[var(--error)]'}`}
-            />
-            <span className="capitalize">{connectionStatus}</span>
-          </div>
+          {/* Connection Status — only show when not default/connected to reduce clutter */}
+          {connectionStatus !== 'connected' && (
+            <div className="flex items-center gap-2 text-xs text-[var(--text-secondary)]">
+              <span
+                className={`w-2 h-2 rounded-full ${connectionStatus === 'reconnecting' ? 'bg-[var(--warning)] animate-pulse' : connectionStatus === 'connecting' ? 'bg-[var(--warning)] animate-pulse' : 'bg-[var(--error)]'}`}
+              />
+              <span className="capitalize">{connectionStatus}</span>
+            </div>
+          )}
         </header>
 
         {/* Content Area */}

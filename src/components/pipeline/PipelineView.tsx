@@ -1,405 +1,145 @@
 'use client';
 
-import React, { useState, useEffect, useCallback } from 'react';
-import {
-  Lightbulb, Play, CheckCircle2, XCircle, Clock, Sparkles,
-  ChevronRight, Trash2, ArrowRight, Loader2, Eye
-} from 'lucide-react';
-import { useUIStore } from '@/stores/uiStore';
-import { InlineModelSelector } from '@/components/ui/InlineModelSelector';
+import React, { useState } from 'react';
+import { PanelWrapper } from '@/components/ui/PanelWrapper';
+import { PipelineNode, PipelineEdge } from '@/types/cluster-a';
+import { Play, RotateCcw, Info, X, ChevronRight } from 'lucide-react';
 
-interface PipelineIdea {
-  id: string;
-  title: string;
-  description: string;
-  persona: string;
-  status: 'draft' | 'planning' | 'approved' | 'building' | 'review' | 'done' | 'rejected';
-  plan?: string;
-  createdAt: number;
-  updatedAt: number;
-}
+const MOCK_NODES: PipelineNode[] = [
+  { id: '1', type: 'prompt', label: 'Lead Analysis', status: 'success', timestamp: '10:00:01', inputData: 'Lead: John Doe, CEO of Acme Corp', outputData: 'High intent, needs scalability solution', config: { prompt: 'Analyze lead intent...' } },
+  { id: '2', type: 'tool', label: 'LinkedIn Scraper', status: 'success', timestamp: '10:00:05', inputData: 'John Doe', outputData: 'Recent post: "Looking for AI automation"', config: { tool: 'linkedin_search' } },
+  { id: '3', type: 'prompt', label: 'Outreach Gen', status: 'executing', timestamp: '10:00:10', inputData: 'Intent: High, Context: AI automation', outputData: null, config: { prompt: 'Draft personalized email...' } },
+  { id: '4', type: 'tool', label: 'Email Dispatch', status: 'pending', timestamp: '', inputData: null, outputData: null, config: { tool: 'send_grid' } },
+];
 
-const statusConfig = {
-  draft: { icon: Lightbulb, color: 'text-[var(--text-muted)]', bg: 'bg-[var(--bg-tertiary)]', label: 'Draft' },
-  planning: { icon: Sparkles, color: 'text-[var(--info)]', bg: 'bg-[var(--info)]/10', label: 'Planning' },
-  approved: { icon: CheckCircle2, color: 'text-[var(--success)]', bg: 'bg-[var(--success)]/10', label: 'Approved' },
-  building: { icon: Loader2, color: 'text-[var(--accent)]', bg: 'bg-[var(--accent)]/10', label: 'Building' },
-  review: { icon: Eye, color: 'text-[var(--warning)]', bg: 'bg-[var(--warning)]/10', label: 'In Review' },
-  done: { icon: CheckCircle2, color: 'text-[var(--success)]', bg: 'bg-[var(--success)]/10', label: 'Done' },
-  rejected: { icon: XCircle, color: 'text-[var(--error)]', bg: 'bg-[var(--error)]/10', label: 'Rejected' },
-};
+const MOCK_EDGES: PipelineEdge[] = [
+  { id: 'e1-2', source: '1', target: '2', payload: { leadId: 'LD-99' } },
+  { id: 'e2-3', source: '2', target: '3', payload: { scrapeResult: 'Recent post content' } },
+  { id: 'e3-4', source: '3', target: '4', payload: { emailDraft: 'Hello John...' } },
+];
 
-interface PipelineViewProps {
-  isOpen: boolean;
-  onClose: () => void;
-}
-
-export function PipelineView({ isOpen, onClose }: PipelineViewProps) {
-  const [ideas, setIdeas] = useState<PipelineIdea[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [showForm, setShowForm] = useState(false);
-  const [selectedIdea, setSelectedIdea] = useState<PipelineIdea | null>(null);
-  const addToast = useUIStore((s) => s.addToast);
-
-  // Form state
-  const [title, setTitle] = useState('');
-  const [description, setDescription] = useState('');
-  const [persona, setPersona] = useState('steve');
-
-  const fetchIdeas = useCallback(async () => {
-    try {
-      const res = await fetch('/api/pipeline');
-      const data = await res.json();
-      setIdeas(data.ideas || []);
-    } catch {
-      addToast({ type: 'error', message: 'Failed to load pipeline ideas' });
-    } finally {
-      setLoading(false);
-    }
-  }, [addToast]);
-
-  useEffect(() => {
-    if (isOpen) {
-      setLoading(true);
-      fetchIdeas();
-    }
-  }, [isOpen, fetchIdeas]);
-
-  const createIdea = async () => {
-    if (!title.trim() || !description.trim()) return;
-    try {
-      const res = await fetch('/api/pipeline', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ title, description, persona }),
-      });
-      const data = await res.json();
-      if (data.idea) {
-        setIdeas((prev) => [data.idea, ...prev]);
-        setTitle('');
-        setDescription('');
-        setShowForm(false);
-        addToast({ type: 'success', message: `Idea "${data.idea.title}" created` });
-      }
-    } catch {
-      addToast({ type: 'error', message: 'Failed to create idea' });
-    }
-  };
-
-  const updateStatus = async (id: string, status: PipelineIdea['status']) => {
-    try {
-      const res = await fetch(`/api/pipeline/${id}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ status }),
-      });
-      const data = await res.json();
-      if (data.idea) {
-        setIdeas((prev) => prev.map((i) => (i.id === id ? data.idea : i)));
-        if (selectedIdea?.id === id) setSelectedIdea(data.idea);
-        addToast({ type: 'info', message: `Status → ${statusConfig[status].label}` });
-      }
-    } catch {
-      addToast({ type: 'error', message: 'Failed to update status' });
-    }
-  };
-
-  const deleteIdea = async (id: string) => {
-    try {
-      await fetch(`/api/pipeline/${id}`, { method: 'DELETE' });
-      setIdeas((prev) => prev.filter((i) => i.id !== id));
-      if (selectedIdea?.id === id) setSelectedIdea(null);
-      addToast({ type: 'info', message: 'Idea deleted' });
-    } catch {
-      addToast({ type: 'error', message: 'Failed to delete' });
-    }
-  };
-
-  const generatePlan = async (id: string) => {
-    updateStatus(id, 'planning');
-    // Simulate plan generation — in production this calls the Planner agent
-    setTimeout(async () => {
-      const plan = `## Plan\n\n1. **Analyze** the requirements\n2. **Design** the architecture\n3. **Build** the implementation\n4. **Review** and test\n5. **Deploy**\n\n*Generated by Planner agent*`;
-      try {
-        const res = await fetch(`/api/pipeline/${id}`, {
-          method: 'PATCH',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ plan }),
-        });
-        const data = await res.json();
-        if (data.idea) {
-          setIdeas((prev) => prev.map((i) => (i.id === id ? data.idea : i)));
-          if (selectedIdea?.id === id) setSelectedIdea(data.idea);
-          addToast({ type: 'success', message: 'Plan generated' });
-        }
-      } catch {
-        addToast({ type: 'error', message: 'Failed to save plan' });
-      }
-    }, 1500);
-  };
-
-  if (!isOpen) return null;
+export default function Pipeline() {
+  const [selectedNode, setSelectedNode] = useState<PipelineNode | null>(null);
 
   return (
-    <div className="absolute inset-0 z-10 flex bg-[var(--bg)]">
-      {/* Left panel — Idea list */}
-      <div className="w-80 border-r border-[var(--border)] flex flex-col bg-[var(--bg-secondary)]">
-        <div className="flex items-center justify-between px-4 py-3 border-b border-[var(--border)]">
-          <h2 className="text-sm font-semibold text-[var(--text)] flex items-center gap-2">
-            <Sparkles className="w-4 h-4 text-[var(--accent)]" />
-            Pipeline
-          </h2>
-          <div className="flex items-center gap-2">
-            <button
-              onClick={() => setShowForm(true)}
-              className="px-2 py-1 text-xs rounded-md bg-[var(--accent)] text-white hover:bg-[var(--accent-hover)] transition-colors"
-            >
-              + New
-            </button>
-            <button
-              onClick={onClose}
-              className="p-1 rounded hover:bg-[var(--bg-tertiary)] text-[var(--text-muted)]"
-            >
-              <XCircle className="w-4 h-4" />
-            </button>
-          </div>
+    <div className="flex h-full gap-6 p-6 animate-fade-in">
+      {/* Visual Flow Canvas */}
+      <div className="flex-1 relative bg-slate-900/50 rounded-xl border border-slate-800 overflow-hidden flex items-center justify-center p-12">
+        <div className="flex items-center gap-12 relative">
+          {MOCK_NODES.map((node, idx) => (
+            <React.Fragment key={node.id}>
+              <Node 
+                node={node} 
+                onClick={() => setSelectedNode(node)} 
+                isSelected={selectedNode?.id === node.id} 
+              />
+              {idx < MOCK_NODES.length - 1 && <Edge edge={MOCK_EDGES[idx]} />}
+            </React.Fragment>
+          ))}
         </div>
-
-        {/* New idea form */}
-        {showForm && (
-          <div className="p-3 border-b border-[var(--border)] space-y-2 bg-[var(--bg-tertiary)]">
-            <input
-              type="text"
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-              placeholder="Idea title..."
-              className="w-full px-2 py-1.5 text-xs rounded bg-[var(--bg-secondary)] border border-[var(--border)] text-[var(--text)] placeholder:text-[var(--text-muted)] focus:outline-none focus:border-[var(--accent)]"
-            />
-            <textarea
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              placeholder="Describe what you want to build..."
-              rows={3}
-              className="w-full px-2 py-1.5 text-xs rounded bg-[var(--bg-secondary)] border border-[var(--border)] text-[var(--text)] placeholder:text-[var(--text-muted)] focus:outline-none focus:border-[var(--accent)] resize-none"
-            />
-            <select
-              value={persona}
-              onChange={(e) => setPersona(e.target.value)}
-              className="w-full px-2 py-1.5 text-xs rounded bg-[var(--bg-secondary)] border border-[var(--border)] text-[var(--text)] focus:outline-none"
-            >
-              <option value="steve">Steve (Consulting)</option>
-              <option value="david">David (Promo)</option>
-              <option value="josh">Josh (Funding)</option>
-              <option value="fathom">Fathom (Realty)</option>
-            </select>
-            <div className="flex gap-2 items-center">
-              <button
-                onClick={createIdea}
-                disabled={!title.trim() || !description.trim()}
-                className="flex-1 px-2 py-1.5 text-xs rounded bg-[var(--accent)] text-white hover:bg-[var(--accent-hover)] disabled:opacity-30 transition-colors"
-              >
-                Create
-              </button>
-              <InlineModelSelector compact />
-              <button
-                onClick={() => setShowForm(false)}
-                className="px-2 py-1.5 text-xs rounded bg-[var(--bg-secondary)] text-[var(--text-muted)] hover:text-[var(--text)] transition-colors"
-              >
-                Cancel
-              </button>
-            </div>
-          </div>
-        )}
-
-        {/* Idea list */}
-        <div className="flex-1 overflow-y-auto">
-          {loading ? (
-            <div className="p-4 space-y-3">
-              {[1, 2, 3].map((i) => (
-                <div key={i} className="h-16 rounded-lg bg-[var(--bg-tertiary)] animate-pulse" />
-              ))}
-            </div>
-          ) : ideas.length === 0 ? (
-            <div className="p-6 text-center text-xs text-[var(--text-muted)]">
-              <Lightbulb className="w-8 h-8 mx-auto mb-2 opacity-30" />
-              <p>No ideas yet. Create one to start the pipeline.</p>
-            </div>
-          ) : (
-            ideas.map((idea) => {
-              const config = statusConfig[idea.status];
-              const StatusIcon = config.icon;
-              return (
-                <button
-                  key={idea.id}
-                  onClick={() => setSelectedIdea(idea)}
-                  className={`w-full text-left px-4 py-3 border-b border-[var(--border)] hover:bg-[var(--bg-tertiary)] transition-colors ${
-                    selectedIdea?.id === idea.id ? 'bg-[var(--bg-tertiary)]' : ''
-                  }`}
-                >
-                  <div className="flex items-start gap-2">
-                    <StatusIcon className={`w-4 h-4 mt-0.5 flex-shrink-0 ${config.color} ${idea.status === 'building' ? 'animate-spin' : ''}`} />
-                    <div className="flex-1 min-w-0">
-                      <div className="text-xs font-medium text-[var(--text)] truncate">{idea.title}</div>
-                      <div className="text-[10px] text-[var(--text-muted)] mt-0.5 line-clamp-2">{idea.description}</div>
-                      <div className="flex items-center gap-2 mt-1">
-                        <span className={`text-[10px] px-1.5 py-0.5 rounded ${config.bg} ${config.color}`}>
-                          {config.label}
-                        </span>
-                        <span className="text-[10px] text-[var(--text-muted)]">
-                          {new Date(idea.updatedAt).toLocaleDateString()}
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-                </button>
-              );
-            })
-          )}
+        <div className="absolute top-4 left-4 flex gap-3">
+          <button className="p-2 rounded-md bg-slate-800 hover:bg-slate-700 text-white transition-colors border border-slate-700">
+            <Play size={16} />
+          </button>
+          <button className="p-2 rounded-md bg-slate-800 hover:bg-slate-700 text-white transition-colors border border-slate-700">
+            <RotateCcw size={16} />
+          </button>
         </div>
       </div>
 
-      {/* Right panel — Idea detail */}
-      <div className="flex-1 flex flex-col">
-        {selectedIdea ? (
-          <IdeaDetail
-            idea={selectedIdea}
-            onUpdateStatus={updateStatus}
-            onDelete={deleteIdea}
-            onGeneratePlan={generatePlan}
-          />
-        ) : (
-          <div className="flex-1 flex items-center justify-center text-[var(--text-muted)]">
-            <div className="text-center space-y-3">
-              <ArrowRight className="w-12 h-12 mx-auto opacity-20" />
-              <p className="text-sm">Select an idea to view details</p>
+      {/* Step Inspector */}
+      <div className="w-96 flex flex-col gap-4">
+        {selectedNode ? (
+          <PanelWrapper title={`Step Inspector: ${selectedNode.label}`}>
+            <div className="flex flex-col gap-4">
+              <div className="flex justify-between items-center">
+                <span className={`text-xs px-2 py-0.5 rounded-full ${
+                  selectedNode.status === 'success' ? 'bg-green-500/10 text-green-400' : 
+                  selectedNode.status === 'executing' ? 'bg-blue-500/10 text-blue-400 animate-pulse' : 
+                  'bg-slate-800 text-slate-400'
+                }`}>
+                  {selectedNode.status}
+                </span>
+                <button onClick={() => setSelectedNode(null)} className="text-slate-500 hover:text-white">
+                  <X size={14} />
+                </button>
+              </div>
+
+              <div className="space-y-4">
+                <section>
+                  <h4 className="text-xs font-medium text-slate-500 uppercase mb-2">Input</h4>
+                  <div className="p-3 rounded-lg bg-slate-950 text-xs font-mono text-slate-300 border border-slate-800">
+                    {selectedNode.inputData || 'No input data'}
+                  </div>
+                </section>
+
+                <section>
+                  <h4 className="text-xs font-medium text-slate-500 uppercase mb-2">Configuration</h4>
+                  <div className="p-3 rounded-lg bg-slate-950 text-xs font-mono text-indigo-300 border border-slate-800">
+                    {JSON.stringify(selectedNode.config, null, 2)}
+                  </div>
+                </section>
+
+                <section>
+                  <h4 className="text-xs font-medium text-slate-500 uppercase mb-2">Output</td>
+                  <div className={`p-3 rounded-lg text-xs font-mono border border-slate-800 ${
+                    selectedNode.outputData ? 'bg-slate-950 text-slate-300' : 'bg-slate-900/50 text-slate-600 italic'
+                  }`}>
+                    {selectedNode.outputData || 'Waiting for execution...'}
+                  </div>
+                </section>
+              </div>
+
+              <button className="w-full py-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-medium transition-colors flex items-center justify-center gap-2">
+                <RotateCcw size={14} />
+                Retry Step
+              </button>
             </div>
-          </div>
+          </PanelWrapper>
+        ) : (
+          <PanelWrapper title="Pipeline Details">
+            <div className="flex flex-col items-center justify-center text-center py-12 text-slate-500">
+              <Info size={32} className="mb-3 opacity-20" />
+              <p className="text-sm">Select a node to inspect step details</p>
+            </div>
+          </PanelWrapper>
         )}
       </div>
     </div>
   );
 }
 
-function IdeaDetail({
-  idea,
-  onUpdateStatus,
-  onDelete,
-  onGeneratePlan,
-}: {
-  idea: PipelineIdea;
-  onUpdateStatus: (id: string, status: PipelineIdea['status']) => void;
-  onDelete: (id: string) => void;
-  onGeneratePlan: (id: string) => void;
-}) {
-  const config = statusConfig[idea.status];
-  const StatusIcon = config.icon;
-
+function Node({ node, onClick, isSelected }: { node: PipelineNode, onClick: () => void, isSelected: boolean }) {
   return (
-    <div className="flex-1 flex flex-col">
-      {/* Header */}
-      <div className="px-6 py-4 border-b border-[var(--border)] flex items-center justify-between">
-        <div>
-          <h3 className="text-lg font-semibold text-[var(--text)]">{idea.title}</h3>
-          <div className="flex items-center gap-3 mt-1">
-            <span className={`flex items-center gap-1 text-xs px-2 py-0.5 rounded ${config.bg} ${config.color}`}>
-              <StatusIcon className="w-3 h-3" />
-              {config.label}
-            </span>
-            <span className="text-xs text-[var(--text-muted)]">
-              {new Date(idea.createdAt).toLocaleString()}
-            </span>
-          </div>
-        </div>
-        <button
-          onClick={() => onDelete(idea.id)}
-          className="p-2 rounded-lg hover:bg-[var(--bg-tertiary)] text-[var(--text-muted)] hover:text-[var(--error)] transition-colors"
-          title="Delete"
-        >
-          <Trash2 className="w-4 h-4" />
-        </button>
+    <div 
+      onClick={onClick}
+      className={`cursor-pointer p-4 rounded-xl border-2 transition-all duration-200 w-48 ${
+        isSelected 
+          ? 'border-indigo-500 bg-indigo-500/10 shadow-[0_0_15px_rgba(79,70,229,0.3)]' 
+          : 'border-slate-700 bg-slate-800/50 hover:border-slate-500'
+      }`}
+    >
+      <div className="flex justify-between items-start mb-3">
+        <span className="text-[10px] uppercase font-bold text-slate-500 tracking-tighter">{node.type}</span>
+        <div className={`w-2 h-2 rounded-full ${
+          node.status === 'success' ? 'bg-green-500' : 
+          node.status === 'executing' ? 'bg-blue-500 animate-pulse' : 
+          'bg-slate-600'
+        }`} />
       </div>
+      <div className="text-sm font-medium text-white mb-2 truncate">{node.label}</div>
+      <div className="text-[10px] text-slate-500 font-mono">{node.timestamp}</div>
+    </div>
+  );
+}
 
-      {/* Content */}
-      <div className="flex-1 overflow-y-auto p-6 space-y-6">
-        {/* Description */}
-        <div>
-          <h4 className="text-xs font-semibold text-[var(--text-muted)] uppercase tracking-wider mb-2">Description</h4>
-          <p className="text-sm text-[var(--text)] leading-relaxed">{idea.description}</p>
-        </div>
-
-        {/* Plan */}
-        {idea.plan ? (
-          <div>
-            <h4 className="text-xs font-semibold text-[var(--text-muted)] uppercase tracking-wider mb-2">Plan</h4>
-            <div className="text-sm text-[var(--text)] bg-[var(--bg-secondary)] rounded-lg p-4 border border-[var(--border)] whitespace-pre-wrap">
-              {idea.plan}
-            </div>
-          </div>
-        ) : (
-          <div className="text-center py-8">
-            <Clock className="w-8 h-8 mx-auto text-[var(--text-muted)] opacity-30 mb-2" />
-            <p className="text-xs text-[var(--text-muted)]">No plan generated yet</p>
-          </div>
-        )}
+function Edge({ edge }: { edge: PipelineEdge }) {
+  return (
+    <div className="flex items-center gap-2 group cursor-pointer">
+      <div className="w-12 h-px bg-slate-700 relative overflow-hidden">
+        <div className="absolute inset-0 bg-indigo-500 animate-slide-right" style={{ animationDuration: '2s' }} />
       </div>
-
-      {/* Action bar */}
-      <div className="px-6 py-4 border-t border-[var(--border)] flex items-center gap-2">
-        {idea.status === 'draft' && (
-          <button
-            onClick={() => onGeneratePlan(idea.id)}
-            className="flex items-center gap-2 px-4 py-2 text-xs rounded-lg bg-[var(--accent)] text-white hover:bg-[var(--accent-hover)] transition-colors"
-          >
-            <Sparkles className="w-3.5 h-3.5" />
-            Generate Plan
-          </button>
-        )}
-        {idea.status === 'planning' && idea.plan && (
-          <>
-            <button
-              onClick={() => onUpdateStatus(idea.id, 'approved')}
-              className="flex items-center gap-2 px-4 py-2 text-xs rounded-lg bg-[var(--success)] text-white hover:opacity-90 transition-opacity"
-            >
-              <CheckCircle2 className="w-3.5 h-3.5" />
-              Approve & Build
-            </button>
-            <button
-              onClick={() => onUpdateStatus(idea.id, 'rejected')}
-              className="flex items-center gap-2 px-4 py-2 text-xs rounded-lg bg-[var(--bg-tertiary)] text-[var(--text-muted)] hover:text-[var(--text)] transition-colors"
-            >
-              <XCircle className="w-3.5 h-3.5" />
-              Reject
-            </button>
-          </>
-        )}
-        {idea.status === 'approved' && (
-          <button
-            onClick={() => onUpdateStatus(idea.id, 'building')}
-            className="flex items-center gap-2 px-4 py-2 text-xs rounded-lg bg-[var(--accent)] text-white hover:bg-[var(--accent-hover)] transition-colors"
-          >
-            <Play className="w-3.5 h-3.5" />
-            Start Building
-          </button>
-        )}
-        {idea.status === 'building' && (
-          <button
-            onClick={() => onUpdateStatus(idea.id, 'review')}
-            className="flex items-center gap-2 px-4 py-2 text-xs rounded-lg bg-[var(--warning)] text-white hover:opacity-90 transition-opacity"
-          >
-            <Eye className="w-3.5 h-3.5" />
-            Mark Ready for Review
-          </button>
-        )}
-        {idea.status === 'review' && (
-          <button
-            onClick={() => onUpdateStatus(idea.id, 'done')}
-            className="flex items-center gap-2 px-4 py-2 text-xs rounded-lg bg-[var(--success)] text-white hover:opacity-90 transition-opacity"
-          >
-            <CheckCircle2 className="w-3.5 h-3.5" />
-            Mark Done
-          </button>
-        )}
-      </div>
+      <ChevronRight size={16} className="text-slate-700 group-hover:text-indigo-400 transition-colors" />
     </div>
   );
 }
