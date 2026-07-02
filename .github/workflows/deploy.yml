@@ -1,0 +1,21 @@
+name: Deploy to Overlord
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy:
+    runs-on: self-hosted
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install dependencies
+        run: |
+          npm install
+
+      - name: Restart Application
+        run: |
+          # Using pm2 to restart the process if it exists, else start it
+          pm2 restart overlord || pm2 start npm --name "overlord" -- run dev
