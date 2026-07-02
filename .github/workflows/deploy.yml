@@ -1,0 +1,36 @@
+name: Deploy to Overlord
+
+# Triggers ONLY after CI passes on main — so broken code never auto-deploys.
+# Also has a manual "Run workflow" button in GitHub Actions UI for emergency deploys.
+on:
+  workflow_run:
+    workflows: ["CI"]
+    types: [completed]
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    name: Pull & restart on Overlord machine
+    runs-on: [self-hosted, overlord]
+
+    # Gate: only deploy if CI succeeded (workflow_dispatch bypasses this check)
+    if: ${{ github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success' }}
+
+    defaults:
+      run:
+        working-directory: 'C:\Users\840_G8\Cursor\Overlord'
+        shell: pwsh
+
+    steps:
+      - name: Pull latest code
+        run: git pull origin main
+
+      - name: Install / update dependencies
+        run: npm install --prefer-offline
+
+      - name: Restart Overlord via pm2
+        run: pm2 restart overlord --update-env
+
+      - name: Confirm process is running
+        run: pm2 show overlord
