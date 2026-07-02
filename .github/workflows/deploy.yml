@@ -10,13 +10,21 @@ jobs:
     name: Pull & restart on Overlord machine
     runs-on: self-hosted
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Install dependencies
+      - name: Sync and Restart
         run: |
+          cd /home/rmckellar/overlord
+          
+          # Check if local HEAD matches remote HEAD to avoid redundant pulls
+          # This handles the "no need to pull when Hermes pushes from here" requirement
+          if [ "$(git rev-parse HEAD)" != "$(git rev-parse @{u})" ]; then
+            echo "Local is behind remote. Pulling latest changes..."
+            git pull origin main
+          else
+            echo "Local is already up to date. Skipping pull."
+          fi
+          
+          echo "Installing dependencies..."
           npm install
-
-      - name: Restart Application
-        run: |
+          
+          echo "Restarting application..."
           pm2 restart overlord || pm2 start npm --name "overlord" -- run dev
