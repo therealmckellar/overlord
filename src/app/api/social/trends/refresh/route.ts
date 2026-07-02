@@ -10,7 +10,16 @@ export async function POST() {
   const watchTerms = db.prepare('SELECT * FROM social_watch_terms').all() as any[];
 
   const now = Date.now();
-  const platforms = ['x', 'linkedin', 'reddit'];
+  
+  // Only generate trends for platforms of connected accounts
+  const connectedAccounts = db.prepare("SELECT platform FROM social_accounts WHERE status = 'connected'").all() as { platform: string }[];
+  const platforms = Array.from(new Set(connectedAccounts.map((a) => a.platform)));
+
+  if (platforms.length === 0) {
+    db.prepare('DELETE FROM social_trends').run();
+    revalidatePath('/api/social/trends');
+    return NextResponse.json({ trends: [] });
+  }
 
   for (const vertical of verticals) {
     const terms = watchTerms.filter((w: any) => w.vertical_id === vertical.id);

@@ -2,10 +2,10 @@ import { NextResponse } from 'next/server';
 import { getDb } from '@/lib/db';
 import { revalidatePath } from 'next/cache';
 
-type Params = { params: { id: string } };
+type Params = { params: Promise<{ id: string }> };
 
 export async function PUT(req: Request, { params }: Params) {
-  const { id } = params;
+  const { id } = await params;
   const updates = await req.json();
   const db = getDb();
 
@@ -21,7 +21,7 @@ export async function PUT(req: Request, { params }: Params) {
 }
 
 export async function DELETE(_req: Request, { params }: Params) {
-  const { id } = params;
+  const { id } = await params;
   const db = getDb();
 
   db.prepare('DELETE FROM social_watch_terms WHERE vertical_id = ?').run(id);

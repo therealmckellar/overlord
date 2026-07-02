@@ -212,12 +212,17 @@ export const useSocialStore = create<SocialState>()(
         set((s) => ({ accounts: [...s.accounts, account] }));
       },
 
-      disconnectAccount: (id) => {
-        set((s) => ({
-          accounts: s.accounts.map((a) =>
-            a.id === id ? { ...a, status: 'disconnected' as const } : a
-          ),
-        }));
+      disconnectAccount: async (id) => {
+        try {
+          const res = await fetch(`/api/social/accounts/${id}`, { method: 'DELETE' });
+          if (res.ok) {
+            set((s) => ({
+              accounts: s.accounts.filter((a) => a.id !== id),
+            }));
+          }
+        } catch {
+          // silent
+        }
       },
 
       setAccountStatus: (id, status) => {

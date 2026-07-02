@@ -14,7 +14,24 @@ export async function POST() {
   const competitors = db.prepare('SELECT * FROM social_competitors').all() as any[];
 
   const now = Date.now();
-  const platforms = ['x', 'linkedin', 'reddit'];
+  
+  // Only process platforms of connected accounts
+  const connectedAccounts = db.prepare("SELECT platform FROM social_accounts WHERE status = 'connected'").all() as { platform: string }[];
+  const platforms = Array.from(new Set(connectedAccounts.map((a) => a.platform)));
+
+  if (platforms.length === 0) {
+    db.prepare('DELETE FROM social_trends').run();
+    db.prepare('DELETE FROM social_mentions').run();
+    revalidatePath('/api/social/trends');
+    revalidatePath('/api/social/mentions');
+    return NextResponse.json({
+      success: true,
+      verticals: verticals.length,
+      watchTerms: watchTerms.length,
+      competitors: competitors.length,
+      syncedAt: now,
+    });
+  }
 
   // Trends
   for (const vertical of verticals) {
@@ -61,6 +78,8 @@ export async function POST() {
 
     const verticalCompetitors = competitors.filter((c: any) => c.vertical_id === vertical.id);
     for (const comp of verticalCompetitors) {
+      // Only sync competitor posts if they match connected platforms
+      if (!platforms.includes(comp.platform)) continue;
       const id = `comp_${comp.id}_${now}`;
       db.prepare(
         `INSERT OR IGNORE INTO social_mentions
