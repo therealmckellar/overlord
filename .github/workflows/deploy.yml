@@ -3,9 +3,11 @@ on:
   push:
     branches:
       - main
+  workflow_dispatch:
 
 jobs:
   deploy:
+    name: Pull & restart on Overlord machine
     runs-on: self-hosted
     steps:
       - name: Checkout code
@@ -17,5 +19,4 @@ jobs:
 
       - name: Restart Application
         run: |
-          # Using pm2 to restart the process if it exists, else start it
           pm2 restart overlord || pm2 start npm --name "overlord" -- run dev
