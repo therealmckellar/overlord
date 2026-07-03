@@ -15,7 +15,7 @@ interface JarvisActions {
   activate: () => void;
   deactivate: () => void;
   toggle: () => void;
-  speak: (text: string, voice?: SpeechSynthesisVoice | null) => void;
+  speak: (text: string, voice?: string | null) => void;
 }
 
 type JarvisCommandCallback = (command: string) => void;
@@ -63,28 +63,24 @@ export function useJarvis(onCommand?: JarvisCommandCallback) {
   });
 
   const recognitionRef = useRef<SpeechRecognitionInstance | null>(null);
-  const synthRef = useRef<SpeechSynthesisUtterance | null>(null);
   const onCommandRef = useRef(onCommand);
   onCommandRef.current = onCommand;
 
   useEffect(() => {
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-    const supported = !!SpeechRecognition && !!window.speechSynthesis;
+    const supported = !!SpeechRecognition;
     setState((s) => ({ ...s, isSupported: supported }));
   }, []);
 
   const processVoiceCommand = useCallback((text: string) => {
     const lower = text.toLowerCase().trim();
     
-    // Check for wake word
     const hasWakeWord = WAKE_WORDS.some((w) => lower.includes(w));
     if (!hasWakeWord && state.isListening) {
-      // Without wake word, just record transcript
       setState((s) => ({ ...s, transcript: text }));
       return;
     }
 
-    // Extract command (remove wake word)
     let command = lower;
     for (const w of WAKE_WORDS) {
       if (command.includes(w)) {
@@ -100,12 +96,10 @@ export function useJarvis(onCommand?: JarvisCommandCallback) {
 
     setState((s) => ({ ...s, transcript: text, lastCommand: command, isListening: false }));
 
-    // Stop recognition
     if (recognitionRef.current) {
       recognitionRef.current.stop();
     }
 
-    // Execute command
     onCommandRef.current?.(command);
   }, [state.isListening]);
 
@@ -158,7 +152,6 @@ export function useJarvis(onCommand?: JarvisCommandCallback) {
     };
 
     recognition.onend = () => {
-      // Auto-restart if still supposed to be listening
       if (recognitionRef.current === recognition) {
         try {
           recognition.start();
@@ -201,30 +194,30 @@ export function useJarvis(onCommand?: JarvisCommandCallback) {
     }
   }, [state.isListening, startListening, stopListening]);
 
-  const speak = useCallback((text: string, voice?: SpeechSynthesisVoice | null) => {
-    if (!window.speechSynthesis) return;
-
-    window.speechSynthesis.cancel();
-    const utterance = new SpeechSynthesisUtterance(text);
-    synthRef.current = utterance;
-    utterance.rate = 1.0;
-    utterance.pitch = 1.0;
-    utterance.volume = 1.0;
-    if (voice) utterance.voice = voice;
-
-    utterance.onstart = () => setState((s) => ({ ...s, isSpeaking: true }));
-    utterance.onend = () => setState((s) => ({ ...s, isSpeaking: false }));
-    utterance.onerror = () => setState((s) => ({ ...s, isSpeaking: false }));
-
-    window.speechSynthesis.speak(utterance);
+  const speak = useCallback(async (text: string, voice?: string | null) => {
+    // We now delegate TTS to the useTTS hook via the JarvisPanel or the useTTS hook directly
+    // This function is kept for compatibility but should be used via the useTTS hook
+    try {
+      const response = await fetch('/api/tts', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ text, voice }),
+      });
+      if (!response.ok) throw new Error('TTS failed');
+      const blob = await response.blob();
+      const url = URL.createObjectURL(blob);
+      const audio = new Audio(url);
+      audio.play();
+      audio.onended = () => URL.revokeObjectURL(url);
+    } catch (e) {
+      console.error('Jarvis speak error:', e);
+    }
   }, []);
 
-  // Cleanup
   useEffect(() => {
     return () => {
       if (recognitionRef.current) {
         recognitionRef.current.abort();
-        recognitionRef.current = null;
       }
       window.speechSynthesis?.cancel();
     };

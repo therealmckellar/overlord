@@ -14,8 +14,6 @@ const COGNEE_DB = path.join(
 
 async function queryCogneeGraph(limit: number): Promise<{ nodes: any[]; edges: any[] }> {
   try {
-    const { execSync } = require('child_process');
-
     // Check if DB exists
     try {
       await fs.access(COGNEE_DB);
@@ -94,7 +92,7 @@ async function queryCogneeGraph(limit: number): Promise<{ nodes: any[]; edges: a
 
     const data = JSON.parse(stdout);
     return { nodes: data.nodes || [], edges: data.edges || [] };
-  } catch (error: any) {
+  } catch (error: unknown) {
     return { nodes: [], edges: [] };
   }
 }
@@ -113,7 +111,7 @@ export async function GET(req: NextRequest) {
       totalNodes: nodes.length,
       totalEdges: edges.length,
     });
-  } catch (error: any) {
-    return NextResponse.json({ success: false, error: error.message }, { status: 500 });
+  } catch (error: unknown) {
+    return NextResponse.json({ success: false, error: (error as Error).message }, { status: 500 });
   }
 }

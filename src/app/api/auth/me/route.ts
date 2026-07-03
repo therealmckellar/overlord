@@ -1,10 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { verifyToken, TokenPayload } from '@/lib/auth/jwt';
 import { findById, toSafeUser } from '@/lib/auth/users';
-import { cookies } from 'next/headers';
-import { signTokenPair } from '@/lib/auth/jwt';
-import { createSession } from '@/lib/auth/sessions';
-import { serialize } from 'cookie';
 
 export async function GET(req: NextRequest) {
   try {
@@ -21,8 +17,8 @@ export async function GET(req: NextRequest) {
       }
 
       return NextResponse.json({ user: toSafeUser(user) });
-    } catch (error: any) {
-      if (error.code === 'ERR_JWT_EXPIRED') {
+    } catch (error: unknown) {
+      if (error instanceof Error && error.code === 'ERR_JWT_EXPIRED') {
         // Access token expired - try to auto-refresh if refresh token exists
         const refreshToken = req.cookies.get('refreshToken')?.value;
         if (!refreshToken) {

@@ -1,54 +1,73 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useUIStore } from '@/stores/uiStore';
 
 export const useTTS = () => {
   const [isSpeaking, setIsSpeaking] = useState(false);
   const [isPaused, setIsPaused] = useState(false);
   const soundsEnabled = useUIStore((s) => s.soundsEnabled);
-  
-  const synth = typeof window !== 'undefined' ? window.speechSynthesis : null;
+  const audioRef = useRef<HTMLAudioElement | null>(null);
 
   const stop = useCallback(() => {
-    if (!synth) return;
-    synth.cancel();
+    if (audioRef.current) {
+      audioRef.current.pause();
+      audioRef.current.currentTime = 0;
+    }
     setIsSpeaking(false);
     setIsPaused(false);
-  }, [synth]);
+  }, []);
 
   const pause = useCallback(() => {
-    if (!synth) return;
-    synth.pause();
-    setIsPaused(true);
-  }, [synth]);
+    if (audioRef.current) {
+      audioRef.current.pause();
+      setIsPaused(true);
+    }
+  }, []);
 
   const resume = useCallback(() => {
-    if (!synth) return;
-    synth.resume();
-    setIsPaused(false);
-  }, [synth]);
+    if (audioRef.current) {
+      audioRef.current.play();
+      setIsPaused(false);
+    }
+  }, []);
 
-  const speak = useCallback((text: string, options: Partial<Pick<SpeechSynthesisUtterance, 'rate' | 'pitch' | 'volume' | 'voice'>> = {}) => {
-    if (!synth || !soundsEnabled) return;
+  const speak = useCallback(async (text: string, options: { voice?: string } = {}) => {
+    if (!soundsEnabled) return;
 
     stop();
 
-    const utterance = new SpeechSynthesisUtterance(text);
-    Object.assign(utterance, options);
+    try {
+      const response = await fetch('/api/tts', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          text,
+          voice: options.voice,
+        }),
+      });
 
-    utterance.onstart = () => setIsSpeaking(true);
-    utterance.onend = () => {
-      setIsSpeaking(false);
-      setIsPaused(false);
-    };
-    utterance.onerror = () => {
-      setIsSpeaking(false);
-      setIsPaused(false);
-    };
+      if (!response.ok) throw new Error('TTS request failed');
 
-    synth.speak(utterance);
-  }, [synth, soundsEnabled, stop]);
+      const blob = await response.blob();
+      const url = URL.createObjectURL(blob);
+      
+      const audio = new Audio(url);
+      audioRef.current = audio;
+
+      audio.onplay = () => setIsSpeaking(true);
+      audio.onended = () => {
+        setIsSpeaking(false);
+        setIsPaused(false);
+        URL.revokeObjectURL(url);
+      };
+
+      await audio.play();
+    } catch (error) {
+      console.error('TTS Error:', error);
+      setIsSpeaking(false);
+    }
+  }, [soundsEnabled, stop]);
 
   return {
     speak,
@@ -57,6 +76,8 @@ export const useTTS = () => {
     resume,
     isSpeaking,
     isPaused,
-    canSpeak: !!synth && soundsEnabled,
+    canSpeak: soundsEnabled,
   };
 };
+
+// Need to add useRef import at top
