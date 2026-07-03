@@ -1,146 +1,140 @@
 'use client';
 
 import React from 'react';
-import { PanelWrapper } from '@/components/ui/PanelWrapper';
 import { TrendingWidget } from '@/components/dashboard/TrendingWidget';
 import { useMockHealthData, useMockMissionsData } from '@/hooks/use-mock-data';
-import { Activity, Cpu, Zap, AlertCircle, Play, Plus } from 'lucide-react';
+import { Activity, Cpu, Zap, AlertCircle, Play, Plus, ArrowUpRight, ArrowDownRight, Minus } from 'lucide-react';
 
 export default function Dashboard() {
   const health = useMockHealthData();
   const missions = useMockMissionsData();
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'running': return 'text-green-400';
-      case 'paused': return 'text-yellow-400';
-      case 'failed': return 'text-red-400';
-      default: return 'text-slate-400';
-    }
-  };
-
-  /** Deep-link to the Social panel via the existing overlord-navigate event */
   const handleOpenSocial = () => {
     window.dispatchEvent(new CustomEvent('overlord-navigate', { detail: 'social' }));
   };
 
   return (
-    <div className="flex flex-col gap-6 p-6 overflow-y-auto animate-fade-in">
-      {/* Header / Quick Actions */}
+    <div className="flex flex-col gap-5 p-5 overflow-y-auto h-full animate-fade-in">
+      {/* Header */}
       <div className="flex justify-between items-center">
         <div>
-          <h1 className="text-2xl font-bold text-white">Mission Control</h1>
-          <p className="text-sm text-slate-400">System Operational Status: Nominal</p>
+          <h1 className="text-xl font-bold text-[var(--text)] tracking-tight">Command Center</h1>
+          <p className="text-[12px] text-[var(--text-muted)] mt-0.5">System status: Nominal</p>
         </div>
-        <div className="flex gap-3">
-          <button className="flex items-center gap-2 px-4 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-medium transition-colors">
-            <Plus size={16} />
-            Spawn Agent
+        <div className="flex gap-2">
+          <button
+            onClick={() => window.dispatchEvent(new CustomEvent('overlord-navigate', { detail: 'designer' }))}
+            className="btn btn-primary btn-sm"
+          >
+            <Plus size={13} /> Spawn Agent
           </button>
-          <button className="px-4 py-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-white text-sm font-medium border border-slate-700 transition-colors">
-            New Workspace
-          </button>
-          <button className="px-4 py-2 rounded-lg bg-red-900/30 hover:bg-red-900/50 text-red-400 text-sm font-medium border border-red-900/50 transition-colors">
-            Emergency Stop
+          <button
+            onClick={() => window.dispatchEvent(new CustomEvent('overlord-navigate', { detail: 'taskboard' }))}
+            className="btn btn-secondary btn-sm"
+          >
+            Task Board
           </button>
         </div>
       </div>
 
       {/* Health Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
         <HealthCard
           title="System Load"
           value={`${health.cpuUsage.toFixed(1)}%`}
-          icon={<Cpu size={18} />}
+          icon={<Cpu size={16} />}
           trend="up"
           color="var(--accent)"
         />
         <HealthCard
           title="Active Agents"
           value={health.activeAgents.toString()}
-          icon={<Activity size={18} />}
+          icon={<Activity size={16} />}
           trend="stable"
           color="var(--success)"
         />
         <HealthCard
           title="Token Velocity"
           value={`${Math.floor(health.tokenThroughput)} t/s`}
-          icon={<Zap size={18} />}
+          icon={<Zap size={16} />}
           trend="up"
           color="var(--info)"
         />
         <HealthCard
           title="Error Rate"
           value={`${(health.errorRate * 100).toFixed(2)}%`}
-          icon={<AlertCircle size={18} />}
+          icon={<AlertCircle size={16} />}
           trend="down"
           color={health.errorRate > 0.05 ? 'var(--error)' : 'var(--success)'}
         />
       </div>
 
-      {/* Bottom Row: Missions + Trending */}
-      <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
-        {/* Active Missions Table (takes 2/3 width on xl) */}
-        <div className="xl:col-span-2">
-          <PanelWrapper title="Active Missions">
-            <div className="overflow-x-auto">
-              <table className="w-full text-left text-sm">
-                <thead className="text-slate-400 border-b border-slate-800">
-                  <tr>
-                    <th className="pb-3 font-medium">Mission ID</th>
-                    <th className="pb-3 font-medium">Agent</th>
-                    <th className="pb-3 font-medium">Objective</th>
-                    <th className="pb-3 font-medium">Status</th>
-                    <th className="pb-3 font-medium">Progress</th>
-                    <th className="pb-3 font-medium text-right">Action</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-800">
-                  {missions.map((mission) => (
-                    <tr key={mission.id} className="group hover:bg-slate-800/30 transition-colors">
-                      <td className="py-4 font-mono text-indigo-400">{mission.id}</td>
-                      <td className="py-4">
-                        <div className="flex flex-col">
-                          <span className="text-white font-medium">{mission.agentName}</span>
-                          <span className="text-xs text-slate-500">{mission.agentId}</span>
-                        </div>
-                      </td>
-                      <td className="py-4 text-slate-300 max-w-md truncate">{mission.objective}</td>
-                      <td className="py-4">
-                        <div className="flex items-center gap-2">
-                          <div className={`w-2 h-2 rounded-full ${mission.status === 'running' ? 'bg-green-500 animate-pulse' : 'bg-slate-500'}`} />
-                          <span className={`capitalize ${getStatusColor(mission.status)}`}>{mission.status}</span>
-                        </div>
-                      </td>
-                      <td className="py-4 w-48">
-                        <div className="flex items-center gap-3">
-                          <div className="flex-1 h-1.5 bg-slate-800 rounded-full overflow-hidden">
-                            <div
-                              className="h-full bg-indigo-500 transition-all duration-500"
-                              style={{ width: `${mission.progress}%` }}
-                            />
-                          </div>
-                          <span className="text-xs text-slate-400">{mission.progress}%</span>
-                        </div>
-                      </td>
-                      <td className="py-4 text-right">
-                        <button className="p-2 rounded-md bg-slate-800 hover:bg-slate-700 text-slate-300 transition-colors opacity-0 group-hover:opacity-100">
-                          <Play size={14} />
-                        </button>
-                      </td>
-                    </tr>
+      {/* Bottom Row */}
+      <div className="grid grid-cols-1 xl:grid-cols-3 gap-5 flex-1 min-h-0">
+        {/* Active Missions */}
+        <div className="xl:col-span-2 card overflow-hidden flex flex-col">
+          <div className="panel-header">
+            <span className="panel-title">Active Missions</span>
+            <span className="badge badge-success">{missions.filter(m => m.status === 'running').length} running</span>
+          </div>
+          <div className="overflow-auto flex-1">
+            <table className="w-full text-left">
+              <thead className="sticky top-0 bg-[var(--bg-secondary)]">
+                <tr>
+                  {['Mission', 'Agent', 'Objective', 'Status', 'Progress', ''].map(h => (
+                    <th key={h} className="text-[9px] uppercase tracking-widest text-[var(--text-muted)] font-semibold px-4 py-2.5 whitespace-nowrap">
+                      {h}
+                    </th>
                   ))}
-                </tbody>
-              </table>
-            </div>
-          </PanelWrapper>
+                </tr>
+              </thead>
+              <tbody>
+                {missions.map((mission) => (
+                  <tr key={mission.id} className="group border-t border-[var(--border-subtle)] hover:bg-[rgba(255,255,255,0.02)] transition-colors">
+                    <td className="px-4 py-3 font-mono text-[11px] text-[var(--accent)] whitespace-nowrap">{mission.id}</td>
+                    <td className="px-4 py-3">
+                      <div>
+                        <span className="text-[12px] font-medium text-[var(--text)]">{mission.agentName}</span>
+                        <span className="block text-[10px] text-[var(--text-muted)] font-mono">{mission.agentId}</span>
+                      </div>
+                    </td>
+                    <td className="px-4 py-3 text-[12px] text-[var(--text-secondary)] max-w-[220px] truncate">{mission.objective}</td>
+                    <td className="px-4 py-3">
+                      <span className={`badge ${
+                        mission.status === 'running' ? 'badge-success' :
+                        mission.status === 'paused'  ? 'badge-warning' :
+                        mission.status === 'failed'  ? 'badge-error'   : 'badge-info'
+                      }`}>
+                        {mission.status === 'running' && <span className="w-1 h-1 rounded-full bg-[var(--success)] animate-pulse inline-block" />}
+                        {mission.status}
+                      </span>
+                    </td>
+                    <td className="px-4 py-3 w-40">
+                      <div className="flex items-center gap-2">
+                        <div className="flex-1 h-1 bg-[var(--bg-elevated)] rounded-full overflow-hidden">
+                          <div
+                            className="h-full rounded-full transition-all duration-500"
+                            style={{ width: `${mission.progress}%`, background: 'var(--accent)' }}
+                          />
+                        </div>
+                        <span className="text-[10px] text-[var(--text-muted)] w-7 text-right">{mission.progress}%</span>
+                      </div>
+                    </td>
+                    <td className="px-4 py-3 text-right">
+                      <button className="btn btn-ghost btn-xs opacity-0 group-hover:opacity-100">
+                        <Play size={11} />
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </div>
 
-        {/* What's Trending (1/3 width on xl) */}
-        <div className="xl:col-span-1">
-          <div className="glass-panel inner-bevel rounded-xl overflow-hidden border-[var(--border)] h-full flex flex-col min-h-[360px]">
-            <TrendingWidget onOpenSocial={handleOpenSocial} />
-          </div>
+        {/* Trending */}
+        <div className="xl:col-span-1 card overflow-hidden flex flex-col">
+          <TrendingWidget onOpenSocial={handleOpenSocial} />
         </div>
       </div>
     </div>
@@ -154,26 +148,25 @@ function HealthCard({ title, value, icon, trend, color }: {
   trend: 'up' | 'down' | 'stable';
   color: string;
 }) {
+  const TrendIcon = trend === 'up' ? ArrowUpRight : trend === 'down' ? ArrowDownRight : Minus;
+  const trendColor = trend === 'up' ? 'var(--success)' : trend === 'down' ? 'var(--error)' : 'var(--text-muted)';
+
   return (
-    <PanelWrapper className="relative overflow-hidden group">
-      <div className="flex justify-between items-start mb-2">
-        <div className="p-2 rounded-lg bg-slate-800/50 text-slate-400 group-hover:text-white transition-colors">
+    <div className="card p-4 relative overflow-hidden group hover:border-[var(--border)] transition-all">
+      {/* Accent line at bottom */}
+      <div className="absolute bottom-0 left-0 right-0 h-[2px] opacity-0 group-hover:opacity-100 transition-opacity"
+        style={{ background: `linear-gradient(90deg, ${color}60, ${color}20)` }} />
+
+      <div className="flex items-center justify-between mb-3">
+        <div className="p-1.5 rounded-md bg-[var(--bg-tertiary)] text-[var(--text-muted)] group-hover:text-[var(--text)] transition-colors">
           {icon}
         </div>
-        <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${
-          trend === 'up' ? 'bg-green-500/10 text-green-400' :
-          trend === 'down' ? 'bg-red-500/10 text-red-400' :
-          'bg-slate-800 text-slate-400'
-        }`}>
-          {trend === 'up' ? '↑' : trend === 'down' ? '↓' : '→'}
+        <span className="flex items-center gap-0.5 text-[10px] font-semibold" style={{ color: trendColor }}>
+          <TrendIcon size={10} />
         </span>
       </div>
-      <div className="text-2xl font-bold text-white mb-1">{value}</div>
-      <div className="text-xs text-slate-500 uppercase tracking-wider">{title}</div>
-      <div
-        className="absolute bottom-0 left-0 h-1 bg-current opacity-30 transition-all group-hover:opacity-100"
-        style={{ color, width: '100%' }}
-      />
-    </PanelWrapper>
+      <div className="text-[22px] font-bold tracking-tight" style={{ color }}>{value}</div>
+      <div className="text-[9px] text-[var(--text-muted)] uppercase tracking-widest font-semibold mt-1">{title}</div>
+    </div>
   );
 }

@@ -4,7 +4,7 @@ import React from 'react';
 import { useMessageStore } from '@/stores/messageStore';
 import { useUIStore } from '@/stores/uiStore';
 import { useSessionStore } from '@/stores/sessionStore';
-import { Wifi, WifiOff, Loader2, MessageSquare, Zap } from 'lucide-react';
+import { Zap, MessageSquare, Radio } from 'lucide-react';
 
 interface StatusBarProps {
   sessionId?: string;
@@ -21,55 +21,42 @@ export function StatusBar({ sessionId }: StatusBarProps) {
     (s) => (sessionId ? (s.messagesBySession[sessionId] || []).length : 0),
   );
 
-  const ConnectionIcon = connectionStatus === 'connected'
-    ? Wifi
-    : connectionStatus === 'reconnecting'
-      ? Loader2
-      : WifiOff;
-
-  const connectionLabel =
-    connectionStatus === 'connected'
-      ? 'Connected'
-      : connectionStatus === 'reconnecting'
-        ? 'Reconnecting…'
-        : 'Disconnected';
-
-  const connectionColor =
-    connectionStatus === 'connected'
-      ? 'text-[var(--success)]'
-      : connectionStatus === 'reconnecting'
-        ? 'text-[var(--warning)]'
-        : 'text-[var(--error)]';
-
   return (
-    <div className="flex items-center justify-between px-4 py-1.5 border-t border-[var(--border)] bg-[var(--bg-secondary)] text-[11px] text-[var(--text-muted)]">
-      {/* Left: Connection status + streaming */}
+    <div className="flex items-center justify-between px-4 py-1 border-t border-[var(--border)] bg-[var(--bg-secondary)] text-[10px]">
+      {/* Left: Connection + streaming */}
       <div className="flex items-center gap-3">
-        {isStreaming && (
+        {isStreaming ? (
           <div className="flex items-center gap-1.5 text-[var(--accent)]">
-            <Zap className="w-3.5 h-3.5 animate-pulse" />
-            <span>Streaming</span>
+            <Zap className="w-3 h-3" style={{ animation: 'blink 0.8s infinite' }} />
+            <span className="font-mono tracking-wide">STREAMING</span>
           </div>
-        )}
-        {!isStreaming && (
-          <div className={`flex items-center gap-1.5 ${connectionColor}`}>
-            <ConnectionIcon className={`w-3.5 h-3.5 ${connectionStatus === 'reconnecting' ? 'animate-spin' : ''}`} />
-            <span>{connectionLabel}</span>
+        ) : (
+          <div className={`flex items-center gap-1.5 ${
+            connectionStatus === 'connected' ? 'text-[var(--success)]' :
+            connectionStatus === 'reconnecting' ? 'text-[var(--warning)]' :
+            'text-[var(--error)]'
+          }`}>
+            <span className={`status-dot ${
+              connectionStatus === 'connected' ? 'online' :
+              connectionStatus === 'reconnecting' ? 'warning' : 'error'
+            }`} />
+            <span className="font-mono tracking-wide capitalize">{connectionStatus}</span>
           </div>
         )}
       </div>
 
-      {/* Center: Session name */}
+      {/* Center: Session */}
       {activeSession && (
-        <div className="flex items-center gap-1.5 text-[var(--text-secondary)]">
-          <span className="font-medium truncate max-w-[200px]">{activeSession.title}</span>
+        <div className="flex items-center gap-1.5 text-[var(--text-muted)]">
+          <Radio className="w-2.5 h-2.5" />
+          <span className="font-medium truncate max-w-[160px]">{activeSession.title}</span>
         </div>
       )}
 
       {/* Right: Message count */}
-      <div className="flex items-center gap-1.5">
-        <MessageSquare className="w-3.5 h-3.5" />
-        <span>{messageCount} messages</span>
+      <div className="flex items-center gap-1.5 text-[var(--text-muted)]">
+        <MessageSquare className="w-2.5 h-2.5" />
+        <span className="font-mono">{messageCount} msgs</span>
       </div>
     </div>
   );

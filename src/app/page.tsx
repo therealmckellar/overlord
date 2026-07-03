@@ -257,22 +257,24 @@ export default function Home() {
       <div id="main-content" className="flex-1 flex flex-col min-w-0 relative" role="main">
         {/* Header */}
         <header
-          className="h-[52px] border-b border-[var(--border)] flex items-center px-4 gap-2 bg-[var(--bg)]/60 backdrop-blur-md sticky top-0 z-30"
+          className="h-[52px] border-b border-[var(--border)] flex items-center px-4 gap-2 bg-[var(--bg-secondary)] sticky top-0 z-30"
           role="banner"
         >
           <button
             onClick={toggleSidebar}
-            className="w-8 h-8 rounded-lg flex items-center justify-center hover:bg-[var(--bg-tertiary)] transition-colors"
+            className="w-7 h-7 rounded-md flex items-center justify-center hover:bg-[var(--bg-tertiary)] transition-colors text-[var(--text-muted)] hover:text-[var(--text)]"
             aria-label="Toggle sidebar"
           >
-            <svg width="16" height="16" viewBox="0 0 16 16" fill="none" className="text-[var(--text-secondary)]">
-              <rect x="1" y="2" width="14" height="2" rx="1" fill="currentColor"/>
-              <rect x="1" y="7" width="14" height="2" rx="1" fill="currentColor"/>
-              <rect x="1" y="12" width="14" height="2" rx="1" fill="currentColor"/>
+            <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+              <rect x="1" y="1.5" width="12" height="1.5" rx="0.75" fill="currentColor"/>
+              <rect x="1" y="6.25" width="12" height="1.5" rx="0.75" fill="currentColor"/>
+              <rect x="1" y="11" width="12" height="1.5" rx="0.75" fill="currentColor"/>
             </svg>
           </button>
 
-          <h1 className="text-sm font-medium flex-1">
+          <div className="h-4 w-px bg-[var(--border)] mx-1" />
+
+          <h1 className="text-[13px] font-medium text-[var(--text)] flex-1">
             {activePanel === 'chat' ? '' : (PANEL_TITLES[activePanel] || activePanel)}
           </h1>
 
@@ -288,13 +290,13 @@ export default function Home() {
           {/* Voice Controls - hidden on mobile */}
           <div className="hidden md:block"><VoiceControls /></div>
 
-          {/* Connection Status — only show when not default/connected to reduce clutter */}
+          {/* Connection Status — only show when not default/connected */}
           {connectionStatus !== 'connected' && (
-            <div className="flex items-center gap-2 text-xs text-[var(--text-secondary)]">
+            <div className="flex items-center gap-1.5 text-xs">
               <span
-                className={`w-2 h-2 rounded-full ${connectionStatus === 'reconnecting' ? 'bg-[var(--warning)] animate-pulse' : connectionStatus === 'connecting' ? 'bg-[var(--warning)] animate-pulse' : 'bg-[var(--error)]'}`}
+                className={`w-1.5 h-1.5 rounded-full ${connectionStatus === 'reconnecting' ? 'bg-[var(--warning)] animate-pulse' : connectionStatus === 'connecting' ? 'bg-[var(--warning)] animate-pulse' : 'bg-[var(--error)]'}`}
               />
-              <span className="capitalize">{connectionStatus}</span>
+              <span className="text-[var(--text-muted)] capitalize">{connectionStatus}</span>
             </div>
           )}
         </header>

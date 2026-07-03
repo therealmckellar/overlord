@@ -1,212 +1,299 @@
-import React, { useState, useCallback, useRef } from 'react';
-import { 
-  Plus, 
-  Search, 
-  Upload, 
-  Trash2, 
-  MessageSquare, 
-  ChevronRight, 
-  Bot, 
-  FileText, 
-  Send, 
+import React, { useState, useRef } from 'react';
+import {
+  Plus,
+  Search,
+  Trash2,
+  MessageSquare,
+  Bot,
+  FileText,
+  Send,
   X,
   Settings,
   Link as LinkIcon,
-  User
 } from 'lucide-react';
-import { useSpaceStore, type Space, type SpaceThread, type SpaceThreadMessage } from '@/stores/spaceStore';
+import { useSpaceStore, type Space } from '@/stores/spaceStore';
 import { useSkillsStore } from '@/stores/skillsStore';
 import { useChatStream } from '@/hooks/useChatStream';
 
-// ── Helper Components ────────────────────────────────────────────────────────
+// ── Empty state when no space selected ───────────────────────────────────────
 
-function SidebarSection({ title, description, children }: { title: string, description: string, children: React.ReactNode }) {
+function NoSpaceSelected() {
+  const createSpace = useSpaceStore((s) => s.createSpace);
+  const setActiveSpace = useSpaceStore((s) => s.setActiveSpace);
+  const spaces = useSpaceStore((s) => s.spaces);
+
+  const handleCreate = () => {
+    const space = createSpace('New Space', 'A new workspace for your projects');
+    setActiveSpace(space.id);
+  };
+
   return (
-    <div className="space-y-2 pb-6 border-b border-[var(--border)] last:border-0">
-      <div className="space-y-1">
-        <h4 className="text-xs font-semibold text-[var(--text)]">{title}</h4>
-        <p className="text-[10px] text-[var(--text-muted)] leading-relaxed">{description}</p>
+    <div className="flex h-full">
+      {/* Space list sidebar */}
+      <SpaceListSidebar />
+
+      {/* Empty center */}
+      <div className="flex-1 flex flex-col items-center justify-center gap-4 text-center p-8">
+        <div className="w-14 h-14 rounded-2xl bg-[var(--bg-tertiary)] border border-[var(--border)] flex items-center justify-center text-2xl">
+          ⬡
+        </div>
+        <div>
+          <h3 className="text-sm font-semibold text-[var(--text)]">No Space Selected</h3>
+          <p className="text-xs text-[var(--text-muted)] mt-1 max-w-[200px]">
+            {spaces.length > 0
+              ? 'Pick a space from the sidebar or create a new one.'
+              : 'Create your first space to get started.'}
+          </p>
+        </div>
+        <button onClick={handleCreate} className="btn btn-primary btn-sm">
+          <Plus size={12} /> New Space
+        </button>
       </div>
-      {children}
     </div>
   );
 }
 
-// ── Main Component ───────────────────────────────────────────────────────────
+// ── Space list sidebar (left column) ─────────────────────────────────────────
 
-export default function SpacesPanel() {
+function SpaceListSidebar() {
   const spaces = useSpaceStore((s) => s.spaces);
   const activeSpaceId = useSpaceStore((s) => s.activeSpaceId);
   const setActiveSpace = useSpaceStore((s) => s.setActiveSpace);
   const createSpace = useSpaceStore((s) => s.createSpace);
   const deleteSpace = useSpaceStore((s) => s.deleteSpace);
-  
+
+  const handleCreate = () => {
+    const space = createSpace('New Space', 'A new workspace');
+    setActiveSpace(space.id);
+  };
+
+  return (
+    <div className="w-[180px] flex flex-col border-r border-[var(--border)] bg-[var(--bg-secondary)]">
+      {/* Header */}
+      <div className="p-3 border-b border-[var(--border)] flex items-center justify-between">
+        <span className="text-[10px] font-bold uppercase tracking-widest text-[var(--text-muted)]">Spaces</span>
+        <button
+          onClick={handleCreate}
+          className="w-5 h-5 rounded flex items-center justify-center text-[var(--text-muted)] hover:text-[var(--accent)] hover:bg-[var(--accent-glow)] transition-colors"
+          title="New space"
+        >
+          <Plus size={12} />
+        </button>
+      </div>
+
+      {/* List */}
+      <div className="flex-1 overflow-y-auto p-1.5 space-y-0.5">
+        {(spaces ?? []).map((space) => (
+          <button
+            key={space.id}
+            onClick={() => setActiveSpace(space.id)}
+            className={`w-full flex items-center gap-2 px-2.5 py-2 rounded-md text-left transition-all group ${
+              activeSpaceId === space.id
+                ? 'bg-[var(--nav-active-bg)] text-[var(--accent)] border border-[rgba(14,165,233,0.2)]'
+                : 'text-[var(--text-muted)] hover:bg-[rgba(255,255,255,0.04)] hover:text-[var(--text-secondary)]'
+            }`}
+          >
+            <span className="text-base flex-shrink-0">{space.icon ?? '📁'}</span>
+            <div className="flex-1 min-w-0">
+              <p className="text-[11px] font-medium truncate">{space.name}</p>
+              <p className="text-[9px] opacity-60 truncate">{(space.threads ?? []).length} threads</p>
+            </div>
+            <button
+              onClick={(e) => { e.stopPropagation(); deleteSpace(space.id); }}
+              className="opacity-0 group-hover:opacity-100 text-[var(--text-muted)] hover:text-[var(--error)] transition-all"
+              title="Delete"
+            >
+              <Trash2 size={10} />
+            </button>
+          </button>
+        ))}
+        {spaces.length === 0 && (
+          <p className="text-[10px] text-[var(--text-muted)] text-center py-4 px-2">No spaces yet</p>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ── Main SpacesPanel ──────────────────────────────────────────────────────────
+
+export default function SpacesPanel() {
   const activeSpace = useSpaceStore((s) => s.getActiveSpace());
   const activeThreadId = useSpaceStore((s) => s.activeThreadId);
   const setActiveThread = useSpaceStore((s) => s.setActiveThread);
+  const addThread = useSpaceStore((s) => s.addThread);
+  const removeThread = useSpaceStore((s) => s.removeThread);
+  const [showSettings, setShowSettings] = useState(false);
 
   if (!activeSpace) {
-    return (
-      <div className="flex flex-col items-center justify-center h-full text-center p-8 space-y-4">
-        <div className="w-12 h-12 rounded-full bg-[var(--accent)]/20 flex items-center justify-center text-[var(--accent)]">
-          <Bot className="w-6 h-6" />
-        </div>
-        <div>
-          <h3 className="text-sm font-medium text-[var(--text)]">No Space Selected</h3>
-          <p className="text-xs text-[var(--text-muted)] mt-1">Select a space from the sidebar or create a new one to get started.</p>
-        </div>
-        <button 
-          onClick={() => createSpace('New Space', 'A new workspace for your projects')} 
-          className="px-4 py-2 text-xs rounded-lg bg-[var(--accent)] text-white hover:opacity-90 transition-opacity"
-        >
-          Create Space
-        </button>
-      </div>
-    );
+    return <NoSpaceSelected />;
   }
+
+  const threads = activeSpace.threads ?? [];
+
+  const handleNewThread = () => {
+    addThread(activeSpace.id, {
+      title: `Thread ${threads.length + 1}`,
+      lastActivity: Date.now(),
+      messageCount: 0,
+      messages: [],
+    });
+  };
 
   return (
     <div className="flex h-full overflow-hidden bg-[var(--bg)]">
-      {/* Left Column: Main Content */}
-      <div className="flex-1 flex flex-col min-w-0 border-r border-[var(--border)]">
-        {/* Space Header */}
-        <div className="px-4 py-3 border-b border-[var(--border)] flex items-center justify-between bg-[var(--bg-secondary)]/50">
+      {/* Left: Space list */}
+      <SpaceListSidebar />
+
+      {/* Middle: Threads + Chat */}
+      <div className="flex-1 flex flex-col min-w-0">
+        {/* Space header */}
+        <div className="panel-header shrink-0">
           <div className="flex items-center gap-3">
-            <div className="w-8 h-8 rounded-full bg-[var(--accent)]/20 flex items-center justify-center text-lg">
-              {activeSpace.icon}
+            <div className="w-8 h-8 rounded-xl bg-[var(--bg-tertiary)] border border-[var(--border)] flex items-center justify-center text-lg flex-shrink-0">
+              {activeSpace.icon ?? '📁'}
             </div>
             <div>
-              <h2 className="text-sm font-semibold text-[var(--text)]">{activeSpace.name}</h2>
-              <p className="text-[10px] text-[var(--text-muted)] truncate max-w-[200px]">{activeSpace.description}</p>
+              <h2 className="panel-title">{activeSpace.name}</h2>
+              <p className="panel-subtitle truncate max-w-[220px]">{activeSpace.description || 'No description'}</p>
             </div>
           </div>
-          <div className="flex items-center gap-2">
-            <button 
-              onClick={() => deleteSpace(activeSpace.id)}
-              className="p-1.5 text-[var(--text-muted)] hover:text-red-400 transition-colors"
-              title="Delete Space"
-            >
-              <Trash2 className="w-3.5 h-3.5" />
-            </button>
-          </div>
+          <button
+            onClick={() => setShowSettings(!showSettings)}
+            className={`btn btn-ghost btn-xs ${showSettings ? 'text-[var(--accent)]' : ''}`}
+          >
+            <Settings size={12} />
+          </button>
         </div>
 
-        {/* Main Area: Split between Threads list and Active Chat */}
+        {/* Body: threads sidebar + chat view */}
         <div className="flex-1 flex overflow-hidden">
-          {/* Threads List */}
-          <div className="w-64 border-r border-[var(--border)] bg-[var(--bg-secondary)]/30 flex flex-col">
-            <div className="p-3 border-b border-[var(--border)]">
-               <button 
-                onClick={() => {
-                   // We can't use handleNewThread here easily without the component, 
-                   // so we'll just trigger the store action.
-                   // Note: Simplified for this refactor.
-                }} 
-                className="w-full py-1.5 px-3 text-[10px] rounded-md bg-[var(--accent)] text-white hover:opacity-90 flex items-center justify-center gap-1"
-               >
-                 <Plus className="w-3 h-3" /> New Chat
-               </button>
+          {/* Thread list */}
+          <div className="w-48 flex flex-col border-r border-[var(--border)] bg-[var(--bg-secondary)]/50">
+            <div className="p-2 border-b border-[var(--border)]">
+              <button
+                onClick={handleNewThread}
+                className="btn btn-primary btn-xs w-full"
+              >
+                <Plus size={10} /> New Thread
+              </button>
             </div>
-            <div className="flex-1 overflow-y-auto p-2 space-y-1">
-              {activeSpace.threads.map(thread => (
-                <button 
+            <div className="flex-1 overflow-y-auto p-1.5 space-y-0.5">
+              {threads.length === 0 ? (
+                <p className="text-[10px] text-[var(--text-muted)] text-center py-4">No threads yet</p>
+              ) : threads.map((thread) => (
+                <button
                   key={thread.id}
                   onClick={() => setActiveThread(thread.id)}
-                  className={`w-full flex items-center gap-2 px-3 py-2 rounded-lg transition-colors group text-left ${
-                    activeThreadId === thread.id 
-                      ? 'bg-[var(--accent)]/10 border border-[var(--accent)]/30 text-[var(--text)]' 
-                      : 'bg-transparent border border-transparent text-[var(--text-muted)] hover:bg-[var(--bg-secondary)]'
+                  className={`w-full flex items-start gap-2 px-2.5 py-2 rounded-md text-left transition-all group ${
+                    activeThreadId === thread.id
+                      ? 'bg-[var(--nav-active-bg)] text-[var(--accent)] border border-[rgba(14,165,233,0.2)]'
+                      : 'text-[var(--text-muted)] hover:bg-[rgba(255,255,255,0.04)] hover:text-[var(--text-secondary)]'
                   }`}
                 >
-                  <MessageSquare className="w-3.5 h-3.5 flex-shrink-0" />
+                  <MessageSquare size={11} className="mt-0.5 flex-shrink-0" />
                   <div className="flex-1 min-w-0">
-                    <p className="text-xs truncate">{thread.title}</p>
+                    <p className="text-[11px] font-medium truncate">{thread.title}</p>
+                    <p className="text-[9px] opacity-50">{(thread.messages ?? []).length} msgs</p>
                   </div>
+                  <button
+                    onClick={(e) => { e.stopPropagation(); removeThread(activeSpace.id, thread.id); }}
+                    className="opacity-0 group-hover:opacity-100 text-[var(--text-muted)] hover:text-[var(--error)]"
+                  >
+                    <X size={9} />
+                  </button>
                 </button>
               ))}
             </div>
           </div>
 
-          {/* Chat View */}
-          <div className="flex-1 flex flex-col bg-[var(--bg)]">
+          {/* Chat view */}
+          <div className="flex-1 flex flex-col min-w-0">
             {activeThreadId ? (
               <ThreadChatView space={activeSpace} threadId={activeThreadId} />
             ) : (
-              <div className="flex-1 flex items-center justify-center text-center p-8 space-y-3">
-                <MessageSquare className="w-8 h-8 text-[var(--text-muted)] opacity-20" />
-                <p className="text-xs text-[var(--text-muted)]">Select a thread or start a new chat to begin.</p>
+              <div className="empty-state">
+                <div className="empty-state-icon">
+                  <MessageSquare size={20} className="text-[var(--text-muted)]" />
+                </div>
+                <p className="empty-state-title">Select a thread</p>
+                <p className="empty-state-desc">Pick a thread from the list or create a new one to start chatting.</p>
+                <button onClick={handleNewThread} className="btn btn-secondary btn-sm mt-1">
+                  <Plus size={11} /> New Thread
+                </button>
               </div>
             )}
           </div>
         </div>
       </div>
 
-      {/* Right Column: Configuration Sidebar */}
-      <div className="w-80 flex flex-col bg-[var(--bg-secondary)] border-l border-[var(--border)] overflow-y-auto">
-        <div className="p-4 space-y-6">
-          <div className="flex items-center gap-2 mb-4">
-            <Settings className="w-4 h-4 text-[var(--text-muted)]" />
-            <h3 className="text-xs font-bold text-[var(--text)] uppercase tracking-wider">Space Settings</h3>
+      {/* Right: Settings panel (togglable) */}
+      {showSettings && (
+        <div className="w-72 flex flex-col bg-[var(--bg-secondary)] border-l border-[var(--border)] overflow-y-auto flex-shrink-0">
+          <div className="panel-header">
+            <div className="flex items-center gap-2">
+              <Settings size={14} className="text-[var(--text-muted)]" />
+              <span className="panel-title">Space Settings</span>
+            </div>
+            <button onClick={() => setShowSettings(false)} className="btn-ghost btn btn-xs">
+              <X size={12} />
+            </button>
           </div>
-
-          <SpaceInstructionsSection space={activeSpace} />
-          <SpaceFilesSection space={activeSpace} />
-          <SpaceSkillsSection space={activeSpace} />
-          <SpaceLinksSection space={activeSpace} />
-          
-          <div className="pt-4">
-             <h4 className="text-[10px] font-semibold text-[var(--text-muted)] uppercase tracking-wider mb-2">Members</h4>
-             <div className="space-y-1">
-               {activeSpace.members.map(m => (
-                 <div key={m.id} className="flex items-center gap-2 px-2 py-1 rounded bg-[var(--bg)] border border-[var(--border)]">
-                   <div className="w-4 h-4 rounded-full bg-[var(--accent)]/20 flex items-center justify-center text-[8px] font-bold text-[var(--accent)]">
-                     {m.name[0]}
-                   </div>
-                   <span className="text-[10px] text-[var(--text)]">{m.name}</span>
-                   <span className="ml-auto text-[8px] opacity-50 uppercase">{m.role}</span>
-                 </div>
-               ))}
-             </div>
+          <div className="p-4 space-y-5">
+            <SpaceInstructionsSection space={activeSpace} />
+            <SpaceFilesSection space={activeSpace} />
+            <SpaceSkillsSection space={activeSpace} />
+            <SpaceLinksSection space={activeSpace} />
+            <SpaceMembersSection space={activeSpace} />
           </div>
         </div>
-      </div>
+      )}
     </div>
   );
 }
 
-// ── Sub-Sections for Sidebar ──────────────────────────────────────────────────
+// ── Settings Sections ─────────────────────────────────────────────────────────
+
+function SidebarSection({ title, description, children }: { title: string; description: string; children: React.ReactNode }) {
+  return (
+    <div className="space-y-2 pb-4 border-b border-[var(--border)] last:border-0 last:pb-0">
+      <div>
+        <h4 className="text-[11px] font-semibold text-[var(--text)]">{title}</h4>
+        <p className="text-[10px] text-[var(--text-muted)] leading-relaxed mt-0.5">{description}</p>
+      </div>
+      {children}
+    </div>
+  );
+}
 
 function SpaceInstructionsSection({ space }: { space: Space }) {
   const setCustomInstructions = useSpaceStore((s) => s.setCustomInstructions);
   const setMasterPrompt = useSpaceStore((s) => s.setMasterPrompt);
-  const [master, setMaster] = useState(space.masterPrompt);
-  const [custom, setCustom] = useState(space.customInstructions);
+  const [master, setMaster] = useState(space.masterPrompt ?? '');
+  const [custom, setCustom] = useState(space.customInstructions ?? '');
 
   return (
-    <SidebarSection 
-      title="Instructions" 
-      description="Tell Computer how it should work in this space."
-    >
-      <div className="space-y-3">
+    <SidebarSection title="Instructions" description="Tell the AI how it should behave in this space.">
+      <div className="space-y-2.5">
         <div>
-          <label className="text-[9px] font-medium text-[var(--text-muted)] mb-1 block uppercase">Master Prompt</label>
-          <textarea 
+          <label className="text-[9px] font-semibold text-[var(--text-muted)] mb-1 block uppercase tracking-wider">Master Prompt</label>
+          <textarea
             value={master}
             onChange={(e) => setMaster(e.target.value)}
             onBlur={() => setMasterPrompt(space.id, master)}
-            rows={4}
-            className="w-full bg-[var(--bg)] border border-[var(--border)] rounded-lg px-2 py-1.5 text-[11px] text-[var(--text)] focus:outline-none focus:ring-1 focus:ring-[var(--accent)] resize-none font-mono"
+            rows={3}
+            className="input textarea text-[11px] font-mono"
             placeholder="Define role and core constraints..."
           />
         </div>
         <div>
-          <label className="text-[9px] font-medium text-[var(--text-muted)] mb-1 block uppercase">Custom Instructions</label>
-          <textarea 
+          <label className="text-[9px] font-semibold text-[var(--text-muted)] mb-1 block uppercase tracking-wider">Custom Instructions</label>
+          <textarea
             value={custom}
             onChange={(e) => setCustom(e.target.value)}
             onBlur={() => setCustomInstructions(space.id, custom)}
-            rows={3}
-            className="w-full bg-[var(--bg)] border border-[var(--border)] rounded-lg px-2 py-1.5 text-[11px] text-[var(--text)] focus:outline-none focus:ring-1 focus:ring-[var(--accent)] resize-none font-mono"
+            rows={2}
+            className="input textarea text-[11px] font-mono"
             placeholder="Supplementary tone or formatting..."
           />
         </div>
@@ -219,37 +306,39 @@ function SpaceFilesSection({ space }: { space: Space }) {
   const addFile = useSpaceStore((s) => s.addFile);
   const removeFile = useSpaceStore((s) => s.removeFile);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const files = space.files ?? [];
 
   return (
-    <SidebarSection 
-      title="Files" 
-      description="Add reference docs, data, or files that Computer should use as context."
-    >
-      <div className="space-y-2">
-        <button 
+    <SidebarSection title="Files" description="Reference docs, data, or files the AI should use as context.">
+      <div className="space-y-1.5">
+        <button
           onClick={() => fileInputRef.current?.click()}
-          className="w-full py-1.5 px-3 text-[10px] rounded-md bg-[var(--bg-secondary)] border border-[var(--border)] text-[var(--text)] hover:bg-[var(--bg)] transition-colors flex items-center justify-center gap-1"
+          className="btn btn-secondary btn-xs w-full"
         >
-          <Plus className="w-3 h-3" /> Add files...
+          <Plus size={10} /> Add files
         </button>
-        <input ref={fileInputRef} type="file" multiple className="hidden" onChange={(e) => {
-          const files = e.target.files;
-          if (!files) return;
-          for (const file of Array.from(files)) {
-            addFile(space.id, { name: file.name, type: file.type, size: file.size, url: URL.createObjectURL(file) });
-          }
-        }} />
-        <div className="space-y-1 max-h-40 overflow-y-auto">
-          {space.files.map(file => (
-            <div key={file.id} className="flex items-center gap-2 px-2 py-1.5 rounded bg-[var(--bg)] border border-[var(--border)] group">
-              <FileText className="w-3 h-3 text-[var(--text-muted)]" />
-              <span className="text-[10px] text-[var(--text)] truncate flex-1">{file.name}</span>
-              <button onClick={() => removeFile(space.id, file.id)} className="opacity-0 group-hover:opacity-100 text-[var(--text-muted)] hover:text-red-400">
-                <Trash2 className="w-3 h-3" />
-              </button>
-            </div>
-          ))}
-        </div>
+        <input
+          ref={fileInputRef}
+          type="file"
+          multiple
+          className="hidden"
+          onChange={(e) => {
+            const f = e.target.files;
+            if (!f) return;
+            for (const file of Array.from(f)) {
+              addFile(space.id, { name: file.name, type: file.type, size: file.size, url: URL.createObjectURL(file) });
+            }
+          }}
+        />
+        {files.map((file) => (
+          <div key={file.id} className="flex items-center gap-2 px-2 py-1.5 rounded-md bg-[var(--bg)] border border-[var(--border)] group">
+            <FileText size={10} className="text-[var(--text-muted)] flex-shrink-0" />
+            <span className="text-[10px] text-[var(--text)] truncate flex-1">{file.name}</span>
+            <button onClick={() => removeFile(space.id, file.id)} className="opacity-0 group-hover:opacity-100 text-[var(--text-muted)] hover:text-[var(--error)]">
+              <Trash2 size={9} />
+            </button>
+          </div>
+        ))}
       </div>
     </SidebarSection>
   );
@@ -260,48 +349,46 @@ function SpaceSkillsSection({ space }: { space: Space }) {
   const removeSkill = useSpaceStore((s) => s.removeSkill);
   const installedSkills = useSkillsStore((s) => s.skills);
   const [search, setSearch] = useState('');
+  const skills = space.skills ?? [];
 
-  const filtered = installedSkills.filter(s => s.name.toLowerCase().includes(search.toLowerCase()));
+  const filtered = installedSkills.filter((s) => s.name.toLowerCase().includes(search.toLowerCase()));
 
   return (
-    <SidebarSection 
-      title="Skills" 
-      description="Extend what Computer can do in this space with reusable capabilities."
-    >
-      <div className="space-y-2">
+    <SidebarSection title="Skills" description="Extend what the AI can do in this space.">
+      <div className="space-y-1.5">
         <div className="relative">
-          <Search className="absolute left-2 top-1/2 -translate-y-1/2 w-3 h-3 text-[var(--text-muted)]" />
-          <input 
+          <Search size={10} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-[var(--text-muted)]" />
+          <input
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Search skills..."
-            className="w-full pl-7 pr-2 py-1 text-[10px] bg-[var(--bg)] border border-[var(--border)] rounded-md text-[var(--text)] focus:outline-none"
+            className="input text-[10px] pl-7"
           />
         </div>
         <div className="flex flex-wrap gap-1">
-          {space.skills.map(skillId => {
-            const skill = installedSkills.find(s => s.id === skillId);
+          {skills.map((skillId) => {
+            const skill = installedSkills.find((s) => s.id === skillId);
             if (!skill) return null;
             return (
-              <span key={skillId} className="px-2 py-0.5 rounded-full bg-[var(--accent)]/10 border border-[var(--accent)]/30 text-[9px] text-[var(--accent)] flex items-center gap-1 group">
+              <span key={skillId} className="badge badge-accent text-[9px] group">
                 {skill.name}
-                <button onClick={() => removeSkill(space.id, skillId)} className="hover:text-red-400">
-                  <X className="w-2 h-2" />
+                <button onClick={() => removeSkill(space.id, skillId)} className="hover:text-[var(--error)] ml-0.5">
+                  <X size={8} />
                 </button>
               </span>
             );
           })}
         </div>
-        {search && (
-          <div className="max-h-32 overflow-y-auto space-y-1 border border-[var(--border)] rounded-md p-1 bg-[var(--bg)]">
-            {filtered.map(skill => (
-              <button 
+        {search && filtered.length > 0 && (
+          <div className="max-h-28 overflow-y-auto border border-[var(--border)] rounded-md bg-[var(--bg)]">
+            {filtered.map((skill) => (
+              <button
                 key={skill.id}
                 onClick={() => addSkill(space.id, skill.id)}
-                className="w-full text-left px-2 py-1 text-[10px] hover:bg-[var(--bg-secondary)] rounded flex items-center justify-between"
+                className="w-full text-left px-2.5 py-1.5 text-[10px] hover:bg-[var(--bg-tertiary)] flex items-center justify-between text-[var(--text-secondary)]"
               >
                 <span>{skill.name}</span>
-                <Plus className="w-2 h-2" />
+                <Plus size={9} />
               </button>
             ))}
           </div>
@@ -315,101 +402,181 @@ function SpaceLinksSection({ space }: { space: Space }) {
   const addLink = useSpaceStore((s) => s.addLink);
   const removeLink = useSpaceStore((s) => s.removeLink);
   const [url, setUrl] = useState('');
+  const links = space.links ?? [];
+
+  const handleAdd = () => {
+    if (!url.trim()) return;
+    try {
+      addLink(space.id, { url: url.trim(), title: new URL(url.trim()).hostname });
+    } catch {
+      addLink(space.id, { url: url.trim(), title: url.trim() });
+    }
+    setUrl('');
+  };
 
   return (
-    <SidebarSection 
-      title="Links" 
-      description="Add websites that Computer should prioritize when running tasks."
-    >
-      <div className="space-y-2">
-        <div className="flex gap-1">
-          <input 
+    <SidebarSection title="Links" description="Websites the AI should prioritize for context.">
+      <div className="space-y-1.5">
+        <div className="flex gap-1.5">
+          <input
             value={url}
             onChange={(e) => setUrl(e.target.value)}
+            onKeyDown={(e) => e.key === 'Enter' && handleAdd()}
             placeholder="https://..."
-            className="flex-1 bg-[var(--bg)] border border-[var(--border)] rounded-md px-2 py-1 text-[10px] text-[var(--text)] focus:outline-none"
+            className="input text-[10px] flex-1"
           />
-          <button 
-            onClick={() => {
-              if (!url.trim()) return;
-              addLink(space.id, { url: url.trim(), title: new URL(url.trim()).hostname });
-              setUrl('');
-            }}
-            className="p-1 bg-[var(--accent)] text-white rounded-md"
-          >
-            <Plus className="w-3 h-3" />
+          <button onClick={handleAdd} className="btn btn-primary btn-xs flex-shrink-0">
+            <Plus size={10} />
           </button>
         </div>
-        <div className="space-y-1 max-h-40 overflow-y-auto">
-          {space.links.map(link => (
-            <div key={link.id} className="flex items-center gap-2 px-2 py-1.5 rounded bg-[var(--bg)] border border-[var(--border)] group">
-              <LinkIcon className="w-3 h-3 text-[var(--text-muted)]" />
-              <span className="text-[10px] text-[var(--accent)] truncate flex-1">{link.title}</span>
-              <button onClick={() => removeLink(space.id, link.id)} className="opacity-0 group-hover:opacity-100 text-[var(--text-muted)] hover:text-red-400">
-                <Trash2 className="w-3 h-3" />
-              </button>
-            </div>
-          ))}
-        </div>
+        {links.map((link) => (
+          <div key={link.id} className="flex items-center gap-2 px-2 py-1.5 rounded-md bg-[var(--bg)] border border-[var(--border)] group">
+            <LinkIcon size={9} className="text-[var(--text-muted)] flex-shrink-0" />
+            <span className="text-[10px] text-[var(--accent)] truncate flex-1">{link.title}</span>
+            <button onClick={() => removeLink(space.id, link.id)} className="opacity-0 group-hover:opacity-100 text-[var(--text-muted)] hover:text-[var(--error)]">
+              <Trash2 size={9} />
+            </button>
+          </div>
+        ))}
       </div>
     </SidebarSection>
   );
 }
 
-// ── Thread Chat View (Simplified for the refactor to ensure build) ──────────────────
+function SpaceMembersSection({ space }: { space: Space }) {
+  const members = space.members ?? [];
+  return (
+    <SidebarSection title="Members" description="People and agents in this space.">
+      <div className="space-y-1">
+        {members.map((m) => (
+          <div key={m.id} className="flex items-center gap-2 px-2 py-1.5 rounded-md bg-[var(--bg)] border border-[var(--border)]">
+            <div className="w-5 h-5 rounded-full bg-[var(--accent-glow)] border border-[rgba(14,165,233,0.3)] flex items-center justify-center text-[9px] font-bold text-[var(--accent)] flex-shrink-0">
+              {(m.name ?? '?')[0].toUpperCase()}
+            </div>
+            <span className="text-[10px] text-[var(--text)] flex-1">{m.name}</span>
+            <span className="badge badge-accent text-[8px]">{m.role}</span>
+          </div>
+        ))}
+        {members.length === 0 && (
+          <p className="text-[10px] text-[var(--text-muted)]">No members yet.</p>
+        )}
+      </div>
+    </SidebarSection>
+  );
+}
 
-function ThreadChatView({ space, threadId }: { space: Space, threadId: string }) {
-  const { messages, addThreadMessage } = useSpaceStore((s) => ({
-    messages: space.threads.find(t => t.id === threadId)?.messages || [],
-    addThreadMessage: s.addThreadMessage
-  }));
+// ── Thread Chat View ──────────────────────────────────────────────────────────
+
+function ThreadChatView({ space, threadId }: { space: Space; threadId: string }) {
+  const thread = (space.threads ?? []).find((t) => t.id === threadId);
+  const messages = thread?.messages ?? [];
+  const addThreadMessage = useSpaceStore((s) => s.addThreadMessage);
+  const updateThreadTitle = useSpaceStore((s) => s.updateThreadTitle);
+
   const [input, setInput] = useState('');
-  const { sendMessage, isStreaming, stopStreaming } = useChatStream();
+  const [isLoading, setIsLoading] = useState(false);
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+  const { sendMessage } = useChatStream();
+
+  // Auto-scroll
+  React.useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [messages.length]);
 
   const handleSend = async () => {
-    if (!input.trim()) return;
-    const msg = input;
+    if (!input.trim() || isLoading) return;
+    const msg = input.trim();
     setInput('');
-    addThreadMessage(space.id, threadId, { role: 'user', content: msg });
-    
-    const response = await sendMessage(msg, {
-      systemPrompt: [space.masterPrompt, space.customInstructions].filter(Boolean).join('\n\n'),
-      spaceId: space.id
-    });
+    setIsLoading(true);
 
-    addThreadMessage(space.id, threadId, { role: 'assistant', content: response });
+    // Update thread title from first message
+    if (messages.length === 0 && thread) {
+      updateThreadTitle(space.id, threadId, msg.slice(0, 40) + (msg.length > 40 ? '…' : ''));
+    }
+
+    addThreadMessage(space.id, threadId, { role: 'user', content: msg });
+
+    try {
+      const response = await sendMessage(msg, {
+        systemPrompt: [space.masterPrompt, space.customInstructions].filter(Boolean).join('\n\n'),
+        spaceId: space.id,
+      });
+      addThreadMessage(space.id, threadId, { role: 'assistant', content: response || '' });
+    } catch (err) {
+      addThreadMessage(space.id, threadId, { role: 'assistant', content: '⚠ Error getting response.' });
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
     <div className="flex flex-col h-full">
+      {/* Messages */}
       <div className="flex-1 overflow-y-auto p-4 space-y-4">
-        {messages.map((m, i) => (
+        {messages.length === 0 ? (
+          <div className="empty-state h-full">
+            <div className="empty-state-icon">
+              <Bot size={22} className="text-[var(--text-muted)]" />
+            </div>
+            <p className="empty-state-title">Start a conversation</p>
+            <p className="empty-state-desc">
+              {space.masterPrompt
+                ? `This space has custom instructions active.`
+                : 'Type a message below to begin.'}
+            </p>
+          </div>
+        ) : messages.map((m, i) => (
           <div key={i} className={`flex ${m.role === 'user' ? 'justify-end' : 'justify-start'}`}>
-            <div className={`max-w-[80%] p-3 rounded-2xl text-xs ${
-              m.role === 'user' 
-                ? 'bg-[var(--accent)] text-white rounded-tr-none' 
-                : 'bg-[var(--bg-secondary)] text-[var(--text)] border border-[var(--border)] rounded-tl-none'
-            }`}>
-              {m.content}
+            {m.role === 'assistant' && (
+              <div className="w-6 h-6 rounded-full bg-[var(--accent-glow)] border border-[rgba(14,165,233,0.3)] flex items-center justify-center mr-2 mt-1 flex-shrink-0">
+                <Bot size={12} className="text-[var(--accent)]" />
+              </div>
+            )}
+            <div className={m.role === 'user' ? 'chat-bubble-user' : 'chat-bubble-assistant'}>
+              <p className="text-[12.5px] leading-relaxed whitespace-pre-wrap">{m.content}</p>
             </div>
           </div>
         ))}
+        {isLoading && (
+          <div className="flex justify-start gap-2 items-center">
+            <div className="w-6 h-6 rounded-full bg-[var(--accent-glow)] border border-[rgba(14,165,233,0.3)] flex items-center justify-center flex-shrink-0">
+              <Bot size={12} className="text-[var(--accent)]" />
+            </div>
+            <div className="chat-bubble-assistant flex gap-1 items-center py-2.5 px-4">
+              {[0, 1, 2].map((i) => (
+                <span key={i} className="w-1.5 h-1.5 rounded-full bg-[var(--text-muted)]"
+                  style={{ animation: `typing-bounce 1.4s ease-in-out ${i * 0.2}s infinite` }} />
+              ))}
+            </div>
+          </div>
+        )}
+        <div ref={messagesEndRef} />
       </div>
-      <div className="p-4 border-t border-[var(--border)] bg-[var(--bg-secondary)]/50">
+
+      {/* Input */}
+      <div className="p-3 border-t border-[var(--border)] bg-[var(--bg-secondary)]/50 flex-shrink-0">
         <div className="flex items-end gap-2">
-          <textarea 
+          <textarea
             value={input}
             onChange={(e) => setInput(e.target.value)}
-            onKeyDown={(e) => e.key === 'Enter' && !e.shiftKey && (e.preventDefault(), handleSend())}
-            placeholder="Message space AI..."
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                handleSend();
+              }
+            }}
+            placeholder={`Message ${space.name}...`}
             rows={1}
-            className="flex-1 bg-[var(--bg)] border border-[var(--border)] rounded-lg px-3 py-2 text-xs text-[var(--text)] focus:outline-none focus:ring-1 focus:ring-[var(--accent)] resize-none"
+            className="input textarea flex-1 min-h-[36px] max-h-[120px] text-[12.5px] resize-none"
+            style={{ lineHeight: '1.5' }}
           />
-          {isStreaming ? (
-            <button onClick={stopStreaming} className="p-2 rounded-lg bg-red-500 text-white"><X className="w-4 h-4" /></button>
-          ) : (
-            <button onClick={handleSend} disabled={!input.trim()} className="p-2 rounded-lg bg-[var(--accent)] text-white disabled:opacity-50"><Send className="w-4 h-4" /></button>
-          )}
+          <button
+            onClick={handleSend}
+            disabled={!input.trim() || isLoading}
+            className="btn btn-primary flex-shrink-0 h-9 w-9 p-0"
+          >
+            <Send size={13} />
+          </button>
         </div>
       </div>
     </div>

@@ -477,7 +477,59 @@ export const useSpaceStore = create<SpaceState>()(
     }),
     {
       name: 'overlord-space-store',
-      partialize: (state) => ({ spaces: state.spaces.slice(0, 30).map(s => ({ ...s, threads: s.threads.slice(0, 20).map(t => ({ ...t, messages: t.messages.slice(-50) })) })), activeSpaceId: state.activeSpaceId }),
+      version: 2,
+      partialize: (state) => ({
+        spaces: state.spaces.slice(0, 30).map(s => ({
+          ...s,
+          threads: (s.threads ?? []).slice(0, 20).map(t => ({
+            ...t,
+            messages: (t.messages ?? []).slice(-50),
+          })),
+        })),
+        activeSpaceId: state.activeSpaceId,
+      }),
+      // Migration: fill in any missing array fields from old schema
+      migrate: (persistedState: any, version: number) => {
+        const state = persistedState as any;
+        if (!state || !state.spaces) return state;
+        return {
+          ...state,
+          spaces: state.spaces.map((s: any) => ({
+            files: [],
+            artifacts: [],
+            attachments: [],
+            links: [],
+            skills: [],
+            threads: [],
+            pinnedItems: [],
+            members: [{ id: 'owner', name: 'Rich', role: 'owner' }],
+            masterPrompt: '',
+            customInstructions: '',
+            model: '',
+            provider: '',
+            color: '#3b82f6',
+            icon: '📁',
+            ...s,
+            // Ensure all arrays are arrays (guard against null/undefined from old data)
+            files:        Array.isArray(s.files)        ? s.files        : [],
+            artifacts:    Array.isArray(s.artifacts)    ? s.artifacts    : [],
+            attachments:  Array.isArray(s.attachments)  ? s.attachments  : [],
+            links:        Array.isArray(s.links)        ? s.links        : [],
+            skills:       Array.isArray(s.skills)       ? s.skills       : [],
+            pinnedItems:  Array.isArray(s.pinnedItems)  ? s.pinnedItems  : [],
+            members:      Array.isArray(s.members)      ? s.members      : [{ id: 'owner', name: 'Rich', role: 'owner' }],
+            threads:      Array.isArray(s.threads)
+              ? s.threads.map((t: any) => ({
+                  messages: [],
+                  messageCount: 0,
+                  lastActivity: Date.now(),
+                  ...t,
+                  messages: Array.isArray(t.messages) ? t.messages : [],
+                }))
+              : [],
+          })),
+        };
+      },
     }
   )
 );

@@ -11,7 +11,6 @@ import { ChatMessage } from './ChatMessage';
 import { TypingIndicator } from './TypingIndicator';
 import { ScrollControls } from './ScrollControls';
 import { ChatComposer } from './ChatComposer';
-import { useSpaceStore } from '@/stores/spaceStore';
 import {
   ChevronDown,
   Square,
@@ -34,18 +33,12 @@ export const ChatWindow = () => {
 
   const currentPersona = PERSONAS[activePersona as PersonaSlug] || PERSONAS.david;
 
-  // Get active space instructions for chat context (select primitive to avoid render loop)
-  const spaceInstructions = useSpaceStore((s) => {
-    const spaceId = s.activeSpaceId;
-    const space = spaceId ? s.spaces.find(sp => sp.id === spaceId) : null;
-    return space?.customInstructions || undefined;
-  });
-
+  // Global Chat is ISOLATED from Spaces — no space instructions bleed in here.
+  // Spaces have their own independent thread-level chat via SpacesPanel.
   const { sendMessage, cancelStream, reconnect } = useChatStream({
     sessionId: activeSession,
     persona: currentPersona.slug,
     model: selectedModel,
-    systemPrompt: spaceInstructions,
   });
 
   // FIX: Do NOT use || [] in the selector — it creates a new array ref on every render
@@ -109,11 +102,15 @@ export const ChatWindow = () => {
   return (
     <div className="flex flex-col h-full bg-[var(--bg)]">
       {/* Header bar with controls */}
-      <div className="px-4 py-2.5 border-b border-[var(--border)] flex items-center justify-between bg-[var(--bg-secondary)] gap-2">
-        <div className="flex items-center gap-3">
-          <span className="text-xs text-[var(--text-muted)]">Chat</span>
-          <span className="text-[10px] text-[var(--text-muted)]">•</span>
-          <span className="text-xs text-[var(--text-secondary)]">{currentPersona.name}</span>
+      <div className="panel-header">
+        <div className="flex items-center gap-2.5">
+          <div className="w-6 h-6 rounded-md bg-[var(--accent-glow)] border border-[rgba(14,165,233,0.25)] flex items-center justify-center">
+            <span className="text-[var(--accent)] text-[11px]">◈</span>
+          </div>
+          <div>
+            <span className="panel-title">Chat</span>
+            <span className="text-[10px] text-[var(--text-muted)] ml-2">· {currentPersona.name}</span>
+          </div>
         </div>
 
         <div className="flex items-center gap-2">
@@ -210,13 +207,13 @@ export const ChatWindow = () => {
       <div ref={scrollRef} className="flex-1 overflow-y-auto scroll-smooth">
         <div className="max-w-3xl mx-auto px-4 py-6 space-y-6">
         {!messages && !isStreaming && (
-          <div className="h-full flex flex-col items-center justify-center gap-3 py-20">
-            <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-[var(--accent)]/20 to-[var(--accent)]/5 border border-[var(--accent)]/20 flex items-center justify-center">
-              <UserCircle className="w-7 h-7 text-[var(--accent)]" />
+          <div className="empty-state py-24">
+            <div className="w-16 h-16 rounded-2xl bg-[var(--accent-glow)] border border-[rgba(14,165,233,0.2)] flex items-center justify-center">
+              <UserCircle className="w-8 h-8 text-[var(--accent)]" />
             </div>
-            <div className="text-center">
-              <p className="text-base text-[var(--text-primary)] font-medium">Start a conversation</p>
-              <p className="text-sm text-[var(--text-muted)] mt-1">Using {currentModelLabel} as {currentPersona.name}</p>
+            <div>
+              <p className="empty-state-title text-base">Start a conversation</p>
+              <p className="empty-state-desc">Using {currentModelLabel} as {currentPersona.name}</p>
             </div>
           </div>
         )}
@@ -228,14 +225,14 @@ export const ChatWindow = () => {
         {/* Streaming content preview */}
         {isStreaming && streamingContent && (
           <div className="group flex gap-3">
-            <div className="flex-shrink-0 w-8 h-8 rounded-lg flex items-center justify-center bg-[var(--bg-tertiary)]">
-              <svg className="w-4 h-4 text-[var(--accent)] animate-pulse" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <div className="flex-shrink-0 w-8 h-8 rounded-lg flex items-center justify-center bg-[var(--accent-glow)] border border-[rgba(14,165,233,0.2)]">
+              <svg className="w-4 h-4 text-[var(--accent)]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
               </svg>
             </div>
             <div className="flex-1">
-              <div className="rounded-xl px-4 py-3 bg-[var(--bg-secondary)] border border-[var(--border)]">
-                <div className="text-sm text-[var(--text)] whitespace-pre-wrap leading-relaxed">{streamingContent}<span className="inline-block w-1.5 h-4 bg-[var(--accent)] animate-pulse ml-0.5 align-text-bottom" /></div>
+              <div className="chat-bubble-assistant">
+                <div className="text-sm text-[var(--text)] whitespace-pre-wrap leading-relaxed streaming-cursor">{streamingContent}</div>
               </div>
             </div>
           </div>
