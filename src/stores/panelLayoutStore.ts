@@ -162,17 +162,21 @@ export const usePanelLayoutStore = create<PanelLayoutState>()(
     }),
     {
       name: 'agent-os-panel-layout',
+      version: 2,
       partialize: (state) => ({ panels: state.panels, layoutPreset: state.layoutPreset }),
       storage: createJSONStorage(() => localStorage),
       merge: (persistedState: any, currentState) => {
         if (!persistedState) return currentState;
+        // Start from the current defaults so newly-added panels are never dropped
         const mergedPanels = [...currentState.panels];
         if (persistedState.panels) {
           persistedState.panels.forEach((p: any) => {
             const idx = mergedPanels.findIndex((dp) => dp.id === p.id);
             if (idx >= 0) {
+              // Merge persisted preferences (visibility, order) into the default entry
               mergedPanels[idx] = { ...mergedPanels[idx], ...p };
             }
+            // Panels in persisted state that are no longer in defaults are intentionally dropped
           });
         }
         return {
