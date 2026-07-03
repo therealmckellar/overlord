@@ -88,22 +88,13 @@ const NAV_GROUPS: NavGroupDef[] = [
     ],
   },
   {
-    id: 'connect',
-    label: 'Connect',
-    icon: '⋈',
-    panel: 'channels',
-    children: [
-      { id: 'webhooks', label: 'Webhooks',   panel: 'webhooks' },
-      { id: 'pairing',  label: 'Pairing',   panel: 'pairing' },
-      { id: 'mcp',      label: 'MCP',       panel: 'mcp' },
-    ],
-  },
-  {
     id: 'system',
     label: 'System',
     icon: '◧',
     panel: 'settings',
     children: [
+      { id: 'channels',      label: 'Channels',      panel: 'channels' },
+      { id: 'pairing',       label: 'Pairing',       panel: 'pairing' },
       { id: 'configEditor',  label: 'Config',        panel: 'configEditor' },
       { id: 'plugins',       label: 'Plugins',       panel: 'plugins' },
       { id: 'achievements',  label: 'Achievements',  panel: 'achievements' },

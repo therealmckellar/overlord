@@ -20,41 +20,43 @@ export function AccountsTab() {
   const syncAccounts = useSocialStore((s) => s.syncAccounts);
   const [connecting, setConnecting] = useState<string | null>(null);
 
-  // Connection modal state
-  const [activePlatform, setActivePlatform] = useState<{ id: string; name: string; icon: string } | null>(null);
-  const [accountName, setAccountName] = useState('');
-  const [username, setUsername] = useState('');
-  const [accessToken, setAccessToken] = useState('');
-
   useEffect(() => {
     syncAccounts();
   }, [syncAccounts]);
 
-  const handleConnect = async () => {
-    if (!activePlatform) return;
-    const platform = activePlatform.id;
-    setConnecting(platform);
-    try {
-      const res = await fetch(`/api/social/accounts/connect/${platform}`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
-          account_name: accountName.trim() || activePlatform.name, 
-          platform_user_id: username.trim() || null, 
-          access_token: accessToken.trim() || null 
-        }),
-      });
-      if (res.ok) {
-        await syncAccounts();
+  useEffect(() => {
+    const handleOAuthMessage = (event: MessageEvent) => {
+      if (event.data?.type === 'social_connected') {
+        setConnecting(null);
+        syncAccounts();
       }
-    } catch {
-      // silent
-    } finally {
+    };
+    window.addEventListener('message', handleOAuthMessage);
+    return () => window.removeEventListener('message', handleOAuthMessage);
+  }, [syncAccounts]);
+
+  const handleOAuthStart = (platformId: string) => {
+    setConnecting(platformId);
+    const width = 480;
+    const height = 620;
+    const left = window.screenX + (window.outerWidth - width) / 2;
+    const top = window.screenY + (window.outerHeight - height) / 2;
+    
+    const popup = window.open(
+      `/api/social/accounts/connect/${platformId}`,
+      `Connect ${platformId}`,
+      `width=${width},height=${height},left=${left},top=${top},status=no,menubar=no,toolbar=no`
+    );
+
+    if (popup) {
+      const timer = setInterval(() => {
+        if (popup.closed) {
+          clearInterval(timer);
+          setConnecting(prev => prev === platformId ? null : prev);
+        }
+      }, 1000);
+    } else {
       setConnecting(null);
-      setActivePlatform(null);
-      setAccountName('');
-      setUsername('');
-      setAccessToken('');
     }
   };
 
@@ -97,8 +99,8 @@ export function AccountsTab() {
                   </button>
                 ) : (
                   <button
-                    onClick={() => setActivePlatform(p)}
-                    disabled={connecting === p.id}
+                    onClick={() => handleOAuthStart(p.id)}
+                    disabled={connecting !== null}
                     className="px-2 py-1 text-[10px] rounded bg-[var(--accent)] text-white hover:opacity-90 transition-opacity disabled:opacity-50"
                   >
                     {connecting === p.id ? '...' : 'Connect'}
@@ -109,84 +111,6 @@ export function AccountsTab() {
           })}
         </div>
       </div>
-
-      {/* Connection Modal Overlay */}
-      {activePlatform && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-          <div className="w-full max-w-sm rounded-xl border border-[var(--border)] bg-[var(--bg-secondary)] p-5 shadow-2xl flex flex-col gap-4 animate-in fade-in zoom-in-95 duration-150">
-            <div className="flex items-center gap-2">
-              <span className="text-lg">{activePlatform.icon}</span>
-              <h3 className="text-sm font-semibold text-[var(--text)]">Connect {activePlatform.name}</h3>
-            </div>
-            
-            <p className="text-[11px] text-[var(--text-muted)] leading-relaxed">
-              Enter your account information to establish a connection. Integrations use local credential storage.
-            </p>
-
-            <div className="space-y-3">
-              <div>
-                <label className="block text-[10px] font-medium text-[var(--text-secondary)] uppercase tracking-wider mb-1">
-                  Account Name / Alias
-                </label>
-                <input
-                  type="text"
-                  value={accountName}
-                  onChange={(e) => setAccountName(e.target.value)}
-                  placeholder="e.g. My Company Account"
-                  className="w-full px-2.5 py-1.5 text-xs rounded bg-[var(--bg)] border border-[var(--border)] text-[var(--text)] outline-none focus:border-[var(--accent)]"
-                />
-              </div>
-
-              <div>
-                <label className="block text-[10px] font-medium text-[var(--text-secondary)] uppercase tracking-wider mb-1">
-                  Username / Handle
-                </label>
-                <input
-                  type="text"
-                  value={username}
-                  onChange={(e) => setUsername(e.target.value)}
-                  placeholder="e.g. @username"
-                  className="w-full px-2.5 py-1.5 text-xs rounded bg-[var(--bg)] border border-[var(--border)] text-[var(--text)] outline-none focus:border-[var(--accent)]"
-                />
-              </div>
-
-              <div>
-                <label className="block text-[10px] font-medium text-[var(--text-secondary)] uppercase tracking-wider mb-1">
-                  API Key / Access Token
-                </label>
-                <input
-                  type="password"
-                  value={accessToken}
-                  onChange={(e) => setAccessToken(e.target.value)}
-                  placeholder="Optional credentials token"
-                  className="w-full px-2.5 py-1.5 text-xs rounded bg-[var(--bg)] border border-[var(--border)] text-[var(--text)] outline-none focus:border-[var(--accent)]"
-                />
-              </div>
-            </div>
-
-            <div className="flex justify-end gap-2 pt-2 border-t border-[var(--border)]">
-              <button
-                onClick={() => {
-                  setActivePlatform(null);
-                  setAccountName('');
-                  setUsername('');
-                  setAccessToken('');
-                }}
-                className="px-3 py-1.5 text-xs rounded bg-[var(--bg)] border border-[var(--border)] text-[var(--text-secondary)] hover:bg-[var(--bg-tertiary)]"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={handleConnect}
-                disabled={connecting === activePlatform.id}
-                className="px-3 py-1.5 text-xs rounded bg-[var(--accent)] text-white hover:opacity-90 disabled:opacity-50 font-medium"
-              >
-                {connecting === activePlatform.id ? 'Connecting...' : 'Connect'}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
 
       {/* Vertical Manager */}
       <VerticalManager />

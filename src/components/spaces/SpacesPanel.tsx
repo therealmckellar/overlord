@@ -20,7 +20,7 @@ import { useChatStream } from '@/hooks/useChatStream';
 function NoSpaceSelected() {
   const createSpace = useSpaceStore((s) => s.createSpace);
   const setActiveSpace = useSpaceStore((s) => s.setActiveSpace);
-  const spaces = useSpaceStore((s) => s.spaces);
+  const spaces = useSpaceStore((s) => s.spaces) ?? [];
 
   const handleCreate = () => {
     const space = createSpace('New Space', 'A new workspace for your projects');
@@ -56,7 +56,7 @@ function NoSpaceSelected() {
 // ── Space list sidebar (left column) ─────────────────────────────────────────
 
 function SpaceListSidebar() {
-  const spaces = useSpaceStore((s) => s.spaces);
+  const spaces = useSpaceStore((s) => s.spaces) ?? [];
   const activeSpaceId = useSpaceStore((s) => s.activeSpaceId);
   const setActiveSpace = useSpaceStore((s) => s.setActiveSpace);
   const createSpace = useSpaceStore((s) => s.createSpace);
@@ -83,7 +83,7 @@ function SpaceListSidebar() {
 
       {/* List */}
       <div className="flex-1 overflow-y-auto p-1.5 space-y-0.5">
-        {(spaces ?? []).map((space) => (
+        {spaces.map((space) => (
           <button
             key={space.id}
             onClick={() => setActiveSpace(space.id)}

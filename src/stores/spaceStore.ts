@@ -472,6 +472,7 @@ export const useSpaceStore = create<SpaceState>()(
 
       getActiveSpace: () => {
         const { spaces, activeSpaceId } = get();
+        if (!spaces || !Array.isArray(spaces)) return null;
         return spaces.find((s) => s.id === activeSpaceId) || null;
       },
     }),
@@ -479,22 +480,27 @@ export const useSpaceStore = create<SpaceState>()(
       name: 'overlord-space-store',
       version: 2,
       partialize: (state) => ({
-        spaces: state.spaces.slice(0, 30).map(s => ({
-          ...s,
-          threads: (s.threads ?? []).slice(0, 20).map(t => ({
-            ...t,
-            messages: (t.messages ?? []).slice(-50),
-          })),
-        })),
+        spaces: Array.isArray(state.spaces)
+          ? state.spaces.slice(0, 30).map(s => ({
+              ...s,
+              threads: Array.isArray(s.threads)
+                ? s.threads.slice(0, 20).map(t => ({
+                    ...t,
+                    messages: Array.isArray(t.messages) ? t.messages.slice(-50) : [],
+                  }))
+                : [],
+            }))
+          : [],
         activeSpaceId: state.activeSpaceId,
       }),
       // Migration: fill in any missing array fields from old schema
-      migrate: (persistedState: any, version: number) => {
+      migrate: (persistedState: any, _version: number) => {
         const state = persistedState as any;
-        if (!state || !state.spaces) return state;
+        if (!state) return { spaces: [], activeSpaceId: null };
+        const spacesRaw = Array.isArray(state.spaces) ? state.spaces : [];
         return {
           ...state,
-          spaces: state.spaces.map((s: any) => ({
+          spaces: spacesRaw.map((s: any) => ({
             files: [],
             artifacts: [],
             attachments: [],
@@ -529,6 +535,28 @@ export const useSpaceStore = create<SpaceState>()(
               : [],
           })),
         };
+      },
+      onRehydrateStorage: () => (state) => {
+        if (state) {
+          if (!Array.isArray(state.spaces)) {
+            state.spaces = [];
+          }
+          state.spaces.forEach((s: any) => {
+            if (!s) return;
+            if (!Array.isArray(s.files)) s.files = [];
+            if (!Array.isArray(s.artifacts)) s.artifacts = [];
+            if (!Array.isArray(s.attachments)) s.attachments = [];
+            if (!Array.isArray(s.links)) s.links = [];
+            if (!Array.isArray(s.skills)) s.skills = [];
+            if (!Array.isArray(s.pinnedItems)) s.pinnedItems = [];
+            if (!Array.isArray(s.members)) s.members = [{ id: 'owner', name: 'Rich', role: 'owner' }];
+            if (!Array.isArray(s.threads)) s.threads = [];
+            s.threads.forEach((t: any) => {
+              if (!t) return;
+              if (!Array.isArray(t.messages)) t.messages = [];
+            });
+          });
+        }
       },
     }
   )
