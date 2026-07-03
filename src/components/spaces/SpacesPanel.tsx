@@ -15,6 +15,7 @@ import {
   User
 } from 'lucide-react';
 import { useSpaceStore, type Space, type SpaceThread, type SpaceThreadMessage } from '@/stores/spaceStore';
+import { useUIStore } from '@/stores/uiStore';
 import { useSkillsStore } from '@/stores/skillsStore';
 import { useChatStream } from '@/hooks/useChatStream';
 
@@ -35,6 +36,7 @@ function SidebarSection({ title, description, children }: { title: string, descr
 // ── Main Component ───────────────────────────────────────────────────────────
 
 export default function SpacesPanel() {
+  const selectedModel = useUIStore((s) => s.selectedModel);
   const spaces = useSpaceStore((s) => s.spaces);
   const activeSpaceId = useSpaceStore((s) => s.activeSpaceId);
   const setActiveSpace = useSpaceStore((s) => s.setActiveSpace);
@@ -363,8 +365,13 @@ function ThreadChatView({ space, threadId }: { space: Space, threadId: string })
     messages: space.threads.find(t => t.id === threadId)?.messages || [],
     addThreadMessage: s.addThreadMessage
   }));
+  const selectedModel = useUIStore((s) => s.selectedModel);
   const [input, setInput] = useState('');
-  const { sendMessage, isStreaming, stopStreaming } = useChatStream();
+  const { sendMessage, isStreaming, stopStreaming } = useChatStream({
+    sessionId: threadId,
+    persona: 'space-assistant',
+    model: selectedModel,
+  });
 
   const handleSend = async () => {
     if (!input.trim()) return;

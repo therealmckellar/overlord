@@ -46,7 +46,7 @@ export async function POST(req: NextRequest) {
 
     // Spawn opencode agent as child process
     const modelArg = model ? `--model "${model}"` : '';
-    const command = `opencode run --agent ${role} ${modelArg} "${task.replace(/"/g, '\\"')}"`;
+    const command_str = `opencode run --agent ${role} ${modelArg} "${task.replace(/"/g, '\\"')}"`;
 
     logEvent('info', 'Agent', `Spawning ${role} agent: ${name}`);
 

@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { verifyToken } from '@/lib/auth/jwt';
 import { findById, updateUser, toSafeUser } from '@/lib/auth/users';
-import { serialize } from 'cookie';
 
 export async function GET(req: NextRequest) {
   try {

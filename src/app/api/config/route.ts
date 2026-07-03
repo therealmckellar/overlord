@@ -60,13 +60,13 @@ export async function GET() {
     });
   }
 
-  if (envExists('DEEPGRAM_API_KEY')) {
+  if (envExists('DEEPGRAM_API_KEY_OVERLORD')) {
     apiKeys.push({
       id: 'env_deepgram',
       name: 'Deepgram (STT/TTS)',
       service: 'deepgram',
-      key: maskKey(process.env.DEEPGRAM_API_KEY!),
-      maskedKey: maskKey(process.env.DEEPGRAM_API_KEY!),
+      key: maskKey(process.env.DEEPGRAM_API_KEY_OVERLORD!),
+      maskedKey: maskKey(process.env.DEEPGRAM_API_KEY_OVERLORD!),
       enabled: true,
       source: 'env',
     });

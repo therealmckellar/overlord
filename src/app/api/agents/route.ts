@@ -42,11 +42,10 @@ export async function POST(req: NextRequest) {
 
   try {
     const body = await req.json();
-    const { task, prompt, persona, options = {} } = body as {
+    const { task, prompt, persona } = body as {
       task: TaskCategory;
       prompt: string;
       persona?: string;
-      options?: Record<string, string>;
     };
 
     if (!task || !prompt) {
@@ -100,8 +99,7 @@ export async function GET() {
           // Invert TASK_ROUTING
           Object.fromEntries(
             Object.entries(
-              // Get TASK_ROUTING from model-graph
-              require('@/lib/model-graph').TASK_ROUTING
+              TASK_ROUTING
             ).map(([task, agent]) => [agent, task])
           )
         ).map(([agent, task]) => [agent, [task]])

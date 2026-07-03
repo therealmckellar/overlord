@@ -4,7 +4,7 @@ import { getDb } from "@/lib/db";
 export async function GET(_req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const db = getDb();
-  const goal: any = db.prepare("SELECT * FROM goals WHERE id = ?").get(id);
+  const goal = db.prepare("SELECT * FROM goals WHERE id = ?").get(id) as any;
   if (!goal) return NextResponse.json({ error: "not found" }, { status: 404 });
   return NextResponse.json({ goal: { ...goal, milestones: goal.milestones ? JSON.parse(goal.milestones) : [] } });
 }
