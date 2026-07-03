@@ -57,9 +57,10 @@ import { DailyUpdatesPanel } from '@/components/DailyUpdatesPanel';
 import { AchievementsPanel } from '@/components/AchievementsPanel';
 import { ConfigEditorPanel } from '@/components/ConfigEditorPanel';
 import { usePanelLayoutStore } from '@/stores/panelLayoutStore';
+import AgentOfficePanel from '@/components/AgentOfficePanel';
 
 
-type Panel = 'dashboard' | 'chat' | 'pipeline' | 'memory' | 'loop' | 'devtools' | 'research' | 'substack' | 'agent' | 'jarvis' | 'designer' | 'spaces' | 'mission' | 'taskboard' | 'deploy' | 'skills' | 'goals' | 'journal' | 'analytics' | 'session' | 'failureLogs' | 'insights' | 'settings' | 'contentPipeline' | 'automationQueue' | 'workspaces' | 'tokens' | 'updates' | 'cron' | 'plugins' | 'achievements' | 'configEditor' | 'webhooks' | 'channels' | 'pairing' | 'mcp' | 'social' | 'promptStudio';
+type Panel = 'dashboard' | 'chat' | 'pipeline' | 'memory' | 'loop' | 'devtools' | 'research' | 'substack' | 'agent' | 'jarvis' | 'designer' | 'spaces' | 'mission' | 'taskboard' | 'deploy' | 'skills' | 'goals' | 'journal' | 'analytics' | 'session' | 'failureLogs' | 'insights' | 'settings' | 'contentPipeline' | 'automationQueue' | 'workspaces' | 'tokens' | 'updates' | 'cron' | 'plugins' | 'achievements' | 'configEditor' | 'webhooks' | 'channels' | 'pairing' | 'mcp' | 'social' | 'promptStudio' | 'agentOffice';
 const PANEL_COMPONENTS: Record<Panel, React.ComponentType> = {
   dashboard: Dashboard,
   chat: ChatWindow,
@@ -99,6 +100,7 @@ const PANEL_COMPONENTS: Record<Panel, React.ComponentType> = {
   tokens: TokenCostPanel,
   updates: DailyUpdatesPanel,
   promptStudio: PromptStudioPanel,
+  agentOffice: AgentOfficePanel,
 };
 
 const PANEL_TITLES: Record<Panel, string> = {
@@ -140,6 +142,7 @@ const PANEL_TITLES: Record<Panel, string> = {
   tokens: 'Token Costs',
   updates: 'Updates',
   promptStudio: 'Prompt Library',
+  agentOffice: '🏢 Agent Office',
 };
 
 export default function Home() {
