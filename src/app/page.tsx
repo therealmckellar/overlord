@@ -19,7 +19,6 @@ import { StudioView } from '@/components/studio/StudioView';
 import { ResearchMultiFormat } from '@/components/research/ResearchMultiFormat';
 import { ContentStudio } from '@/components/substack/SubstackAutomation';
 import { AgentPanel } from '@/components/agent/AgentPanel';
-import AgentDesigner from '@/components/agent/AgentDesigner';
 import Dashboard from '@/components/dashboard/Dashboard';
 import { Sidebar } from '@/components/dashboard/Sidebar';
 import MissionControl from '@/components/MissionControl';
@@ -28,10 +27,7 @@ import AgentDeploymentPanel from '@/components/AgentDeploymentPanel';
 import SkillsPanel from '@/components/SkillsPanel';
 import GoalsPanel from '@/components/GoalsPanel';
 import JournalPanel from '@/components/JournalPanel';
-import AnalyticsDashboard from '@/components/AnalyticsDashboard';
 import SessionHistoryPanel from '@/components/SessionHistoryPanel';
-import FailureLogsPanel from '@/components/FailureLogsPanel';
-import InsightsPanel from '@/components/InsightsPanel';
 import { PERSONAS } from '@/lib/personas';
 import { StatusBar } from '@/components/status/StatusBar';
 import { Breadcrumbs } from '@/components/ui/Breadcrumbs';
@@ -60,7 +56,7 @@ import { usePanelLayoutStore } from '@/stores/panelLayoutStore';
 import AgentOfficePanel from '@/components/AgentOfficePanel';
 
 
-type Panel = 'dashboard' | 'chat' | 'pipeline' | 'memory' | 'loop' | 'devtools' | 'research' | 'substack' | 'agent' | 'jarvis' | 'designer' | 'spaces' | 'mission' | 'taskboard' | 'deploy' | 'skills' | 'goals' | 'journal' | 'analytics' | 'session' | 'failureLogs' | 'insights' | 'settings' | 'contentPipeline' | 'automationQueue' | 'workspaces' | 'tokens' | 'updates' | 'cron' | 'plugins' | 'achievements' | 'configEditor' | 'webhooks' | 'channels' | 'pairing' | 'mcp' | 'social' | 'promptStudio' | 'agentOffice';
+type Panel = 'dashboard' | 'chat' | 'pipeline' | 'memory' | 'loop' | 'devtools' | 'research' | 'substack' | 'agent' | 'jarvis' | 'spaces' | 'mission' | 'taskboard' | 'deploy' | 'skills' | 'goals' | 'journal' | 'session' | 'settings' | 'contentPipeline' | 'automationQueue' | 'workspaces' | 'tokens' | 'updates' | 'cron' | 'plugins' | 'achievements' | 'configEditor' | 'webhooks' | 'channels' | 'pairing' | 'mcp' | 'social' | 'promptStudio' | 'agentOffice';
 const PANEL_COMPONENTS: Record<Panel, React.ComponentType> = {
   dashboard: Dashboard,
   chat: ChatWindow,
@@ -72,7 +68,6 @@ const PANEL_COMPONENTS: Record<Panel, React.ComponentType> = {
   substack: ContentStudio as any,
   agent: AgentPanel,
   jarvis: JarvisPanel,
-  designer: AgentDesigner,
   spaces: SpacesPanel,
   mission: MissionControl,
   taskboard: KanbanBoard,
@@ -80,10 +75,7 @@ const PANEL_COMPONENTS: Record<Panel, React.ComponentType> = {
   skills: SkillsPanel,
   goals: GoalsPanel,
   journal: JournalPanel,
-  analytics: AnalyticsDashboard,
   session: SessionHistoryPanel,
-  failureLogs: FailureLogsPanel,
-  insights: InsightsPanel,
   settings: SettingsPanel,
   contentPipeline: ContentPipelinePanel,
   social: SocialPanel,
@@ -114,7 +106,6 @@ const PANEL_TITLES: Record<Panel, string> = {
   substack: 'Content Studio',
   agent: 'Agent Roster',
   jarvis: 'Jarvis',
-  designer: 'Agent Designer',
   spaces: 'Spaces',
   mission: 'Mission Control',
   taskboard: 'Task Board',
@@ -122,10 +113,7 @@ const PANEL_TITLES: Record<Panel, string> = {
   skills: 'Skills',
   goals: 'Goals',
   journal: 'Journal',
-  analytics: 'Analytics',
   session: 'Sessions',
-  failureLogs: 'Failure Logs',
-  insights: 'Insights',
   settings: 'Settings',
   contentPipeline: 'Content Pipeline',
   social: 'Social',

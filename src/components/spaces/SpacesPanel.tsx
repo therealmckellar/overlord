@@ -23,7 +23,9 @@ function NoSpaceSelected() {
   const spaces = useSpaceStore((s) => s.spaces) ?? [];
 
   const handleCreate = () => {
-    const space = createSpace('New Space', 'A new workspace for your projects');
+    const name = prompt('Enter space name:');
+    if (!name) return;
+    const space = createSpace(name, 'A new workspace for your projects');
     setActiveSpace(space.id);
   };
 

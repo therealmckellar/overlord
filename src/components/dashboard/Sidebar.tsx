@@ -11,9 +11,9 @@ import { ChevronRight, ChevronDown } from 'lucide-react';
 // Then collapsible groups with a parent nav item and indented children
 
 const PRIMARY_ITEMS = [
-  { id: 'chat',   label: 'Chat',   icon: '◈', panel: 'chat' },
-  { id: 'jarvis', label: 'Jarvis', icon: '◎', panel: 'jarvis' },
-  { id: 'spaces', label: 'Spaces', icon: '⬡', panel: 'spaces' },
+  { id: 'jarvis', label: 'Jarvis', icon: '🔮', panel: 'jarvis' },
+  { id: 'chat',   label: 'Chat',   icon: '💬', panel: 'chat' },
+  { id: 'spaces', label: 'Spaces', icon: '🌌', panel: 'spaces' },
 ];
 
 interface NavGroupDef {
@@ -28,7 +28,7 @@ const NAV_GROUPS: NavGroupDef[] = [
   {
     id: 'dashboard',
     label: 'Dashboard',
-    icon: '⊞',
+    icon: '📊',
     panel: 'dashboard',
     children: [
       { id: 'analytics',    label: 'Analytics',     panel: 'analytics' },
@@ -40,20 +40,18 @@ const NAV_GROUPS: NavGroupDef[] = [
   {
     id: 'agents',
     label: 'Agents',
-    icon: '◉',
+    icon: '🤖',
     panel: 'agent',
     children: [
       { id: 'mission',   label: 'Mission Control', panel: 'mission' },
-      { id: 'designer',  label: 'Designer',        panel: 'designer' },
       { id: 'deploy',    label: 'Deployments',     panel: 'deploy' },
-      { id: 'loop',      label: 'Loop Engine',     panel: 'loop' },
       { id: 'agentOffice', label: 'Agent Office',  panel: 'agentOffice' },
     ],
   },
   {
     id: 'work',
     label: 'Work',
-    icon: '▣',
+    icon: '💼',
     panel: 'taskboard',
     children: [
       { id: 'goals',      label: 'Goals',      panel: 'goals' },
@@ -66,11 +64,9 @@ const NAV_GROUPS: NavGroupDef[] = [
   {
     id: 'knowledge',
     label: 'Knowledge',
-    icon: '◐',
+    icon: '🧠',
     panel: 'memory',
     children: [
-      { id: 'skills',       label: 'Skills',        panel: 'skills' },
-      { id: 'research',     label: 'Research',      panel: 'research' },
       { id: 'promptStudio', label: 'Prompt Studio', panel: 'promptStudio' },
       { id: 'pipeline',     label: 'Pipeline',      panel: 'pipeline' },
     ],
@@ -78,27 +74,23 @@ const NAV_GROUPS: NavGroupDef[] = [
   {
     id: 'automate',
     label: 'Automate',
-    icon: '⚙',
+    icon: '⚙️',
     panel: 'cron',
     children: [
-      { id: 'automationQueue',  label: 'Queue',           panel: 'automationQueue' },
       { id: 'substack',         label: 'Content Studio',  panel: 'substack' },
-      { id: 'contentPipeline',  label: 'Content Pipeline',panel: 'contentPipeline' },
       { id: 'social',           label: 'Social',          panel: 'social' },
     ],
   },
   {
     id: 'system',
     label: 'System',
-    icon: '◧',
+    icon: '🛠️',
     panel: 'settings',
     children: [
       { id: 'channels',      label: 'Channels',      panel: 'channels' },
-      { id: 'pairing',       label: 'Pairing',       panel: 'pairing' },
+      { id: 'pairing',       label: 'Pairing',      panel: 'pairing' },
       { id: 'configEditor',  label: 'Config',        panel: 'configEditor' },
       { id: 'plugins',       label: 'Plugins',       panel: 'plugins' },
-      { id: 'achievements',  label: 'Achievements',  panel: 'achievements' },
-      { id: 'failureLogs',   label: 'Failure Logs',  panel: 'failureLogs' },
     ],
   },
 ];
