@@ -14,9 +14,11 @@ jobs:
         run: |
           cd /home/rmckellar/overlord
           
+          # Fetch remote changes to update tracking branches
+          git fetch origin
+          
           # Check if local HEAD matches remote HEAD to avoid redundant pulls
-          # This handles the "no need to pull when Hermes pushes from here" requirement
-          if [ "$(git rev-parse HEAD)" != "$(git rev-parse @{u})" ]; then
+          if [ "$(git rev-parse HEAD)" != "$(git rev-parse origin/main)" ]; then
             echo "Local is behind remote. Pulling latest changes..."
             git pull origin main
           else
