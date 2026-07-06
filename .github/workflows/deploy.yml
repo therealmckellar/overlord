@@ -7,29 +7,38 @@ on:
 
 jobs:
   deploy:
-    name: Pull & restart on Overlord machine
+    name: Build & restart on Overlord machine
     runs-on: self-hosted
+    env:
+      DB_PATH: /home/rmckellar/overlord/data/overlord.db
+      NODE_ENV: production
     steps:
-      - name: Sync and Restart
+      - name: Sync
         run: |
           cd /home/rmckellar/overlord
-          
-          # Fetch remote changes to update tracking branches
+
           git fetch origin
-          
-          # Check if local HEAD matches remote HEAD to avoid redundant pulls
+
           if [ "$(git rev-parse HEAD)" != "$(git rev-parse origin/main)" ]; then
-            echo "Local is behind remote. Pulling latest changes..."
+            echo "Pulling latest changes..."
             git pull origin main
           else
-            echo "Local is already up to date. Skipping pull."
+            echo "Already up to date."
           fi
-          
-          echo "Installing dependencies..."
-          npm install
-          
-          echo "Clearing Next.js dev cache..."
-          rm -rf .next
-          
-          echo "Restarting application..."
-          pm2 restart overlord || pm2 start npm --name "overlord" -- run dev
+
+      - name: Install dependencies
+        run: |
+          cd /home/rmckellar/overlord
+          npm ci --prefer-offline
+
+      - name: Build
+        run: |
+          cd /home/rmckellar/overlord
+          mkdir -p data
+          npm run build
+
+      - name: Restart
+        run: |
+          cd /home/rmckellar/overlord
+          pm2 restart overlord || pm2 start npm --name "overlord" -- run start
+

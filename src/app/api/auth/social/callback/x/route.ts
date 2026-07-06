@@ -1,5 +1,7 @@
 import { NextResponse } from 'next/server';
-import { getDb } from '@/lib/db';
+import sqlite3 from 'better-sqlite3';
+
+const DB_PATH = '/home/rmckellar/overlord/data/overlord.db';
 
 export async function GET(req: Request) {
   const { searchParams } = new URL(req.url);
@@ -34,7 +36,7 @@ export async function GET(req: Request) {
     }
 
     // Update or Insert the social account into the DB
-    const db = getDb();
+    const db = new sqlite3(DB_PATH);
     const upsertAccount = db.prepare(`
       INSERT INTO social_accounts (id, platform, platform_user_id, account_name, access_token, refresh_token, token_expires_at, status, created_at)
       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
