@@ -11,14 +11,11 @@ jobs:
     runs-on: self-hosted
     env:
       DB_PATH: /home/rmckellar/overlord/data/overlord.db
-      NODE_ENV: production
     steps:
       - name: Sync
         run: |
           cd /home/rmckellar/overlord
-
           git fetch origin
-
           if [ "$(git rev-parse HEAD)" != "$(git rev-parse origin/main)" ]; then
             echo "Pulling latest changes..."
             git pull origin main
@@ -29,7 +26,7 @@ jobs:
       - name: Install dependencies
         run: |
           cd /home/rmckellar/overlord
-          npm ci --prefer-offline
+          npm ci
 
       - name: Build
         run: |
@@ -41,4 +38,7 @@ jobs:
         run: |
           cd /home/rmckellar/overlord
           pm2 restart overlord || pm2 start npm --name "overlord" -- run start
+        env:
+          NODE_ENV: production
+          DB_PATH: /home/rmckellar/overlord/data/overlord.db
 
