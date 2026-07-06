@@ -28,5 +28,8 @@ jobs:
           echo "Installing dependencies..."
           npm install
           
+          echo "Clearing Next.js dev cache..."
+          rm -rf .next
+          
           echo "Restarting application..."
           pm2 restart overlord || pm2 start npm --name "overlord" -- run dev
