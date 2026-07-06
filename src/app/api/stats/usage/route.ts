@@ -1,11 +1,9 @@
 import { NextResponse } from 'next/server';
-import sqlite3 from 'better-sqlite3';
-
-const DB_PATH = '/home/rmckellar/overlord/data/overlord.db';
-const db = new sqlite3(DB_PATH);
+import { getDb } from '@/lib/db';
 
 export async function GET(req: Request) {
   try {
+    const db = getDb();
     const stats = db.prepare(`
       SELECT 
         SUM(tokens_prompt) as total_prompt, 
@@ -33,6 +31,7 @@ export async function POST(req: Request) {
     const body = await req.json();
     const { agent_id, user_id, tokens_prompt, tokens_completion, model_id, latency_ms, endpoint } = body;
 
+    const db = getDb();
     const now = Date.now();
     const insertLog = db.prepare(`
       INSERT INTO usage_logs (id, agent_id, user_id, tokens_prompt, tokens_completion, model_id, latency_ms, endpoint, timestamp)

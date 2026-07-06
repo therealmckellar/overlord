@@ -1,9 +1,5 @@
 import { NextResponse } from 'next/server';
-import sqlite3 from 'better-sqlite3';
-import path from 'path';
-
-const DB_PATH = '/home/rmckellar/overlord/data/overlord.db';
-const db = new sqlite3(DB_PATH);
+import { getDb } from '@/lib/db';
 
 export async function GET(req: Request) {
   const { searchParams } = new URL(req.url);
@@ -14,6 +10,7 @@ export async function GET(req: Request) {
   }
 
   try {
+    const db = getDb();
     const config = db.prepare('SELECT * FROM agent_configs WHERE id = ?').get(agentId) as any;
     
     if (!config) {
@@ -36,6 +33,7 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
     }
 
+    const db = getDb();
     const now = Date.now();
     const upsertConfig = db.prepare(`
       INSERT INTO agent_configs (id, name, role, system_prompt, model_id, temperature, max_tokens, capabilities, created_at, updated_at)

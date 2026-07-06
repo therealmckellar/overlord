@@ -1,8 +1,5 @@
 import { NextResponse } from 'next/server';
-import sqlite3 from 'better-sqlite3';
-
-const DB_PATH = '/home/rmckellar/overlord/data/overlord.db';
-const db = new sqlite3(DB_PATH);
+import { getDb } from '@/lib/db';
 
 export async function GET(req: Request) {
   const { searchParams } = new URL(req.url);
@@ -13,6 +10,7 @@ export async function GET(req: Request) {
   }
 
   try {
+    const db = getDb();
     const assets = db.prepare('SELECT * FROM content_assets WHERE pipeline_id = ?').all(pipelineId);
     return NextResponse.json(assets);
   } catch (error) {
@@ -30,6 +28,7 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
     }
 
+    const db = getDb();
     const now = Date.now();
     const insertAsset = db.prepare(`
       INSERT INTO content_assets (id, pipeline_id, stage_id, asset_type, storage_url, metadata, created_at, updated_at)
