@@ -103,19 +103,19 @@ function buildAgentsFromGraph(): Agent[] {
     id: `agent-${config.role}`,
     name: config.role.charAt(0).toUpperCase() + config.role.slice(1).replace('-', ' '),
     role: config.role,
-    status: idx < 3 ? 'active' : idx < 8 ? 'idle' : 'active',
+    status: 'idle' as const, // Start as clean idle state
     model: config.model,
     provider: config.provider,
     agentFlag: config.agentFlag,
     maxTokens: config.maxTokens,
-    lastActivity: idx < 3 ? 'Just now' : idx < 8 ? `${idx * 2} mins ago` : `${idx * 5} mins ago`,
-    tokensUsed: idx < 3 ? Math.floor(Math.random() * 50000) : Math.floor(Math.random() * 10000),
+    lastActivity: 'Awaiting first task',
+    tokensUsed: 0,
     color: ROLE_COLORS[config.role] || '#64748B',
     skills: ROLE_SKILLS[config.role] || ['General Purpose'],
     assignedSkillIds: [] as string[],
     allowedTasks: config.allowedTasks,
     logs: [
-      { timestamp: new Date().toLocaleTimeString(), message: `Agent initialized — ${config.model}`, type: 'info' },
+      { timestamp: new Date().toLocaleTimeString(), message: `Agent registered — ready for ${config.allowedTasks.join(', ') || 'general'} tasks`, type: 'info' },
     ],
     messages: [],
   }));

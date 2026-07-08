@@ -135,7 +135,7 @@ export const MODEL_GRAPH: Record<AgentRole, AgentConfig> = {
 
   researcher: {
     role: 'researcher',
-    model: 'moonshotai/kimi-k2.6:free',
+    model: 'cognitivecomputations/hermes-3-llama-3.1-405b:free',
     provider: 'openrouter',
     agentFlag: 'researcher',
     maxTokens: 16384,
@@ -221,7 +221,7 @@ export const MODEL_GRAPH: Record<AgentRole, AgentConfig> = {
 
   explorer: {
     role: 'explorer',
-    model: 'nex-agi/nex-n2-pro:free',
+    model: 'google/gemma-4-31b-it:free',
     provider: 'openrouter',
     agentFlag: 'explorer',
     maxTokens: 8192,
@@ -239,7 +239,7 @@ export const MODEL_GRAPH: Record<AgentRole, AgentConfig> = {
 
   fast: {
     role: 'fast',
-    model: 'nex-agi/nex-n2-pro:free',
+    model: 'google/gemma-4-31b-it:free',
     provider: 'openrouter',
     agentFlag: 'fast',
     maxTokens: 4096,
@@ -421,6 +421,32 @@ export function getAllAgents(): AgentConfig[] {
   return Object.values(MODEL_GRAPH).filter((a) => a.role !== 'orchestrator');
 }
 
+export const ALLOWED_MODELS = [
+  { value: 'cohere/north-mini-code:free', label: 'North Mini Code (free)' },
+  { value: 'cognitivecomputations/hermes-3-llama-3.1-405b:free', label: 'Hermes 3 405B Instruct (free)' },
+  { value: 'poolside/laguna-xs-2.1:free', label: 'Laguna XS 2.1 (free)' },
+  { value: 'nvidia/nemotron-3-ultra-550b-a55b:free', label: 'Nemotron 3 Ultra (free)' },
+  { value: 'nvidia/nemotron-3-nano-omni-12b:free', label: 'Nemotron 3 Nano Omni (free)' },
+  { value: 'poolside/laguna-xs.2:free', label: 'Laguna XS.2 (free)' },
+  { value: 'poolside/laguna-m.1:free', label: 'Laguna M.1 (free)' },
+  { value: 'google/gemma-4-26b-a4b-it:free', label: 'Gemma 4 26B A4B (free)' },
+  { value: 'google/gemma-4-31b-it:free', label: 'Gemma 4 31B (free)' },
+  { value: 'nvidia/nemotron-3-super-120b-a12b:free', label: 'Nemotron 3 Super (free)' },
+  { value: 'meta-llama/llama-nemotron-embed-vl-1b-v2:free', label: 'Llama Nemotron Embed VL 1B V2 (free)' },
+  { value: 'liquid/lfm2.5-1.2b-thinking:free', label: 'LFM2.5-1.2B-Thinking (free)' },
+  { value: 'liquid/lfm2.5-1.2b-instruct:free', label: 'LFM2.5-1.2B-Instruct (free)' },
+  { value: 'nvidia/nemotron-3-nano-30b-a3b:free', label: 'Nemotron 3 Nano 30B A3B (free)' },
+  { value: 'nvidia/nemotron-nano-12b-2-vl:free', label: 'Nemotron Nano 12B 2 VL (free)' },
+  { value: 'qwen/qwen3-next-80b-a3b-instruct:free', label: 'Qwen3 Next 80B A3B Instruct (free)' },
+  { value: 'nvidia/nemotron-nano-9b-v2:free', label: 'Nemotron Nano 9B V2 (free)' },
+  { value: 'openai/gpt-oss-120b:free', label: 'gpt-oss-120b (free)' },
+  { value: 'openai/gpt-oss-20b:free', label: 'gpt-oss-20b (free)' },
+  { value: 'qwen/qwen3-coder-480b-a35b:free', label: 'Qwen3 Coder 480B A35B (free)' },
+  { value: 'meta-llama/llama-3.3-70b-instruct:free', label: 'Llama 3.3 70B Instruct (free)' },
+  { value: 'meta-llama/llama-3.2-3b-instruct:free', label: 'Llama 3.2 3B Instruct (free)' },
+  { value: 'openai/gpt-4o-mini', label: 'GPT-4o-mini' },
+];
+
 /**
  * Unique models for the ModelSelector dropdown.
  * Deduplicates by model name and aggregates agent roles.
@@ -429,23 +455,20 @@ export const UNIQUE_MODELS: Array<{
   value: string;
   label: string;
   agents: AgentRole[];
-}> = (() => {
-  const byModel = new Map<string, AgentRole[]>();
+}> = ALLOWED_MODELS.map((item) => {
+  const agents: AgentRole[] = [];
   for (const cfg of Object.values(MODEL_GRAPH)) {
     if (cfg.role === 'orchestrator') continue;
-    const existing = byModel.get(cfg.model);
-    if (existing) {
-      existing.push(cfg.role);
-    } else {
-      byModel.set(cfg.model, [cfg.role]);
+    if (cfg.model === item.value) {
+      agents.push(cfg.role);
     }
   }
-  return Array.from(byModel.entries()).map(([model, agents]) => ({
-    value: model,
-    label: model, // Full slug: "nvidia/nemotron-3-ultra-550b-a55b:free"
+  return {
+    value: item.value,
+    label: item.label,
     agents,
-  }));
-})();
+  };
+});
 
 /**
  * Validate that a task is being routed to the correct agent.

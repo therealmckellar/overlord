@@ -1,19 +1,20 @@
 'use client';
 
 import React, { useState } from 'react';
+import { UNIQUE_MODELS } from '@/lib/model-graph';
+
 export type AgentRole = 'Researcher' | 'Executor' | 'Analyst' | 'Writer' | 'Coder' | 'Specialist';
-export type AgentModel = 'Claude' | 'GPT-4' | 'Gemini' | 'Local';
 
 interface SpawnAgentModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSpawn: (name: string, role: AgentRole, model: AgentModel) => void;
+  onSpawn: (name: string, role: string, model: string) => void;
 }
 
 export const SpawnAgentModal = ({ isOpen, onClose, onSpawn }: SpawnAgentModalProps) => {
   const [name, setName] = useState('');
   const [role, setRole] = useState<AgentRole>('Analyst');
-  const [model, setModel] = useState<AgentModel>('Claude');
+  const [model, setModel] = useState(UNIQUE_MODELS[0]?.value || 'google/gemma-4-31b-it:free');
 
   if (!isOpen) return null;
 
@@ -53,13 +54,12 @@ export const SpawnAgentModal = ({ isOpen, onClose, onSpawn }: SpawnAgentModalPro
             <label className="block text-xs font-medium text-[var(--text-muted)] mb-1">Model</label>
             <select 
               value={model}
-              onChange={(e) => setModel(e.target.value as AgentModel)}
+              onChange={(e) => setModel(e.target.value)}
               className="w-full bg-[var(--bg)] border border-[var(--border)] rounded-lg px-3 py-2 text-[var(--text)] focus:outline-none focus:ring-1 focus:ring-[var(--accent)]"
             >
-              <option value="Claude">Claude</option>
-              <option value="GPT-4">GPT-4</option>
-              <option value="Gemini">Gemini</option>
-              <option value="Local">Local</option>
+              {UNIQUE_MODELS.map((m) => (
+                <option key={m.value} value={m.value}>{m.label}</option>
+              ))}
             </select>
           </div>
         </div>

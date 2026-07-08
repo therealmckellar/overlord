@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useRef, useCallback } from 'react';
+import { useAgentStore } from '@/stores/agentStore';
 
 // ─── Types ─────────────────────────────────────────────────────────────────
 
@@ -10,10 +11,11 @@ interface Agent {
   id: string;
   name: string;
   role: string;
-  path: string;
   status: AgentStatus;
-  emoji: string;
   description: string;
+  x: number;
+  y: number;
+  zoneId: string;
 }
 
 interface Zone {
@@ -36,74 +38,16 @@ interface PipelinePath {
 
 // ─── Static Data ───────────────────────────────────────────────────────────
 
-const AGENTS: Agent[] = [
-  { id: 'planner',    name: 'Planner',      role: 'Path 1',  path: 'plan',     status: 'idle',    emoji: '🗺️',  description: 'Decomposes goals into subtasks' },
-  { id: 'architect',  name: 'Architect',    role: 'Path 1',  path: 'plan',     status: 'running', emoji: '🏛️',  description: 'Designs system structure and interfaces' },
-  { id: 'builder',    name: 'Builder',      role: 'Path 2',  path: 'build',    status: 'running', emoji: '🔨',  description: 'Heavy fix / fast build' },
-  { id: 'refactor',   name: 'Refactor',     role: 'Path 7',  path: 'refactor', status: 'idle',    emoji: '♻️',  description: 'Code refactoring and cleanup' },
-  { id: 'reviewer',   name: 'Reviewer',     role: 'Path 1',  path: 'review',   status: 'idle',    emoji: '👁️',  description: 'Reviews code for correctness and style' },
-  { id: 'security',   name: 'Security',     role: 'Path 8',  path: 'security', status: 'paused',  emoji: '🔒',  description: 'Hunts silent failures and security gaps' },
-  { id: 'researcher', name: 'Researcher',   role: 'Path 6',  path: 'research', status: 'running', emoji: '🔬',  description: 'Research, decks, landing pages' },
-  { id: 'docs',       name: 'Docs',         role: 'Path 3',  path: 'docs',     status: 'idle',    emoji: '📚',  description: 'Specs, documentation, copy' },
-  { id: 'sdr',        name: 'SDR',          role: 'Path 6',  path: 'research', status: 'idle',    emoji: '📞',  description: 'Outbound research and outreach' },
-  { id: 'e2e',        name: 'E2E Tester',   role: 'Path 9',  path: 'e2e',      status: 'error',   emoji: '🧪',  description: 'End-to-end testing' },
-  { id: 'explorer',   name: 'Explorer',     role: 'Path 10', path: 'explore',  status: 'idle',    emoji: '🗺️',  description: 'Read-only codebase exploration' },
-  { id: 'jarvis',     name: 'Jarvis',       role: 'Voice',   path: 'voice',    status: 'running', emoji: '🎙️',  description: 'Voice interface and orchestration' },
-];
-
-// Zone layout for the floor plan (positions on a 900×620 canvas)
 const ZONES: Zone[] = [
-  {
-    id: 'planning',
-    label: '🗺️ Planning Room',
-    accent: '#818cf8',
-    glowColor: 'rgba(129,140,248,0.35)',
-    x: 24, y: 24, w: 260, h: 200,
-    agentIds: ['planner', 'architect'],
-  },
-  {
-    id: 'build',
-    label: '🔨 Build Zone',
-    accent: '#22d3ee',
-    glowColor: 'rgba(34,211,238,0.35)',
-    x: 320, y: 24, w: 260, h: 200,
-    agentIds: ['builder', 'refactor'],
-  },
-  {
-    id: 'review',
-    label: '👁️ Review Bay',
-    accent: '#a78bfa',
-    glowColor: 'rgba(167,139,250,0.35)',
-    x: 616, y: 24, w: 260, h: 200,
-    agentIds: ['reviewer', 'security'],
-  },
-  {
-    id: 'research',
-    label: '🔬 Research Wing',
-    accent: '#34d399',
-    glowColor: 'rgba(52,211,153,0.35)',
-    x: 24, y: 268, w: 380, h: 200,
-    agentIds: ['researcher', 'docs', 'sdr'],
-  },
-  {
-    id: 'qa',
-    label: '🧪 QA Lab',
-    accent: '#fbbf24',
-    glowColor: 'rgba(251,191,36,0.35)',
-    x: 440, y: 268, w: 220, h: 200,
-    agentIds: ['e2e', 'explorer'],
-  },
-  {
-    id: 'voice',
-    label: '🎙️ Voice Hub',
-    accent: '#f87171',
-    glowColor: 'rgba(248,113,113,0.35)',
-    x: 698, y: 268, w: 178, h: 200,
-    agentIds: ['jarvis'],
-  },
+  { id: 'planning', label: '🗺️ Planning Room', accent: '#818cf8', glowColor: 'rgba(129,140,248,0.35)', x: 24, y: 24, w: 260, h: 200, agentIds: [] },
+  { id: 'build',    label: '🔨 Build Zone',    accent: '#10b981', glowColor: 'rgba(16,185,129,0.35)', x: 320, y: 24, w: 260, h: 200, agentIds: [] },
+  { id: 'review',   label: '👁️ Review Bay',    accent: '#ec4899', glowColor: 'rgba(236,72,153,0.35)', x: 616, y: 24, w: 260, h: 200, agentIds: [] },
+  { id: 'research', label: '🔬 Research Wing',  accent: '#3b82f6', glowColor: 'rgba(59,130,246,0.35)',  x: 24, y: 268, w: 380, h: 200, agentIds: [] },
+  { id: 'qa',       label: '🧪 QA Lab',        accent: '#a855f7', glowColor: 'rgba(168,85,247,0.35)', x: 440, y: 268, w: 220, h: 200, agentIds: [] },
+  { id: 'voice',    label: '🎙️ Voice Hub',     accent: '#f59e0b', glowColor: 'rgba(245,158,11,0.35)',  x: 698, y: 268, w: 178, h: 200, agentIds: [] },
+  { id: 'breakroom', label: '☕ Break Room',   accent: '#f97316', glowColor: 'rgba(249,115,22,0.35)',  x: 900, y: 140, w: 260, h: 440, agentIds: [] },
 ];
 
-// Directional pipelines between zones
 const PIPELINES: PipelinePath[] = [
   { from: 'planning', to: 'build',    label: 'tasks' },
   { from: 'build',    to: 'review',   label: 'PR' },
@@ -112,8 +56,6 @@ const PIPELINES: PipelinePath[] = [
   { from: 'qa',       to: 'voice',    label: 'alert' },
 ];
 
-// ─── Helpers ───────────────────────────────────────────────────────────────
-
 const STATUS_CONFIG: Record<AgentStatus, { ring: string; glow: string; label: string; dot: string }> = {
   idle:    { ring: '#475569', glow: 'transparent',              label: 'Idle',    dot: '#475569' },
   running: { ring: '#22d3ee', glow: 'rgba(34,211,238,0.55)',   label: 'Running', dot: '#22d3ee' },
@@ -121,293 +63,57 @@ const STATUS_CONFIG: Record<AgentStatus, { ring: string; glow: string; label: st
   paused:  { ring: '#f59e0b', glow: 'rgba(245,158,11,0.45)',   label: 'Paused',  dot: '#f59e0b' },
 };
 
-function getZoneCenter(zone: Zone) {
-  return { x: zone.x + zone.w / 2, y: zone.y + zone.h / 2 };
+// Shading helper for VoxelCharacter colors
+function adjustColor(hex: string, percent: number) {
+  let num = parseInt(hex.replace("#", ""), 16),
+    amt = Math.round(2.55 * percent),
+    R = (num >> 16) + amt,
+    G = (num >> 8 & 0x00FF) + amt,
+    B = (num & 0x0000FF) + amt;
+  return "#" + (0x1000000 + (R < 255 ? R < 0 ? 0 : R : 255) * 0x10000 + (G < 255 ? G < 0 ? 0 : G : 255) * 0x100 + (B < 255 ? B < 0 ? 0 : B : 255)).toString(16).slice(1);
 }
 
-function buildCurvePath(from: Zone, to: Zone) {
-  const a = getZoneCenter(from);
-  const b = getZoneCenter(to);
-  const mx = (a.x + b.x) / 2;
-  const my = (a.y + b.y) / 2 - 40;
-  return `M ${a.x} ${a.y} Q ${mx} ${my} ${b.x} ${b.y}`;
-}
+// ─── Main Office Coordinate Space ──────────────────────────────────────────
 
-// ─── Sub-components ────────────────────────────────────────────────────────
+const cx = 700;
+const cy = 60;
+const scale = 5.2;
 
-function AgentDesk({
-  agent,
-  selected,
-  onClick,
-}: {
-  agent: Agent;
-  selected: boolean;
-  onClick: () => void;
-}) {
-  const cfg = STATUS_CONFIG[agent.status];
-  const isAnimated = agent.status === 'running' || agent.status === 'error';
+const isoX = (x: number, y: number) => cx + (x - y) * 0.866 * scale;
+const isoY = (x: number, y: number, z: number) => cy + (x + y) * 0.5 * scale - z * scale;
+
+// 3D Block SVG Drawer
+function Block({ oX, oY, oZ, sX, sY, sZ, cTop, cLeft, cRight, className }: any) {
+  const topD = `
+    M ${isoX(oX, oY)} ${isoY(oX, oY, oZ + sZ)}
+    L ${isoX(oX + sX, oY)} ${isoY(oX + sX, oY, oZ + sZ)}
+    L ${isoX(oX + sX, oY + sY)} ${isoY(oX + sX, oY + sY, oZ + sZ)}
+    L ${isoX(oX, oY + sY)} ${isoY(oX, oY + sY, oZ + sZ)}
+    Z
+  `;
+
+  const leftD = `
+    M ${isoX(oX + sX, oY)} ${isoY(oX + sX, oY, oZ)}
+    L ${isoX(oX + sX, oY + sY)} ${isoY(oX + sX, oY + sY, oZ)}
+    L ${isoX(oX + sX, oY + sY)} ${isoY(oX + sX, oY + sY, oZ + sZ)}
+    L ${isoX(oX + sX, oY)} ${isoY(oX + sX, oY, oZ + sZ)}
+    Z
+  `;
+
+  const rightD = `
+    M ${isoX(oX, oY)} ${isoY(oX, oY, oZ)}
+    L ${isoX(oX + sX, oY)} ${isoY(oX + sX, oY, oZ)}
+    L ${isoX(oX + sX, oY)} ${isoY(oX + sX, oY, oZ + sZ)}
+    L ${isoX(oX, oY)} ${isoY(oX, oY, oZ + sZ)}
+    Z
+  `;
 
   return (
-    <button
-      onClick={onClick}
-      title={agent.description}
-      style={{
-        width: 88,
-        height: 104,
-        background: selected
-          ? 'rgba(255,255,255,0.06)'
-          : 'rgba(255,255,255,0.03)',
-        border: `1.5px solid ${selected ? cfg.ring : 'rgba(255,255,255,0.1)'}`,
-        borderRadius: 10,
-        boxShadow: selected ? `0 0 18px ${cfg.glow}, inset 0 0 8px ${cfg.glow}` : 'none',
-        display: 'flex',
-        flexDirection: 'column',
-        alignItems: 'center',
-        justifyContent: 'center',
-        gap: 4,
-        cursor: 'pointer',
-        transition: 'transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease',
-        position: 'relative',
-        padding: '8px 6px',
-        flexShrink: 0,
-      }}
-      className={`desk-btn${isAnimated ? ' desk-animated' : ''}`}
-    >
-      {/* Status ring */}
-      <span
-        style={{
-          position: 'absolute',
-          top: 7,
-          right: 7,
-          width: 8,
-          height: 8,
-          borderRadius: '50%',
-          background: cfg.dot,
-          boxShadow: `0 0 6px ${cfg.glow}`,
-        }}
-        className={agent.status === 'running' ? 'pulse-dot' : ''}
-      />
-
-      {/* Avatar emoji */}
-      <span style={{ fontSize: 28, lineHeight: 1, userSelect: 'none' }}>
-        {agent.emoji}
-      </span>
-
-      {/* Name */}
-      <span
-        style={{
-          fontSize: 10,
-          fontWeight: 600,
-          color: '#e2e8f0',
-          textAlign: 'center',
-          lineHeight: 1.2,
-          maxWidth: '100%',
-          overflow: 'hidden',
-          textOverflow: 'ellipsis',
-          whiteSpace: 'nowrap',
-        }}
-      >
-        {agent.name}
-      </span>
-
-      {/* Status label */}
-      <span
-        style={{
-          fontSize: 9,
-          color: cfg.ring,
-          textTransform: 'uppercase',
-          letterSpacing: '0.04em',
-          fontWeight: 500,
-        }}
-      >
-        {cfg.label}
-      </span>
-    </button>
-  );
-}
-
-function ZoneRoom({
-  zone,
-  agents,
-  selectedId,
-  onSelect,
-}: {
-  zone: Zone;
-  agents: Agent[];
-  selectedId: string | null;
-  onSelect: (id: string) => void;
-}) {
-  const hasActive = agents.some(a => a.status === 'running');
-
-  return (
-    <div
-      style={{
-        position: 'absolute',
-        left: zone.x,
-        top: zone.y,
-        width: zone.w,
-        height: zone.h,
-        borderRadius: 14,
-        border: `1.5px solid ${zone.accent}44`,
-        background: `rgba(10,10,26,0.72)`,
-        boxShadow: hasActive
-          ? `0 0 28px ${zone.glowColor}, inset 0 0 16px ${zone.accent}0a`
-          : `0 0 12px rgba(0,0,0,0.4)`,
-        transition: 'box-shadow 0.4s ease',
-        overflow: 'hidden',
-        backdropFilter: 'blur(4px)',
-      }}
-    >
-      {/* Nameplate bar */}
-      <div
-        style={{
-          height: 32,
-          background: `linear-gradient(90deg, ${zone.accent}22 0%, ${zone.accent}08 100%)`,
-          borderBottom: `1px solid ${zone.accent}33`,
-          display: 'flex',
-          alignItems: 'center',
-          paddingLeft: 12,
-          paddingRight: 8,
-          gap: 6,
-        }}
-      >
-        <span
-          style={{
-            fontSize: 10,
-            fontWeight: 700,
-            color: zone.accent,
-            textTransform: 'uppercase',
-            letterSpacing: '0.06em',
-          }}
-        >
-          {zone.label}
-        </span>
-        {hasActive && (
-          <span
-            style={{
-              marginLeft: 'auto',
-              width: 6,
-              height: 6,
-              borderRadius: '50%',
-              background: '#22d3ee',
-              boxShadow: '0 0 8px rgba(34,211,238,0.8)',
-            }}
-            className="pulse-dot"
-          />
-        )}
-      </div>
-
-      {/* Desk grid */}
-      <div
-        style={{
-          display: 'flex',
-          flexWrap: 'wrap',
-          gap: 8,
-          padding: '10px 10px',
-          alignContent: 'flex-start',
-        }}
-      >
-        {agents.map(agent => (
-          <AgentDesk
-            key={agent.id}
-            agent={agent}
-            selected={selectedId === agent.id}
-            onClick={() => onSelect(agent.id)}
-          />
-        ))}
-      </div>
-    </div>
-  );
-}
-
-function PipelineLines({
-  agents,
-  canvasW,
-  canvasH,
-}: {
-  agents: Agent[];
-  canvasW: number;
-  canvasH: number;
-}) {
-  const agentMap = new Map(agents.map(a => [a.id, a]));
-
-  return (
-    <svg
-      style={{ position: 'absolute', top: 0, left: 0, pointerEvents: 'none' }}
-      width={canvasW}
-      height={canvasH}
-    >
-      <defs>
-        {PIPELINES.map(p => (
-          <marker
-            key={`arrow-${p.from}-${p.to}`}
-            id={`arrow-${p.from}-${p.to}`}
-            markerWidth="6"
-            markerHeight="6"
-            refX="3"
-            refY="3"
-            orient="auto"
-          >
-            <path d="M0,0 L0,6 L6,3 z" fill="rgba(100,116,139,0.6)" />
-          </marker>
-        ))}
-        <filter id="pipeline-glow">
-          <feGaussianBlur stdDeviation="2" result="blur" />
-          <feMerge>
-            <feMergeNode in="blur" />
-            <feMergeNode in="SourceGraphic" />
-          </feMerge>
-        </filter>
-      </defs>
-
-      {PIPELINES.map(pipeline => {
-        const fromZone = ZONES.find(z => z.id === pipeline.from);
-        const toZone   = ZONES.find(z => z.id === pipeline.to);
-        if (!fromZone || !toZone) return null;
-
-        // Check if either zone has a running agent
-        const fromActive = fromZone.agentIds.some(id => agentMap.get(id)?.status === 'running');
-        const toActive   = toZone.agentIds.some(id => agentMap.get(id)?.status === 'running');
-        const isLive = fromActive || toActive;
-
-        const pathD = buildCurvePath(fromZone, toZone);
-        const strokeColor = isLive ? 'rgba(34,211,238,0.5)' : 'rgba(71,85,105,0.35)';
-
-        return (
-          <g key={`${pipeline.from}-${pipeline.to}`}>
-            {/* Base path */}
-            <path
-              d={pathD}
-              fill="none"
-              stroke={strokeColor}
-              strokeWidth={isLive ? 2 : 1.5}
-              strokeDasharray={isLive ? '8 6' : '4 6'}
-              markerEnd={`url(#arrow-${pipeline.from}-${pipeline.to})`}
-              filter={isLive ? 'url(#pipeline-glow)' : undefined}
-              className={isLive ? 'pipeline-flow' : ''}
-            />
-            {/* Label */}
-            {pipeline.label && (() => {
-              const from = getZoneCenter(fromZone);
-              const to   = getZoneCenter(toZone);
-              return (
-                <text
-                  x={(from.x + to.x) / 2}
-                  y={(from.y + to.y) / 2 - 46}
-                  textAnchor="middle"
-                  fontSize={9}
-                  fill={isLive ? 'rgba(34,211,238,0.8)' : 'rgba(100,116,139,0.6)'}
-                  fontFamily="'JetBrains Mono', monospace"
-                  letterSpacing="0.05em"
-                >
-                  {pipeline.label}
-                </text>
-              );
-            })()}
-          </g>
-        );
-      })}
-    </svg>
+    <g className={className}>
+      <path d={rightD} fill={cRight} stroke="rgba(0,0,0,0.06)" strokeWidth="0.5" />
+      <path d={leftD} fill={cLeft} stroke="rgba(0,0,0,0.06)" strokeWidth="0.5" />
+      <path d={topD} fill={cTop} stroke="rgba(0,0,0,0.06)" strokeWidth="0.5" />
+    </g>
   );
 }
 
@@ -442,40 +148,480 @@ function StatusLegend() {
   );
 }
 
-// ─── Main Panel ────────────────────────────────────────────────────────────
+// ─── Voxel Character Component ──────────────────────────────────────────────
 
-const CANVAS_W = 900;
-const CANVAS_H = 500;
+function VoxelCharacter({ role, status, scale: charScale = 2.4 }: { role: string; status: string; scale?: number }) {
+  const roleColors: Record<string, { hair: string; shirt: string; pants: string; skin: string }> = {
+    planner: { hair: '#eab308', shirt: '#06B6D4', pants: '#1e293b', skin: '#fbcfe8' },
+    architect: { hair: '#78350f', shirt: '#3B82F6', pants: '#1e3a8a', skin: '#fed7aa' },
+    builder: { hair: '#18181b', shirt: '#10B981', pants: '#27272a', skin: '#fef08a' },
+    refactor: { hair: '#451a03', shirt: '#64748B', pants: '#1e293b', skin: '#ffedd5' },
+    reviewer: { hair: '#ca8a04', shirt: '#EC4899', pants: '#0f172a', skin: '#fed7aa' },
+    security: { hair: '#1c1917', shirt: '#EF4444', pants: '#18181b', skin: '#ffedd5' },
+    researcher: { hair: '#ea580c', shirt: '#2563EB', pants: '#172554', skin: '#fed7aa' },
+    docs: { hair: '#5b21b6', shirt: '#14B8A6', pants: '#022c22', skin: '#ffedd5' },
+    sdr: { hair: '#d97706', shirt: '#84CC16', pants: '#1e293b', skin: '#fed7aa' },
+    e2e: { hair: '#854d0e', shirt: '#A855F7', pants: '#3b0764', skin: '#ffedd5' },
+    explorer: { hair: '#172554', shirt: '#0EA5E9', pants: '#0f172a', skin: '#fed7aa' },
+    jarvis: { hair: '#ca8a04', shirt: '#8B5CF6', pants: '#1e1b4b', skin: '#ffedd5' },
+  };
+
+  const normRole = role.toLowerCase();
+  const colors = roleColors[normRole] || { hair: '#78350f', shirt: '#3b82f6', pants: '#1e293b', skin: '#fed7aa' };
+
+  const skinTop = adjustColor(colors.skin, 10);
+  const skinLeft = colors.skin;
+  const skinRight = adjustColor(colors.skin, -10);
+
+  const shirtTop = adjustColor(colors.shirt, 15);
+  const shirtLeft = colors.shirt;
+  const shirtRight = adjustColor(colors.shirt, -15);
+
+  const pantsTop = adjustColor(colors.pants, 10);
+  const pantsLeft = colors.pants;
+  const pantsRight = adjustColor(colors.pants, -10);
+
+  const hairTop = adjustColor(colors.hair, 15);
+  const hairLeft = colors.hair;
+  const hairRight = adjustColor(colors.hair, -15);
+
+  const charCx = 10;
+  const charCy = 22;
+
+  const charIsoX = (x: number, y: number) => charCx + (x - y) * 0.866 * charScale;
+  const charIsoY = (x: number, y: number, z: number) => charCy + (x + y) * 0.5 * charScale - z * charScale;
+
+  const CharBlock = ({ oX, oY, oZ, sX, sY, sZ, cTop, cLeft, cRight }: any) => {
+    const topD = `
+      M ${charIsoX(oX, oY)} ${charIsoY(oX, oY, oZ + sZ)}
+      L ${charIsoX(oX + sX, oY)} ${charIsoY(oX + sX, oY, oZ + sZ)}
+      L ${charIsoX(oX + sX, oY + sY)} ${charIsoY(oX + sX, oY + sY, oZ + sZ)}
+      L ${charIsoX(oX, oY + sY)} ${charIsoY(oX, oY + sY, oZ + sZ)}
+      Z
+    `;
+
+    const leftD = `
+      M ${charIsoX(oX + sX, oY)} ${charIsoY(oX + sX, oY, oZ)}
+      L ${charIsoX(oX + sX, oY + sY)} ${charIsoY(oX + sX, oY + sY, oZ)}
+      L ${charIsoX(oX + sX, oY + sY)} ${charIsoY(oX + sX, oY + sY, oZ + sZ)}
+      L ${charIsoX(oX + sX, oY)} ${charIsoY(oX + sX, oY, oZ + sZ)}
+      Z
+    `;
+
+    const rightD = `
+      M ${charIsoX(oX, oY)} ${charIsoY(oX, oY, oZ)}
+      L ${charIsoX(oX + sX, oY)} ${charIsoY(oX + sX, oY, oZ)}
+      L ${charIsoX(oX + sX, oY)} ${charIsoY(oX + sX, oY, oZ + sZ)}
+      L ${charIsoX(oX, oY)} ${charIsoY(oX, oY, oZ + sZ)}
+      Z
+    `;
+
+    return (
+      <g>
+        <path d={rightD} fill={cRight} stroke="rgba(0,0,0,0.06)" strokeWidth="0.5" />
+        <path d={leftD} fill={cLeft} stroke="rgba(0,0,0,0.06)" strokeWidth="0.5" />
+        <path d={topD} fill={cTop} stroke="rgba(0,0,0,0.06)" strokeWidth="0.5" />
+      </g>
+    );
+  };
+
+  return (
+    <svg width="24" height="30" viewBox="0 0 24 30" style={{ overflow: 'visible' }}>
+      {/* Legs */}
+      <CharBlock oX={-1.4} oY={-0.6} oZ={0} sX={1.0} sY={1.0} sZ={2.8} cTop={pantsTop} cLeft={pantsLeft} cRight={pantsRight} />
+      <CharBlock oX={0.4} oY={-0.6} oZ={0} sX={1.0} sY={1.0} sZ={2.8} cTop={pantsTop} cLeft={pantsLeft} cRight={pantsRight} />
+      {/* Torso */}
+      <CharBlock oX={-1.7} oY={-0.8} oZ={2.8} sX={3.4} sY={1.6} sZ={4.4} cTop={shirtTop} cLeft={shirtLeft} cRight={shirtRight} />
+      {/* Arms */}
+      <CharBlock oX={-2.5} oY={-0.6} oZ={3.6} sX={0.8} sY={1.2} sZ={3.2} cTop={shirtTop} cLeft={shirtLeft} cRight={shirtRight} />
+      <CharBlock oX={1.7} oY={-0.6} oZ={3.6} sX={0.8} sY={1.2} sZ={3.2} cTop={shirtTop} cLeft={shirtLeft} cRight={shirtRight} />
+      {/* Head */}
+      <CharBlock oX={-1.3} oY={-1.3} oZ={7.2} sX={2.6} sY={2.6} sZ={2.6} cTop={skinTop} cLeft={skinLeft} cRight={skinRight} />
+      {/* Eyes */}
+      <polygon points={`${charIsoX(1.3, -0.5)} ${charIsoY(1.3, -0.5, 8.7)} ${charIsoX(1.3, -0.1)} ${charIsoY(1.3, -0.1, 8.7)} ${charIsoX(1.3, -0.1)} ${charIsoY(1.3, -0.1, 9.2)} ${charIsoX(1.3, -0.5)} ${charIsoY(1.3, -0.5, 9.2)}`} fill="#111827" />
+      <polygon points={`${charIsoX(1.3, 0.4)} ${charIsoY(1.3, 0.4, 8.7)} ${charIsoX(1.3, 0.8)} ${charIsoY(1.3, 0.8, 8.7)} ${charIsoX(1.3, 0.8)} ${charIsoY(1.3, 0.8, 9.2)} ${charIsoX(1.3, 0.4)} ${charIsoY(1.3, 0.4, 9.2)}`} fill="#111827" />
+      {/* Hair */}
+      <CharBlock oX={-1.4} oY={-1.4} oZ={9.8} sX={2.8} sY={2.8} sZ={0.8} cTop={hairTop} cLeft={hairLeft} cRight={hairRight} />
+      <CharBlock oX={-1.4} oY={0.6} oZ={7.6} sX={2.8} sY={0.8} sZ={2.2} cTop={hairTop} cLeft={hairLeft} cRight={hairRight} />
+    </svg>
+  );
+}
+
+// ─── Massive Office Boundaries & Large Separated Room Walls ──────────────────
+
+const WALLS = [
+  // Planning Room corner walls (0..30, 0..26)
+  { x: 0, y: 0, sX: 30, sY: 1, sZ: 6 },
+  { x: 0, y: 0, sX: 1, sY: 26, sZ: 6 },
+
+  // Build Zone corner walls (36..66, 0..26)
+  { x: 36, y: 0, sX: 30, sY: 1, sZ: 6 },
+  { x: 36, y: 0, sX: 1, sY: 26, sZ: 6 },
+
+  // Review Bay corner walls (72..102, 0..26)
+  { x: 72, y: 0, sX: 30, sY: 1, sZ: 6 },
+  { x: 72, y: 0, sX: 1, sY: 26, sZ: 6 },
+
+  // Research Wing corner walls (0..44, 32..58)
+  { x: 0, y: 32, sX: 44, sY: 1, sZ: 6 },
+  { x: 0, y: 32, sX: 1, sY: 26, sZ: 6 },
+
+  // QA Lab corner walls (50..72, 32..58)
+  { x: 50, y: 32, sX: 22, sY: 1, sZ: 6 },
+  { x: 50, y: 32, sX: 1, sY: 26, sZ: 6 },
+
+  // Voice Hub corner walls (78..102, 32..58)
+  { x: 78, y: 32, sX: 24, sY: 1, sZ: 6 },
+  { x: 78, y: 32, sX: 1, sY: 26, sZ: 6 },
+
+  // Break Room boundaries (108..138, 0..58)
+  { x: 108, y: 0, sX: 30, sY: 1, sZ: 6 },
+  { x: 108, y: 0, sX: 1, sY: 16, sZ: 6 },
+  { x: 108, y: 22, sX: 1, sY: 16, sZ: 6 },
+  { x: 108, y: 44, sX: 1, sY: 14, sZ: 6 },
+];
+
+const DECORATIONS = [
+  // Corner potted plants
+  { type: 'plant', x: 2, y: 2 },
+  { type: 'plant', x: 98, y: 2 },
+  { type: 'plant', x: 2, y: 54 },
+  { type: 'plant', x: 96, y: 54 },
+  
+  // Break Room plants
+  { type: 'plant', x: 134, y: 2 },
+  { type: 'plant', x: 134, y: 54 },
+
+  // Planning Room meeting table
+  { type: 'meeting_table', x: 11, y: 8 },
+  // Lounge Sofa in Voice Hub
+  { type: 'sofa_voice', x: 91, y: 37 },
+
+  // Break Room Cafeteria Furniture
+  { type: 'dining_table', x: 120, y: 24 },
+  { type: 'dining_chair', x: 117, y: 26 },
+  { type: 'dining_chair', x: 117, y: 30 },
+  { type: 'dining_chair', x: 117, y: 34 },
+  { type: 'dining_chair', x: 128, y: 26 },
+  { type: 'dining_chair', x: 128, y: 30 },
+  { type: 'dining_chair', x: 128, y: 34 },
+
+  { type: 'red_sofa', x: 111, y: 6 },
+  { type: 'red_sofa', x: 111, y: 48 },
+  { type: 'red_sofa', x: 128, y: 6 },
+
+  { type: 'coffee_table', x: 112, y: 11 },
+  { type: 'coffee_table', x: 112, y: 43 },
+  { type: 'coffee_table', x: 129, y: 11 },
+];
+
+const ROOM_CENTERS: Record<string, { x: number; y: number }> = {
+  planning:  { x: 15,  y: 13 },
+  build:     { x: 51,  y: 13 },
+  review:    { x: 87,  y: 13 },
+  research:  { x: 22,  y: 45 },
+  qa:        { x: 61,  y: 45 },
+  voice:     { x: 89,  y: 45 },
+  breakroom: { x: 123, y: 29 },
+};
+
+// 12 Static Workstations (Desks remain in place)
+const STATIC_DESKS = [
+  { id: 'planner',    role: 'planner',    x: 5,  y: 18 },
+  { id: 'architect',  role: 'architect',  x: 22, y: 18 },
+  { id: 'builder',    role: 'builder',    x: 41, y: 10 },
+  { id: 'refactor',   role: 'refactor',   x: 57, y: 10 },
+  { id: 'reviewer',   role: 'reviewer',   x: 77, y: 10 },
+  { id: 'security',   role: 'security',   x: 93, y: 10 },
+  { id: 'researcher', role: 'researcher', x: 5,  y: 45 },
+  { id: 'docs',       role: 'docs',       x: 20, y: 45 },
+  { id: 'sdr',        role: 'sdr',        x: 35, y: 45 },
+  { id: 'e2e',        role: 'e2e',        x: 54, y: 45 },
+  { id: 'explorer',   role: 'explorer',   x: 66, y: 45 },
+  { id: 'jarvis',     role: 'jarvis',     x: 83, y: 45 },
+];
+
+// Break Room coordinates for idle characters to gather
+const BREAKROOM_SLOTS = [
+  { x: 113, y: 9  }, // sitting on red sofa 1
+  { x: 115, y: 9  }, // sitting on red sofa 1
+  { x: 113, y: 49 }, // sitting on red sofa 2
+  { x: 115, y: 49 }, // sitting on red sofa 2
+  { x: 129, y: 9  }, // sitting on red sofa 3
+  { x: 131, y: 9  }, // sitting on red sofa 3
+  { x: 117, y: 27 }, // sitting at dining table
+  { x: 117, y: 31 }, // sitting at dining table
+  { x: 128, y: 27 }, // sitting at dining table
+  { x: 128, y: 31 }, // sitting at dining table
+  { x: 122, y: 18 }, // standing around
+  { x: 122, y: 38 }, // standing around
+];
+
+function getZoneForRole(role: string): string {
+  const r = role.toLowerCase();
+  if (r.includes('planner') || r.includes('architect') || r.includes('planning')) return 'planning';
+  if (r.includes('builder') || r.includes('refactor') || r.includes('build') || r.includes('fast')) return 'build';
+  if (r.includes('reviewer') || r.includes('review') || r.includes('security') || r.includes('perf') || r.includes('silent')) return 'review';
+  if (r.includes('researcher') || r.includes('research') || r.includes('docs') || r.includes('sdr')) return 'research';
+  if (r.includes('e2e') || r.includes('explorer') || r.includes('test') || r.includes('qa')) return 'qa';
+  if (r.includes('jarvis') || r.includes('voice') || r.includes('orchestrator')) return 'voice';
+  return 'research'; // default
+}
+
+// ─── Main Component ─────────────────────────────────────────────────────────
+
+const CANVAS_W = 1380;
+const CANVAS_H = 680;
 
 export default function AgentOfficePanel() {
-  const [agents, setAgents] = useState<Agent[]>(AGENTS);
+  const storeAgents = useAgentStore((s) => s.agents);
+  const pauseAgent = useAgentStore((s) => s.pauseAgent);
+  const restartAgent = useAgentStore((s) => s.restartAgent);
+  const killAgent = useAgentStore((s) => s.killAgent);
+
   const [selected, setSelected] = useState<string | null>(null);
   const [zoom, setZoom] = useState(1);
   const canvasRef = useRef<HTMLDivElement>(null);
 
+  // Group active vs idle agents
+  let currentIdleCount = 0;
+
+  const agents: Agent[] = storeAgents.map(sa => {
+    let status: AgentStatus = 'idle';
+    if (sa.status === 'active') status = 'running';
+    else if (sa.status === 'error') status = 'error';
+
+    const isJarvis = sa.role.toLowerCase() === 'jarvis';
+    
+    // Dynamic coordinate mapping:
+    // If idle (and not Jarvis receptionist), place them in the Break Room slots!
+    // Otherwise place them at their static workstation desk!
+    let pos = { x: 0, y: 0 };
+    let zoneId = 'breakroom';
+
+    if (status === 'idle' && !isJarvis) {
+      const idx = currentIdleCount;
+      currentIdleCount++;
+      pos = BREAKROOM_SLOTS[idx % BREAKROOM_SLOTS.length];
+      zoneId = 'breakroom';
+    } else {
+      // Find the static desk matching their role
+      const sd = STATIC_DESKS.find(d => sa.role.toLowerCase().includes(d.role)) || STATIC_DESKS[0];
+      pos = { x: sd.x, y: sd.y };
+      zoneId = getZoneForRole(sa.role);
+    }
+
+    return {
+      id: sa.id,
+      name: sa.name,
+      role: sa.role,
+      status,
+      description: sa.skills.join(', ') || 'No special capabilities listed',
+      x: pos.x,
+      y: pos.y,
+      zoneId,
+    };
+  });
+
   const agentMap = new Map(agents.map(a => [a.id, a]));
   const selectedAgent = selected ? agentMap.get(selected) ?? null : null;
 
+  // Determine active zone presence (running agents count towards zone highlights)
+  const zones = ZONES.map(z => ({
+    ...z,
+    agentIds: agents.filter(a => a.zoneId === z.id).map(a => a.id),
+  }));
+
   const cycleStatus = useCallback((id: string) => {
-    const cycle: AgentStatus[] = ['idle', 'running', 'paused', 'error'];
-    setAgents(prev => prev.map(a => {
-      if (a.id !== id) return a;
-      const next = cycle[(cycle.indexOf(a.status) + 1) % cycle.length];
-      return { ...a, status: next };
-    }));
-  }, []);
+    const storeAgent = storeAgents.find(sa => sa.id === id);
+    if (!storeAgent) return;
+
+    if (storeAgent.status === 'idle') {
+      restartAgent(id);
+    } else if (storeAgent.status === 'active') {
+      killAgent(id);
+    } else {
+      pauseAgent(id);
+    }
+  }, [storeAgents, restartAgent, killAgent, pauseAgent]);
 
   const handleZoomIn  = () => setZoom(z => Math.min(z + 0.15, 1.8));
   const handleZoomOut = () => setZoom(z => Math.max(z - 0.15, 0.5));
   const handleReset   = () => setZoom(1);
 
-  // Running / error counts for header
   const runCount   = agents.filter(a => a.status === 'running').length;
   const errorCount = agents.filter(a => a.status === 'error').length;
 
+  // Build the scene rendering queue (Painter's algorithm sorting by x + y depth)
+  const sceneItems: Array<{ sortKey: number; render: () => React.ReactNode }> = [];
+
+  // 1. Divider walls
+  WALLS.forEach((w, idx) => {
+    sceneItems.push({
+      sortKey: (w.x + w.sX / 2) + (w.y + w.sY / 2),
+      render: () => (
+        <Block
+          key={`wall-${idx}`}
+          oX={w.x} oY={w.y} oZ={0}
+          sX={w.sX} sY={w.sY} sZ={w.sZ}
+          cTop="#374151" cLeft="#1f2937" cRight="#111827"
+        />
+      )
+    });
+  });
+
+  // 2. Decorative elements
+  DECORATIONS.forEach((d, idx) => {
+    if (d.type === 'plant') {
+      sceneItems.push({
+        sortKey: d.x + d.y + 1,
+        render: () => (
+          <g key={`decor-${idx}`}>
+            <Block oX={d.x + 0.4} oY={d.y + 0.4} oZ={0} sX={1.2} sY={1.2} sZ={1.2} cTop="#b45309" cLeft="#78350f" cRight="#451a03" />
+            <Block oX={d.x + 0.9} oY={d.y + 0.9} oZ={1.2} sX={0.2} sY={0.2} sZ={1.2} cTop="#78350f" cLeft="#451a03" cRight="#271b0b" />
+            <Block oX={d.x} oY={d.y} oZ={2.4} sX={2} sY={2} sZ={2.4} cTop="#16a34a" cLeft="#15803d" cRight="#166534" />
+          </g>
+        )
+      });
+    } else if (d.type === 'meeting_table') {
+      sceneItems.push({
+        sortKey: d.x + d.y + 4,
+        render: () => (
+          <g key={`decor-${idx}`}>
+            <Block oX={d.x} oY={d.y} oZ={0} sX={8} sY={6} sZ={2} cTop="#78350f" cLeft="#451a03" cRight="#271b0b" />
+          </g>
+        )
+      });
+    } else if (d.type === 'sofa_voice') {
+      sceneItems.push({
+        sortKey: d.x + d.y + 3.5,
+        render: () => (
+          <g key={`decor-${idx}`}>
+            <Block oX={d.x} oY={d.y} oZ={0} sX={5} sY={2} sZ={1.5} cTop="#1e3a8a" cLeft="#172554" cRight="#0f172a" />
+            <Block oX={d.x} oY={d.y + 1.4} oZ={1.5} sX={5} sY={0.6} sZ={1.8} cTop="#1e3a8a" cLeft="#172554" cRight="#0f172a" />
+          </g>
+        )
+      });
+    } else if (d.type === 'dining_table') {
+      sceneItems.push({
+        sortKey: d.x + d.y + 6,
+        render: () => (
+          <g key={`decor-${idx}`}>
+            <Block oX={d.x} oY={d.y} oZ={0} sX={6} sY={10} sZ={2} cTop="#854d0e" cLeft="#713f12" cRight="#452207" />
+          </g>
+        )
+      });
+    } else if (d.type === 'dining_chair') {
+      sceneItems.push({
+        sortKey: d.x + d.y + 1.5,
+        render: () => (
+          <Block key={`decor-${idx}`} oX={d.x} oY={d.y} oZ={0} sX={1.5} sY={1.5} sZ={1.8} cTop="#3f3f46" cLeft="#27272a" cRight="#18181b" />
+        )
+      });
+    } else if (d.type === 'red_sofa') {
+      sceneItems.push({
+        sortKey: d.x + d.y + 3.5,
+        render: () => (
+          <g key={`decor-${idx}`}>
+            <Block oX={d.x} oY={d.y} oZ={0} sX={5} sY={2} sZ={1.2} cTop="#b91c1c" cLeft="#991b1b" cRight="#7f1d1d" />
+            <Block oX={d.x} oY={d.y + 1.4} oZ={1.2} sX={5} sY={0.6} sZ={1.5} cTop="#b91c1c" cLeft="#991b1b" cRight="#7f1d1d" />
+          </g>
+        )
+      });
+    } else if (d.type === 'coffee_table') {
+      sceneItems.push({
+        sortKey: d.x + d.y + 2,
+        render: () => (
+          <Block key={`decor-${idx}`} oX={d.x} oY={d.y} oZ={0} sX={3} sY={2} sZ={1} cTop="#27272a" cLeft="#18181b" cRight="#09090b" />
+        )
+      });
+    }
+  });
+
+  // 3. Render 12 Static Workstations (Desks are permanent features)
+  STATIC_DESKS.forEach((desk) => {
+    // Find the store agent corresponding to this desk
+    const sa = storeAgents.find(x => x.role.toLowerCase().includes(desk.role));
+    const isSelected = sa ? selected === sa.id : false;
+    const isRunning = sa ? sa.status === 'active' : false;
+
+    sceneItems.push({
+      sortKey: desk.x + desk.y + 1.5,
+      render: () => (
+        <g 
+          key={`desk-${desk.id}`} 
+          onClick={() => sa && setSelected(prev => prev === sa.id ? null : sa.id)}
+          style={{ cursor: sa ? 'pointer' : 'default' }}
+          className={sa ? 'desk-interactive' : ''}
+        >
+          {/* Chair */}
+          <Block
+            oX={desk.x + 1.2} oY={desk.y - 1.8} oZ={0}
+            sX={1.6} sY={1.6} sZ={1.8}
+            cTop="#27272a" cLeft="#18181b" cRight="#09090b"
+          />
+
+          {/* Table */}
+          <Block
+            oX={desk.x} oY={desk.y} oZ={0}
+            sX={4} sY={2} sZ={2.2}
+            cTop={isSelected ? '#d97706' : '#78350f'}
+            cLeft={isSelected ? '#b45309' : '#582f0e'}
+            cRight={isSelected ? '#92400e' : '#3f1d0b'}
+            className="desk-wood"
+          />
+
+          {/* Monitor stand & Screen */}
+          <Block oX={desk.x + 1.8} oY={desk.y + 0.8} oZ={2.2} sX={0.4} sY={0.4} sZ={0.4} cTop="#27272a" cLeft="#18181b" cRight="#09090b" />
+          <Block oX={desk.x + 1.0} oY={desk.y + 0.8} oZ={2.6} sX={2.0} sY={0.2} sZ={1.2} cTop="#18181b" cLeft="#09090b" cRight={isRunning ? '#22d3ee' : '#374151'} />
+        </g>
+      )
+    });
+  });
+
+  // 4. Render Live Agent Characters at their CURRENT coordinate positions
+  agents.forEach((agent) => {
+    const isSelected = selected === agent.id;
+    const cfg = STATUS_CONFIG[agent.status];
+
+    sceneItems.push({
+      sortKey: agent.x + agent.y + 1.0,
+      render: () => {
+        const tx = isoX(agent.x + 2, agent.y - 1);
+        const ty = isoY(agent.x + 2, agent.y - 1, 14.5);
+
+        const charAnimClass = agent.status === 'running' 
+          ? 'voxel-bounce-anim' 
+          : agent.status === 'error' 
+            ? 'voxel-shiver-anim' 
+            : '';
+
+        return (
+          <g key={`char-${agent.id}`} className={charAnimClass} onClick={() => setSelected(prev => prev === agent.id ? null : agent.id)} style={{ cursor: 'pointer' }}>
+            {/* Position character */}
+            <g transform={`translate(${isoX(agent.x + 2, agent.y - 1) - 12}, ${isoY(agent.x + 2, agent.y - 1, 0) - 24})`}>
+              <VoxelCharacter role={agent.role} status={agent.status} scale={2.4} />
+            </g>
+
+            {/* Nameplate tag floating above head */}
+            <g style={{ pointerEvents: 'none' }}>
+              <rect x={tx - 24} y={ty - 10} width={48} height={14} rx={3} fill="rgba(17,24,39,0.85)" stroke="rgba(255,255,255,0.15)" strokeWidth={1} />
+              <circle cx={tx - 16} cy={ty - 3} r={3} fill={cfg.dot} />
+              <text x={tx + 3} y={ty} fill="#ffffff" fontSize={8} fontWeight={600} fontFamily="monospace" textAnchor="middle">
+                {agent.name}
+              </text>
+            </g>
+          </g>
+        );
+      }
+    });
+  });
+
+  // Sort queue by depth value
+  const sortedItems = sceneItems.sort((a, b) => a.sortKey - b.sortKey);
+
   return (
     <>
-      {/* Injected keyframe animations */}
       <style>{`
         @keyframes pulseDot {
           0%, 100% { opacity: 1; transform: scale(1); }
@@ -485,9 +631,13 @@ export default function AgentOfficePanel() {
           from { stroke-dashoffset: 0; }
           to   { stroke-dashoffset: -56; }
         }
-        @keyframes deskFloat {
-          0%, 100% { transform: translateY(0); }
-          50%       { transform: translateY(-2px); }
+        @keyframes voxel-bounce {
+          0% { transform: translateY(0); }
+          100% { transform: translateY(-5px); }
+        }
+        @keyframes voxel-shiver {
+          0% { transform: translateX(-1px); }
+          100% { transform: translateX(1px); }
         }
         .pulse-dot {
           animation: pulseDot 1.4s ease-in-out infinite;
@@ -495,12 +645,14 @@ export default function AgentOfficePanel() {
         .pipeline-flow {
           animation: pipelineFlow 1.6s linear infinite;
         }
-        .desk-animated {
-          animation: deskFloat 2.4s ease-in-out infinite;
+        .voxel-bounce-anim {
+          animation: voxel-bounce 0.6s infinite alternate ease-in-out;
         }
-        .desk-btn:hover {
-          transform: translateY(-4px) scale(1.04);
-          box-shadow: 0 8px 24px rgba(0,0,0,0.5);
+        .voxel-shiver-anim {
+          animation: voxel-shiver 0.15s infinite alternate ease-in-out;
+        }
+        .desk-interactive:hover .desk-wood path {
+          fill: #ea580c !important;
         }
       `}</style>
 
@@ -545,7 +697,6 @@ export default function AgentOfficePanel() {
             </div>
 
             <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 6 }}>
-              {/* Zoom controls */}
               {[
                 { label: '−', action: handleZoomOut },
                 { label: '⊙', action: handleReset  },
@@ -594,7 +745,6 @@ export default function AgentOfficePanel() {
                 'radial-gradient(ellipse at 30% 20%, rgba(129,140,248,0.05) 0%, transparent 55%),' +
                 'radial-gradient(ellipse at 70% 80%, rgba(34,211,238,0.04) 0%, transparent 55%),' +
                 'var(--bg)',
-              // subtle dot grid
               backgroundImage:
                 'radial-gradient(ellipse at 30% 20%, rgba(129,140,248,0.05) 0%, transparent 55%),' +
                 'radial-gradient(ellipse at 70% 80%, rgba(34,211,238,0.04) 0%, transparent 55%),' +
@@ -615,24 +765,123 @@ export default function AgentOfficePanel() {
               }}
               ref={canvasRef}
             >
-              {/* SVG pipeline overlay */}
-              <PipelineLines agents={agents} canvasW={CANVAS_W} canvasH={CANVAS_H} />
+              <svg width={CANVAS_W} height={CANVAS_H} style={{ overflow: 'visible' }}>
+                {/* Base Dark Concrete Corridor Floor */}
+                <polygon points={`${isoX(0, 0)},${isoY(0, 0, 0)} ${isoX(138, 0)},${isoY(138, 0, 0)} ${isoX(138, 58)},${isoY(138, 58, 0)} ${isoX(0, 58)},${isoY(0, 58, 0)}`} fill="#0f172a" opacity="0.9" />
 
-              {/* Zone rooms */}
-              {ZONES.map(zone => {
-                const zoneAgents = zone.agentIds
-                  .map(id => agentMap.get(id))
-                  .filter((a): a is Agent => !!a);
-                return (
-                  <ZoneRoom
-                    key={zone.id}
-                    zone={zone}
-                    agents={zoneAgents}
-                    selectedId={selected}
-                    onSelect={id => setSelected(prev => prev === id ? null : id)}
-                  />
-                );
-              })}
+                {/* 1. Shaded Floor Polygons per Spaced-Out Room */}
+                {/* Planning Room (0..30, 0..26) */}
+                <polygon points={`${isoX(0, 0)},${isoY(0, 0, 0)} ${isoX(30, 0)},${isoY(30, 0, 0)} ${isoX(30, 26)},${isoY(30, 26, 0)} ${isoX(0, 26)},${isoY(0, 26, 0)}`} fill="#1e1b4b" opacity="0.6" />
+                {/* Build Zone (36..66, 0..26) */}
+                <polygon points={`${isoX(36, 0)},${isoY(36, 0, 0)} ${isoX(66, 0)},${isoY(66, 0, 0)} ${isoX(66, 26)},${isoY(66, 26, 0)} ${isoX(36, 26)},${isoY(36, 26, 0)}`} fill="#064e3b" opacity="0.6" />
+                {/* Review Bay (72..102, 0..26) */}
+                <polygon points={`${isoX(72, 0)},${isoY(72, 0, 0)} ${isoX(102, 0)},${isoY(102, 0, 0)} ${isoX(102, 26)},${isoY(102, 26, 0)} ${isoX(72, 26)},${isoY(72, 26, 0)}`} fill="#831843" opacity="0.5" />
+                {/* Research Wing (0..44, 32..58) */}
+                <polygon points={`${isoX(0, 32)},${isoY(0, 32, 0)} ${isoX(44, 32)},${isoY(44, 32, 0)} ${isoX(44, 58)},${isoY(44, 58, 0)} ${isoX(0, 58)},${isoY(0, 58, 0)}`} fill="#1e3a8a" opacity="0.6" />
+                {/* QA Lab (50..72, 32..58) */}
+                <polygon points={`${isoX(50, 32)},${isoY(50, 32, 0)} ${isoX(72, 32)},${isoY(72, 32, 0)} ${isoX(72, 58)},${isoY(72, 58, 0)} ${isoX(50, 58)},${isoY(50, 58, 0)}`} fill="#581c87" opacity="0.6" />
+                {/* Voice Hub (78..102, 32..58) */}
+                <polygon points={`${isoX(78, 32)},${isoY(78, 32, 0)} ${isoX(102, 32)},${isoY(102, 32, 0)} ${isoX(102, 58)},${isoY(102, 58, 0)} ${isoX(78, 58)},${isoY(78, 58, 0)}`} fill="#7c2d12" opacity="0.5" />
+                {/* Break Room (108..138, 0..58) */}
+                <polygon points={`${isoX(108, 0)},${isoY(108, 0, 0)} ${isoX(138, 0)},${isoY(138, 0, 0)} ${isoX(138, 58)},${isoY(138, 58, 0)} ${isoX(108, 58)},${isoY(108, 58, 0)}`} fill="#7c2d12" opacity="0.45" />
+
+                {/* Corridor Divider Lines */}
+                <path
+                  d={`
+                    M ${isoX(0, 26)} ${isoY(0, 26, 0)} L ${isoX(102, 26)} ${isoY(102, 26, 0)}
+                    M ${isoX(0, 32)} ${isoY(0, 32, 0)} L ${isoX(102, 32)} ${isoY(102, 32, 0)}
+                    M ${isoX(30, 0)} ${isoY(30, 0, 0)} L ${isoX(30, 26)} ${isoY(30, 26, 0)}
+                    M ${isoX(36, 0)} ${isoY(36, 0, 0)} L ${isoX(36, 26)} ${isoY(36, 26, 0)}
+                    M ${isoX(66, 0)} ${isoY(66, 0, 0)} L ${isoX(66, 26)} ${isoY(66, 26, 0)}
+                    M ${isoX(72, 0)} ${isoY(72, 0, 0)} L ${isoX(72, 26)} ${isoY(72, 26, 0)}
+                    M ${isoX(102, 0)} ${isoY(102, 0, 0)} L ${isoX(102, 58)} ${isoY(102, 58, 0)}
+                    M ${isoX(108, 0)} ${isoY(108, 0, 0)} L ${isoX(108, 58)} ${isoY(108, 58, 0)}
+                  `}
+                  stroke="rgba(255,255,255,0.08)"
+                  strokeWidth="1"
+                  fill="none"
+                />
+
+                {/* 2. Render Depth-Sorted 3D Office Blocks */}
+                {sortedItems.map(item => item.render())}
+
+                {/* 3. Floating Room Label HUD Cards */}
+                {zones.map(zone => {
+                  const center = ROOM_CENTERS[zone.id];
+                  if (!center) return null;
+                  const tx = isoX(center.x, center.y);
+                  const ty = isoY(center.x, center.y, 13);
+                  return (
+                    <g key={`label-${zone.id}`} style={{ pointerEvents: 'none' }}>
+                      <rect x={tx - 52} y={ty - 8} width={104} height={16} rx={4} fill="rgba(15,23,42,0.72)" stroke={`${zone.accent}33`} strokeWidth={1} />
+                      <text x={tx} y={ty + 3} fill={zone.accent} fontSize={8} fontWeight={700} fontFamily="sans-serif" letterSpacing="0.05em" textAnchor="middle">
+                        {zone.label}
+                      </text>
+                    </g>
+                  );
+                })}
+
+                {/* 4. Floating Pipeline Curves (Z=11 units) */}
+                <defs>
+                  <filter id="pipeline-glow">
+                    <feGaussianBlur stdDeviation="1.5" result="blur" />
+                    <feMerge>
+                      <feMergeNode in="blur" />
+                      <feMergeNode in="SourceGraphic" />
+                    </feMerge>
+                  </filter>
+                </defs>
+
+                {PIPELINES.map(pipeline => {
+                  const a = ROOM_CENTERS[pipeline.from];
+                  const b = ROOM_CENTERS[pipeline.to];
+                  if (!a || !b) return null;
+
+                  const zoneFrom = zones.find(z => z.id === pipeline.from);
+                  const zoneTo   = zones.find(z => z.id === pipeline.to);
+                  const fromActive = zoneFrom?.agentIds.some(id => agentMap.get(id)?.status === 'running');
+                  const toActive   = zoneTo?.agentIds.some(id => agentMap.get(id)?.status === 'running');
+                  const isLive = fromActive || toActive;
+
+                  const startX = isoX(a.x, a.y);
+                  const startY = isoY(a.x, a.y, 11);
+                  const endX = isoX(b.x, b.y);
+                  const endY = isoY(b.x, b.y, 11);
+
+                  const mx = (startX + endX) / 2;
+                  const my = (startY + endY) / 2 - 24; // upward hump
+
+                  const strokeColor = isLive ? '#22d3ee' : 'rgba(100,116,139,0.3)';
+
+                  return (
+                    <g key={`pipe-${pipeline.from}-${pipeline.to}`}>
+                      <path
+                        d={`M ${startX} ${startY} Q ${mx} ${my} ${endX} ${endY}`}
+                        fill="none"
+                        stroke={strokeColor}
+                        strokeWidth={isLive ? 2.5 : 1.5}
+                        strokeDasharray={isLive ? '6 4' : '4 5'}
+                        filter={isLive ? 'url(#pipeline-glow)' : undefined}
+                        className={isLive ? 'pipeline-flow' : ''}
+                      />
+                      {pipeline.label && (
+                        <text
+                          x={mx}
+                          y={my - 6}
+                          textAnchor="middle"
+                          fontSize={8}
+                          fill={isLive ? '#22d3ee' : 'rgba(148,163,184,0.4)'}
+                          fontFamily="monospace"
+                          fontWeight={600}
+                          letterSpacing="0.04em"
+                        >
+                          {pipeline.label}
+                        </text>
+                      )}
+                    </g>
+                  );
+                })}
+              </svg>
             </div>
           </div>
 
@@ -656,7 +905,7 @@ export default function AgentOfficePanel() {
                 fontFamily: 'monospace',
               }}
             >
-              {PIPELINES.length} pipelines · {ZONES.length} zones · {agents.length} agents
+              {PIPELINES.length} pipelines · {zones.length} zones · {agents.length} agents
             </span>
           </div>
         </div>
@@ -664,7 +913,7 @@ export default function AgentOfficePanel() {
         {/* ── Right: Detail drawer ── */}
         {selectedAgent && (() => {
           const cfg = STATUS_CONFIG[selectedAgent.status];
-          const zone = ZONES.find(z => z.agentIds.includes(selectedAgent.id));
+          const zone = zones.find(z => z.agentIds.includes(selectedAgent.id));
           return (
             <div
               style={{
@@ -679,7 +928,7 @@ export default function AgentOfficePanel() {
                 overflowY: 'auto',
               }}
             >
-              {/* Avatar */}
+              {/* Voxel Avatar in Drawer */}
               <div
                 style={{
                   width: 64,
@@ -691,10 +940,10 @@ export default function AgentOfficePanel() {
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
-                  fontSize: 30,
+                  overflow: 'hidden',
                 }}
               >
-                {selectedAgent.emoji}
+                <VoxelCharacter role={selectedAgent.role} status={selectedAgent.status} scale={2.8} />
               </div>
 
               {/* Name + role */}
@@ -757,9 +1006,9 @@ export default function AgentOfficePanel() {
                 </span>
               </div>
 
-              {/* Path */}
+              {/* ID */}
               <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>
-                <span style={{ color: 'var(--text-secondary)', fontWeight: 500 }}>Path: </span>
+                <span style={{ color: 'var(--text-secondary)', fontWeight: 500 }}>ID: </span>
                 <code
                   style={{
                     fontSize: 10,
@@ -769,7 +1018,7 @@ export default function AgentOfficePanel() {
                     color: 'var(--accent)',
                   }}
                 >
-                  /{selectedAgent.path}
+                  {selectedAgent.id}
                 </code>
               </div>
 
@@ -794,7 +1043,7 @@ export default function AgentOfficePanel() {
                   onMouseEnter={e => (e.currentTarget.style.opacity = '0.85')}
                   onMouseLeave={e => (e.currentTarget.style.opacity = '1')}
                 >
-                  ↻ Cycle Status
+                  ↻ Toggle Status (Store)
                 </button>
                 <button
                   onClick={() => setSelected(null)}
@@ -810,7 +1059,7 @@ export default function AgentOfficePanel() {
                   }}
                   onMouseEnter={e => {
                     e.currentTarget.style.color = 'var(--text)';
-                    e.currentTarget.style.borderColor = 'var(--text-muted)';
+                    e.currentTarget.style.borderColor = 'var(--border)';
                   }}
                   onMouseLeave={e => {
                     e.currentTarget.style.color = 'var(--text-muted)';

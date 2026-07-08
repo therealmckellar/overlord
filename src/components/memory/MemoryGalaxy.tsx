@@ -9,6 +9,7 @@ import {
   RefreshCw, Link2, Eye, BookOpen, Heart, FileDown,
   Zap, AlertTriangle, CheckCircle
 } from 'lucide-react';
+import { Cognee3DGraph } from './Cognee3DGraph';
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
@@ -97,7 +98,7 @@ type ViewMode = 'list' | 'graph' | 'cognee' | 'wiki';
 
 // ─── Component ──────────────────────────────────────────────────────────────
 
-export function MemoryGalaxy({ isOpen, onClose }: MemoryGalaxyProps) {
+export function MemoryGalaxy({ isOpen = true, onClose }: Partial<MemoryGalaxyProps> = {}) {
   const [viewMode, setViewMode] = useState<ViewMode>('list');
   const [showForm, setShowForm] = useState(false);
   const [content, setContent] = useState('');
@@ -468,7 +469,7 @@ export function MemoryGalaxy({ isOpen, onClose }: MemoryGalaxyProps) {
             <Brain className="w-4 h-4 text-[var(--accent)]" />
             Memory Galaxy
           </h2>
-          <button onClick={onClose} className="p-1 rounded hover:bg-[var(--bg-tertiary)] text-[var(--text-muted)]">
+          <button onClick={onClose || (() => window.dispatchEvent(new CustomEvent('overlord-navigate', { detail: 'dashboard' })))} className="p-1 rounded hover:bg-[var(--bg-tertiary)] text-[var(--text-muted)]">
             <X className="w-4 h-4" />
           </button>
         </div>
@@ -1006,7 +1007,7 @@ export function MemoryGalaxy({ isOpen, onClose }: MemoryGalaxyProps) {
           )}
 
           {viewMode === 'cognee' && (
-            <CogneeGraphPanel />
+            <Cognee3DGraph />
           )}
         </div>
       </div>

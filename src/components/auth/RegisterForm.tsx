@@ -61,7 +61,7 @@ export function RegisterForm({ onSuccess, onSwitchToLogin }: RegisterFormProps) 
           type="text"
           value={username}
           onChange={(e) => setUsername(e.target.value)}
-          placeholder="mckellardev"
+          placeholder="Enter username"
           required
           autoComplete="username"
           className="w-full px-3 py-2 rounded-lg bg-[var(--bg-tertiary)] border border-[var(--border)] text-sm text-[var(--text)] placeholder:text-[var(--text-muted)] focus:outline-none focus:border-[var(--accent)] transition-colors"

@@ -11,9 +11,9 @@ import { ChevronRight, ChevronDown } from 'lucide-react';
 // Then collapsible groups with a parent nav item and indented children
 
 const PRIMARY_ITEMS = [
-  { id: 'jarvis', label: 'Jarvis', icon: '🔮', panel: 'jarvis' },
+  { id: 'jarvis', label: 'Jarvis', icon: '🐉', panel: 'jarvis' },
   { id: 'chat',   label: 'Chat',   icon: '💬', panel: 'chat' },
-  { id: 'spaces', label: 'Spaces', icon: '🌌', panel: 'spaces' },
+  { id: 'spaces', label: 'Spaces', icon: '💫', panel: 'spaces' },
 ];
 
 interface NavGroupDef {
@@ -21,20 +21,21 @@ interface NavGroupDef {
   label: string;
   icon: string;
   panel: string;        // primary panel for the parent button
-  children: { id: string; label: string; panel: string }[];
+  children: { id: string; label: string; panel: string; icon: string }[];
 }
 
 const NAV_GROUPS: NavGroupDef[] = [
   {
     id: 'dashboard',
     label: 'Dashboard',
-    icon: '📊',
+    icon: '🔮',
     panel: 'dashboard',
     children: [
-      { id: 'analytics',    label: 'Analytics',     panel: 'analytics' },
-      { id: 'insights',     label: 'Insights',      panel: 'insights' },
-      { id: 'updates',      label: 'Updates',       panel: 'updates' },
-      { id: 'tokens',       label: 'Token Costs',   panel: 'tokens' },
+      { id: 'dashboard',    label: 'Overview',      panel: 'dashboard', icon: '📊' },
+      { id: 'analytics',    label: 'Analytics',     panel: 'analytics', icon: '📈' },
+      { id: 'insights',     label: 'Insights',      panel: 'insights', icon: '💡' },
+      { id: 'updates',      label: 'Updates',       panel: 'updates', icon: '🔔' },
+      { id: 'tokens',       label: 'Token Costs',   panel: 'tokens', icon: '🪙' },
     ],
   },
   {
@@ -43,9 +44,10 @@ const NAV_GROUPS: NavGroupDef[] = [
     icon: '🤖',
     panel: 'agent',
     children: [
-      { id: 'mission',   label: 'Mission Control', panel: 'mission' },
-      { id: 'deploy',    label: 'Deployments',     panel: 'deploy' },
-      { id: 'agentOffice', label: 'Agent Office',  panel: 'agentOffice' },
+      { id: 'agent',        label: 'Agent Roster',  panel: 'agent', icon: '👥' },
+      { id: 'mission',      label: 'Mission Control', panel: 'mission', icon: '🛸' },
+      { id: 'deploy',       label: 'Deployments',     panel: 'deploy', icon: '🚀' },
+      { id: 'agentOffice',  label: 'Agent Office',  panel: 'agentOffice', icon: '🏢' },
     ],
   },
   {
@@ -54,11 +56,12 @@ const NAV_GROUPS: NavGroupDef[] = [
     icon: '💼',
     panel: 'taskboard',
     children: [
-      { id: 'goals',      label: 'Goals',      panel: 'goals' },
-      { id: 'journal',    label: 'Journal',    panel: 'journal' },
-      { id: 'devtools',   label: 'DevTools',   panel: 'devtools' },
-      { id: 'session',    label: 'Sessions',   panel: 'session' },
-      { id: 'workspaces', label: 'Workspaces', panel: 'workspaces' },
+      { id: 'taskboard',  label: 'Task Board', panel: 'taskboard', icon: '📋' },
+      { id: 'goals',      label: 'Goals',      panel: 'goals', icon: '🎯' },
+      { id: 'journal',    label: 'Journal',    panel: 'journal', icon: '📓' },
+      { id: 'devtools',   label: 'DevTools',   panel: 'devtools', icon: '🪄' },
+      { id: 'session',    label: 'Sessions',   panel: 'session', icon: '⏱️' },
+      { id: 'workspaces', label: 'Workspaces', panel: 'workspaces', icon: '📁' },
     ],
   },
   {
@@ -67,18 +70,20 @@ const NAV_GROUPS: NavGroupDef[] = [
     icon: '🧠',
     panel: 'memory',
     children: [
-      { id: 'promptStudio', label: 'Prompt Studio', panel: 'promptStudio' },
-      { id: 'pipeline',     label: 'Pipeline',      panel: 'pipeline' },
+      { id: 'memory',       label: 'Memory Galaxy', panel: 'memory', icon: '🌌' },
+      { id: 'promptStudio', label: 'Prompt Studio', panel: 'promptStudio', icon: '📝' },
+      { id: 'pipeline',     label: 'Pipeline',      panel: 'pipeline', icon: '⛓️' },
     ],
   },
   {
     id: 'automate',
     label: 'Automate',
-    icon: '⚙️',
+    icon: '🧙‍♂️',
     panel: 'cron',
     children: [
-      { id: 'substack',         label: 'Content Studio',  panel: 'substack' },
-      { id: 'social',           label: 'Social',          panel: 'social' },
+      { id: 'cron',             label: 'Cron Scheduler', panel: 'cron', icon: '⏰' },
+      { id: 'substack',         label: 'Content Studio',  panel: 'substack', icon: '✍️' },
+      { id: 'social',           label: 'Social',          panel: 'social', icon: '📱' },
     ],
   },
   {
@@ -87,10 +92,11 @@ const NAV_GROUPS: NavGroupDef[] = [
     icon: '🛠️',
     panel: 'settings',
     children: [
-      { id: 'channels',      label: 'Channels',      panel: 'channels' },
-      { id: 'pairing',       label: 'Pairing',      panel: 'pairing' },
-      { id: 'configEditor',  label: 'Config',        panel: 'configEditor' },
-      { id: 'plugins',       label: 'Plugins',       panel: 'plugins' },
+      { id: 'settings',      label: 'Settings',      panel: 'settings', icon: '⚙️' },
+      { id: 'channels',      label: 'Channels',      panel: 'channels', icon: '🔌' },
+      { id: 'pairing',       label: 'Pairing',      panel: 'pairing', icon: '🔗' },
+      { id: 'configEditor',  label: 'Config',        panel: 'configEditor', icon: '⚙️' },
+      { id: 'plugins',       label: 'Plugins',       panel: 'plugins', icon: '🔌' },
     ],
   },
 ];
@@ -209,7 +215,7 @@ export function Sidebar({ activePanel, onNavigate }: { activePanel: string; onNa
             onClick={() => handleNavigate(item.panel)}
             className={`nav-item ${isActive(item.panel) ? 'active' : ''}`}
           >
-            <span className="text-[var(--accent)] text-[15px] font-light leading-none w-4 text-center flex-shrink-0">{item.icon}</span>
+            <span className="text-[var(--accent)] text-[18px] font-light leading-none w-4 text-center flex-shrink-0">{item.icon}</span>
             <span>{item.label}</span>
           </button>
         ))}
@@ -224,34 +230,29 @@ export function Sidebar({ activePanel, onNavigate }: { activePanel: string; onNa
           if (!isGroupVisible) return null;
 
           const isOpen = expanded.has(group.id);
-          const parentActive = isActive(group.panel) || visibleChildren.some(c => isActive(c.panel));
+          const parentActive = visibleChildren.some(c => isActive(c.panel));
 
           return (
             <div key={group.id}>
               {/* Parent button */}
               <button
                 onClick={() => {
-                  handleNavigate(group.panel);
-                  if (!isOpen) toggleGroup(group.id);
+                  toggleGroup(group.id);
                 }}
-                onContextMenu={(e) => { e.preventDefault(); toggleGroup(group.id); }}
                 className={`nav-item ${parentActive ? 'active' : ''}`}
-                title={`Click to open · Right-click to expand`}
+                title="Click to expand/collapse"
               >
-                <span className="text-[var(--text-muted)] text-[14px] font-light leading-none w-4 text-center flex-shrink-0"
+                <span className="text-[var(--text-muted)] text-[18px] font-light leading-none w-4 text-center flex-shrink-0"
                   style={parentActive ? { color: 'var(--accent)' } : {}}>
                   {group.icon}
                 </span>
                 <span className="flex-1">{group.label}</span>
-                <button
-                  onClick={(e) => { e.stopPropagation(); toggleGroup(group.id); }}
-                  className="text-[var(--text-muted)] hover:text-[var(--text)] transition-colors p-0.5 rounded"
-                >
+                <div className="text-[var(--text-muted)] p-0.5">
                   {isOpen
                     ? <ChevronDown size={10} />
                     : <ChevronRight size={10} />
                   }
-                </button>
+                </div>
               </button>
 
               {/* Children */}
@@ -261,7 +262,7 @@ export function Sidebar({ activePanel, onNavigate }: { activePanel: string; onNa
                   onClick={() => handleNavigate(child.panel)}
                   className={`nav-item child ${isActive(child.panel) ? 'active' : ''}`}
                 >
-                  <span className="text-[var(--text-muted)] text-[9px] leading-none w-2 flex-shrink-0">—</span>
+                  <span className="text-[11px] leading-none w-4 text-center flex-shrink-0 mr-1.5">{child.icon}</span>
                   <span>{child.label}</span>
                 </button>
               ))}

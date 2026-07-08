@@ -50,7 +50,7 @@ export function LoginForm({ onSuccess, onSwitchToRegister }: LoginFormProps) {
             type="text"
             value={identifier}
             onChange={(e) => setIdentifier(e.target.value)}
-            placeholder="mckellardev"
+            placeholder="Enter username or email"
             required
             autoComplete="username"
           className="w-full px-3 py-2 rounded-lg bg-[var(--bg-tertiary)] border border-[var(--border)] text-sm text-[var(--text)] placeholder:text-[var(--text-muted)] focus:outline-none focus:border-[var(--accent)] transition-colors"
@@ -65,7 +65,7 @@ export function LoginForm({ onSuccess, onSwitchToRegister }: LoginFormProps) {
           type="password"
           value={password}
           onChange={(e) => setPassword(e.target.value)}
-          placeholder="••••••••"
+          placeholder="Enter password"
           required
           autoComplete="current-password"
           className="w-full px-3 py-2 rounded-lg bg-[var(--bg-tertiary)] border border-[var(--border)] text-sm text-[var(--text)] placeholder:text-[var(--text-muted)] focus:outline-none focus:border-[var(--accent)] transition-colors"
