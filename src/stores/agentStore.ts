@@ -99,7 +99,7 @@ const ROLE_SKILLS: Record<string, string[]> = {
 
 function buildAgentsFromGraph(): Agent[] {
   const configs = getAllAgents();
-  return configs.map((config: AgentConfig, idx: number) => ({
+  return configs.map((config: AgentConfig) => ({
     id: `agent-${config.role}`,
     name: config.role.charAt(0).toUpperCase() + config.role.slice(1).replace('-', ' '),
     role: config.role,

@@ -64,12 +64,13 @@ const STATUS_CONFIG: Record<AgentStatus, { ring: string; glow: string; label: st
 };
 
 // Shading helper for VoxelCharacter colors
+// Shading helper for VoxelCharacter colors
 function adjustColor(hex: string, percent: number) {
-  let num = parseInt(hex.replace("#", ""), 16),
-    amt = Math.round(2.55 * percent),
-    R = (num >> 16) + amt,
-    G = (num >> 8 & 0x00FF) + amt,
-    B = (num & 0x0000FF) + amt;
+  const num = parseInt(hex.replace("#", ""), 16);
+  const amt = Math.round(2.55 * percent);
+  const R = (num >> 16) + amt;
+  const G = (num >> 8 & 0x00FF) + amt;
+  const B = (num & 0x0000FF) + amt;
   return "#" + (0x1000000 + (R < 255 ? R < 0 ? 0 : R : 255) * 0x10000 + (G < 255 ? G < 0 ? 0 : G : 255) * 0x100 + (B < 255 ? B < 0 ? 0 : B : 255)).toString(16).slice(1);
 }
 
@@ -82,8 +83,21 @@ const scale = 5.2;
 const isoX = (x: number, y: number) => cx + (x - y) * 0.866 * scale;
 const isoY = (x: number, y: number, z: number) => cy + (x + y) * 0.5 * scale - z * scale;
 
+interface BlockProps {
+  oX: number;
+  oY: number;
+  oZ: number;
+  sX: number;
+  sY: number;
+  sZ: number;
+  cTop: string;
+  cLeft: string;
+  cRight: string;
+  className?: string;
+}
+
 // 3D Block SVG Drawer
-function Block({ oX, oY, oZ, sX, sY, sZ, cTop, cLeft, cRight, className }: any) {
+function Block({ oX, oY, oZ, sX, sY, sZ, cTop, cLeft, cRight, className }: BlockProps) {
   const topD = `
     M ${isoX(oX, oY)} ${isoY(oX, oY, oZ + sZ)}
     L ${isoX(oX + sX, oY)} ${isoY(oX + sX, oY, oZ + sZ)}
@@ -150,7 +164,7 @@ function StatusLegend() {
 
 // ─── Voxel Character Component ──────────────────────────────────────────────
 
-function VoxelCharacter({ role, status, scale: charScale = 2.4 }: { role: string; status: string; scale?: number }) {
+function VoxelCharacter({ role, scale: charScale = 2.4 }: { role: string; scale?: number }) {
   const roleColors: Record<string, { hair: string; shirt: string; pants: string; skin: string }> = {
     planner: { hair: '#eab308', shirt: '#06B6D4', pants: '#1e293b', skin: '#fbcfe8' },
     architect: { hair: '#78350f', shirt: '#3B82F6', pants: '#1e3a8a', skin: '#fed7aa' },
@@ -191,7 +205,17 @@ function VoxelCharacter({ role, status, scale: charScale = 2.4 }: { role: string
   const charIsoX = (x: number, y: number) => charCx + (x - y) * 0.866 * charScale;
   const charIsoY = (x: number, y: number, z: number) => charCy + (x + y) * 0.5 * charScale - z * charScale;
 
-  const CharBlock = ({ oX, oY, oZ, sX, sY, sZ, cTop, cLeft, cRight }: any) => {
+  const charBlock = (
+    oX: number,
+    oY: number,
+    oZ: number,
+    sX: number,
+    sY: number,
+    sZ: number,
+    cTop: string,
+    cLeft: string,
+    cRight: string
+  ) => {
     const topD = `
       M ${charIsoX(oX, oY)} ${charIsoY(oX, oY, oZ + sZ)}
       L ${charIsoX(oX + sX, oY)} ${charIsoY(oX + sX, oY, oZ + sZ)}
@@ -228,24 +252,26 @@ function VoxelCharacter({ role, status, scale: charScale = 2.4 }: { role: string
   return (
     <svg width="24" height="30" viewBox="0 0 24 30" style={{ overflow: 'visible' }}>
       {/* Legs */}
-      <CharBlock oX={-1.4} oY={-0.6} oZ={0} sX={1.0} sY={1.0} sZ={2.8} cTop={pantsTop} cLeft={pantsLeft} cRight={pantsRight} />
-      <CharBlock oX={0.4} oY={-0.6} oZ={0} sX={1.0} sY={1.0} sZ={2.8} cTop={pantsTop} cLeft={pantsLeft} cRight={pantsRight} />
+      {charBlock(-1.4, -0.6, 0, 1.0, 1.0, 2.8, pantsTop, pantsLeft, pantsRight)}
+      {charBlock(0.4, -0.6, 0, 1.0, 1.0, 2.8, pantsTop, pantsLeft, pantsRight)}
       {/* Torso */}
-      <CharBlock oX={-1.7} oY={-0.8} oZ={2.8} sX={3.4} sY={1.6} sZ={4.4} cTop={shirtTop} cLeft={shirtLeft} cRight={shirtRight} />
+      {charBlock(-1.7, -0.8, 2.8, 3.4, 1.6, 4.4, shirtTop, shirtLeft, shirtRight)}
       {/* Arms */}
-      <CharBlock oX={-2.5} oY={-0.6} oZ={3.6} sX={0.8} sY={1.2} sZ={3.2} cTop={shirtTop} cLeft={shirtLeft} cRight={shirtRight} />
-      <CharBlock oX={1.7} oY={-0.6} oZ={3.6} sX={0.8} sY={1.2} sZ={3.2} cTop={shirtTop} cLeft={shirtLeft} cRight={shirtRight} />
+      {charBlock(-2.5, -0.6, 3.6, 0.8, 1.2, 3.2, shirtTop, shirtLeft, shirtRight)}
+      {charBlock(1.7, -0.6, 3.6, 0.8, 1.2, 3.2, shirtTop, shirtLeft, shirtRight)}
       {/* Head */}
-      <CharBlock oX={-1.3} oY={-1.3} oZ={7.2} sX={2.6} sY={2.6} sZ={2.6} cTop={skinTop} cLeft={skinLeft} cRight={skinRight} />
+      {charBlock(-1.3, -1.3, 7.2, 2.6, 2.6, 2.6, skinTop, skinLeft, skinRight)}
       {/* Eyes */}
       <polygon points={`${charIsoX(1.3, -0.5)} ${charIsoY(1.3, -0.5, 8.7)} ${charIsoX(1.3, -0.1)} ${charIsoY(1.3, -0.1, 8.7)} ${charIsoX(1.3, -0.1)} ${charIsoY(1.3, -0.1, 9.2)} ${charIsoX(1.3, -0.5)} ${charIsoY(1.3, -0.5, 9.2)}`} fill="#111827" />
       <polygon points={`${charIsoX(1.3, 0.4)} ${charIsoY(1.3, 0.4, 8.7)} ${charIsoX(1.3, 0.8)} ${charIsoY(1.3, 0.8, 8.7)} ${charIsoX(1.3, 0.8)} ${charIsoY(1.3, 0.8, 9.2)} ${charIsoX(1.3, 0.4)} ${charIsoY(1.3, 0.4, 9.2)}`} fill="#111827" />
       {/* Hair */}
-      <CharBlock oX={-1.4} oY={-1.4} oZ={9.8} sX={2.8} sY={2.8} sZ={0.8} cTop={hairTop} cLeft={hairLeft} cRight={hairRight} />
-      <CharBlock oX={-1.4} oY={0.6} oZ={7.6} sX={2.8} sY={0.8} sZ={2.2} cTop={hairTop} cLeft={hairLeft} cRight={hairRight} />
+      {charBlock(-1.4, -1.4, 9.8, 2.8, 2.8, 0.8, hairTop, hairLeft, hairRight)}
+      {charBlock(-1.4, 0.6, 7.6, 2.8, 0.8, 2.2, hairTop, hairLeft, hairRight)}
     </svg>
   );
 }
+
+
 
 // ─── Massive Office Boundaries & Large Separated Room Walls ──────────────────
 
@@ -600,7 +626,7 @@ export default function AgentOfficePanel() {
           <g key={`char-${agent.id}`} className={charAnimClass} onClick={() => setSelected(prev => prev === agent.id ? null : agent.id)} style={{ cursor: 'pointer' }}>
             {/* Position character */}
             <g transform={`translate(${isoX(agent.x + 2, agent.y - 1) - 12}, ${isoY(agent.x + 2, agent.y - 1, 0) - 24})`}>
-              <VoxelCharacter role={agent.role} status={agent.status} scale={2.4} />
+              <VoxelCharacter role={agent.role} scale={2.4} />
             </g>
 
             {/* Nameplate tag floating above head */}
@@ -943,7 +969,7 @@ export default function AgentOfficePanel() {
                   overflow: 'hidden',
                 }}
               >
-                <VoxelCharacter role={selectedAgent.role} status={selectedAgent.status} scale={2.8} />
+                <VoxelCharacter role={selectedAgent.role} scale={2.8} />
               </div>
 
               {/* Name + role */}

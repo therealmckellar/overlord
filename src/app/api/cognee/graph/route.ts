@@ -8,7 +8,7 @@ import { promises as fs } from 'fs';
 import path from 'path';
 import os from 'os';
 import { execSync } from 'child_process';
-import { getAllAgents, MODEL_GRAPH } from '@/lib/model-graph';
+import { getAllAgents } from '@/lib/model-graph';
 
 const COGNEE_DB = path.join(
   os.homedir(),
@@ -16,6 +16,36 @@ const COGNEE_DB = path.join(
 );
 
 const VAULT_DIR = path.join(os.homedir(), 'wiki', 'overlord-memories');
+
+// Graph Types
+interface GraphNode {
+  id: string;
+  slug: string;
+  label: string;
+  type: string;
+  text?: string;
+  created_at?: string;
+  topological_rank?: number;
+}
+
+interface GraphEdge {
+  id: string;
+  source: string;
+  target: string;
+  relationship?: string;
+  label?: string;
+  text?: string;
+  created_at?: string;
+}
+
+interface VaultMemory {
+  id: string;
+  source: string;
+  type: string;
+  tags: string[];
+  content: string;
+  createdAt: string | null;
+}
 
 // Helper to sanitize labels
 function cleanLabel(text: string, maxLen = 30): string {
@@ -28,11 +58,11 @@ function cleanLabel(text: string, maxLen = 30): string {
 }
 
 // 1. Fetch memories from Obsidian vault
-async function getVaultMemories(): Promise<any[]> {
+async function getVaultMemories(): Promise<VaultMemory[]> {
   try {
     await fs.mkdir(VAULT_DIR, { recursive: true });
     const files = await fs.readdir(VAULT_DIR);
-    const memories: any[] = [];
+    const memories: VaultMemory[] = [];
     for (const file of files) {
       if (file === 'Memory Index.md' || !file.endsWith('.md')) continue;
       
@@ -67,7 +97,7 @@ async function getVaultMemories(): Promise<any[]> {
 }
 
 // 2. Query Cognee SQLite DB directly (with Python script helper)
-async function queryCogneeGraph(limit: number): Promise<{ nodes: any[]; edges: any[] }> {
+async function queryCogneeGraph(limit: number): Promise<{ nodes: GraphNode[]; edges: GraphEdge[] }> {
   try {
     // Check if DB exists
     try {
@@ -145,25 +175,25 @@ async function queryCogneeGraph(limit: number): Promise<{ nodes: any[]; edges: a
     let stdout;
     try {
       stdout = execSync(`python3 ${tmpScript}`, { timeout: 15000, encoding: 'utf-8' });
-    } catch (e: any) {
+    } catch {
       try {
         stdout = execSync(`python ${tmpScript}`, { timeout: 15000, encoding: 'utf-8' });
-      } catch (err: any) {
-        throw new Error(`Python execution failed: ${err.message || err}`);
+      } catch (err: unknown) {
+        throw new Error(`Python execution failed: ${(err as Error).message || err}`);
       }
     }
 
     const data = JSON.parse(stdout);
     return { nodes: data.nodes || [], edges: data.edges || [] };
-  } catch (error: unknown) {
+  } catch {
     return { nodes: [], edges: [] };
   }
 }
 
 // 3. Fallback: Build rich live graph dynamically
-async function buildFallbackGraph(): Promise<{ nodes: any[]; edges: any[] }> {
-  const nodes: any[] = [];
-  const edges: any[] = [];
+async function buildFallbackGraph(): Promise<{ nodes: GraphNode[]; edges: GraphEdge[] }> {
+  const nodes: GraphNode[] = [];
+  const edges: GraphEdge[] = [];
 
   // Add agents as nodes
   const agents = getAllAgents();
