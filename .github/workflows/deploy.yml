@@ -16,6 +16,9 @@ jobs:
         run: |
           cd /home/rmckellar/overlord
           git fetch origin
+          # Clean local changes and untracked conflicting files to avoid merge errors on the self-hosted runner
+          git reset --hard HEAD
+          rm -f src/app/api/tts/route.ts
           if [ "$(git rev-parse HEAD)" != "$(git rev-parse origin/main)" ]; then
             echo "Pulling latest changes..."
             git pull origin main
