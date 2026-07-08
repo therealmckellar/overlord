@@ -71,7 +71,7 @@ export interface AgentConfig {
 export const MODEL_GRAPH: Record<AgentRole, AgentConfig> = {
   orchestrator: {
     role: 'orchestrator',
-    model: 'google/gemma-4-31b-it:free',
+    model: 'tencent/hy3:free',
     provider: 'openrouter',
     agentFlag: 'hermes',
     maxTokens: 4096,
@@ -80,7 +80,7 @@ export const MODEL_GRAPH: Record<AgentRole, AgentConfig> = {
 
   planner: {
     role: 'planner',
-    model: 'nvidia/nemotron-3-ultra-550b-a55b:free',
+    model: 'nousresearch/hermes-3-llama-3.1-405b:free',
     provider: 'openrouter',
     agentFlag: 'planner',
     maxTokens: 16384,
@@ -93,7 +93,7 @@ export const MODEL_GRAPH: Record<AgentRole, AgentConfig> = {
 
   architect: {
     role: 'architect',
-    model: 'nvidia/nemotron-3-ultra-550b-a55b:free',
+    model: 'nousresearch/hermes-3-llama-3.1-405b:free',
     provider: 'openrouter',
     agentFlag: 'architect',
     maxTokens: 16384,
@@ -105,7 +105,7 @@ export const MODEL_GRAPH: Record<AgentRole, AgentConfig> = {
 
   builder: {
     role: 'builder',
-    model: 'openai/gpt-oss-120b:free',
+    model: 'meta-llama/llama-3.3-70b-instruct:free',
     provider: 'openrouter',
     agentFlag: 'builder',
     maxTokens: 16384,
@@ -122,7 +122,7 @@ export const MODEL_GRAPH: Record<AgentRole, AgentConfig> = {
 
   'build-fixer': {
     role: 'build-fixer',
-    model: 'poolside/laguna-m.1:free',
+    model: 'meta-llama/llama-3.3-70b-instruct:free',
     provider: 'openrouter',
     agentFlag: 'build-fixer',
     maxTokens: 16384,
@@ -135,7 +135,7 @@ export const MODEL_GRAPH: Record<AgentRole, AgentConfig> = {
 
   researcher: {
     role: 'researcher',
-    model: 'cognitivecomputations/hermes-3-llama-3.1-405b:free',
+    model: 'nousresearch/hermes-3-llama-3.1-405b:free',
     provider: 'openrouter',
     agentFlag: 'researcher',
     maxTokens: 16384,
@@ -151,7 +151,7 @@ export const MODEL_GRAPH: Record<AgentRole, AgentConfig> = {
 
   reviewer: {
     role: 'reviewer',
-    model: 'openai/gpt-oss-120b:free',
+    model: 'meta-llama/llama-3.3-70b-instruct:free',
     provider: 'openrouter',
     agentFlag: 'reviewer',
     maxTokens: 8192,
@@ -160,7 +160,7 @@ export const MODEL_GRAPH: Record<AgentRole, AgentConfig> = {
 
   security: {
     role: 'security',
-    model: 'nvidia/nemotron-3-super-120b-a12b:free',
+    model: 'nousresearch/hermes-3-llama-3.1-405b:free',
     provider: 'openrouter',
     agentFlag: 'security',
     maxTokens: 8192,
@@ -169,7 +169,7 @@ export const MODEL_GRAPH: Record<AgentRole, AgentConfig> = {
 
   perf: {
     role: 'perf',
-    model: 'openai/gpt-oss-120b:free',
+    model: 'meta-llama/llama-3.3-70b-instruct:free',
     provider: 'openrouter',
     agentFlag: 'perf',
     maxTokens: 8192,
@@ -212,7 +212,7 @@ export const MODEL_GRAPH: Record<AgentRole, AgentConfig> = {
 
   e2e: {
     role: 'e2e',
-    model: 'openai/gpt-oss-120b:free',
+    model: 'meta-llama/llama-3.3-70b-instruct:free',
     provider: 'openrouter',
     agentFlag: 'e2e',
     maxTokens: 8192,
@@ -230,7 +230,7 @@ export const MODEL_GRAPH: Record<AgentRole, AgentConfig> = {
 
   refactor: {
     role: 'refactor',
-    model: 'openai/gpt-oss-20b:free',
+    model: 'meta-llama/llama-3.3-70b-instruct:free',
     provider: 'openrouter',
     agentFlag: 'refactor',
     maxTokens: 8192,
@@ -252,7 +252,7 @@ export const MODEL_GRAPH: Record<AgentRole, AgentConfig> = {
 
   trading: {
     role: 'trading',
-    model: 'nvidia/nemotron-3-super-120b-a12b:free',
+    model: 'meta-llama/llama-3.3-70b-instruct:free',
     provider: 'openrouter',
     agentFlag: 'trading-worker',
     maxTokens: 8192,
