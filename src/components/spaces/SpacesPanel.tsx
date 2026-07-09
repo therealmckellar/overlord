@@ -13,7 +13,7 @@ import {
 } from 'lucide-react';
 import { useSpaceStore, type Space } from '@/stores/spaceStore';
 import { useSkillsStore } from '@/stores/skillsStore';
-import { useChatStream } from '@/hooks/useChatStream';
+
 
 // ── Empty state when no space selected ───────────────────────────────────────
 
@@ -478,12 +478,15 @@ function ThreadChatView({ space, threadId }: { space: Space; threadId: string })
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
-  const { sendMessage } = useChatStream();
+  const abortRef = useRef<AbortController | null>(null);
 
   // Auto-scroll
   React.useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages.length]);
+
+  // Cleanup abort on unmount
+  React.useEffect(() => () => { abortRef.current?.abort(); }, []);
 
   const handleSend = async () => {
     if (!input.trim() || isLoading) return;
@@ -498,16 +501,83 @@ function ThreadChatView({ space, threadId }: { space: Space; threadId: string })
 
     addThreadMessage(space.id, threadId, { role: 'user', content: msg });
 
+    // Abort any in-flight request
+    abortRef.current?.abort();
+    const controller = new AbortController();
+    abortRef.current = controller;
+
     try {
-      const response = await sendMessage(msg, {
-        systemPrompt: [space.masterPrompt, space.customInstructions].filter(Boolean).join('\n\n'),
-        spaceId: space.id,
+      // Build message history from this thread only (fully isolated from main chat)
+      const threadMessages = (space.threads ?? []).find((t) => t.id === threadId)?.messages ?? [];
+      const history = threadMessages.slice(-20).map((m) => ({
+        sender: { role: m.role },
+        content: m.content,
+      }));
+
+      const systemPrompt = [space.masterPrompt, space.customInstructions].filter(Boolean).join('\n\n');
+
+      const res = await fetch('/api/chat', {
+        method: 'POST',
+        credentials: 'same-origin',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          messages: history,
+          systemPrompt: systemPrompt || undefined,
+        }),
+        signal: controller.signal,
       });
-      addThreadMessage(space.id, threadId, { role: 'assistant', content: response || '' });
+
+      if (!res.ok) {
+        const text = await res.text().catch(() => '');
+        throw new Error(`Chat error ${res.status}: ${text.slice(0, 200)}`);
+      }
+
+      // Stream the response
+      const reader = res.body?.getReader();
+      if (!reader) throw new Error('No response body');
+
+      const decoder = new TextDecoder();
+      let buf = '';
+      let assistantContent = '';
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        buf += decoder.decode(value, { stream: true });
+
+        // Parse SSE events
+        while (true) {
+          const eventEnd = buf.indexOf('\n\n');
+          if (eventEnd === -1) break;
+          const eventBlock = buf.slice(0, eventEnd);
+          buf = buf.slice(eventEnd + 2);
+
+          let eventType = '';
+          let dataStr = '';
+          for (const line of eventBlock.split('\n')) {
+            if (line.startsWith('event: ')) eventType = line.slice(7).trim();
+            else if (line.startsWith('data: ')) dataStr = line.slice(6);
+          }
+          if (!eventType || !dataStr) continue;
+
+          let parsed: { content?: string } = {};
+          try { parsed = JSON.parse(dataStr); } catch { /* ignore */ }
+
+          if (eventType === 'chunk' && parsed.content) {
+            assistantContent += parsed.content;
+          } else if (eventType === 'error') {
+            throw new Error(parsed.content || 'Stream error');
+          }
+        }
+      }
+
+      addThreadMessage(space.id, threadId, { role: 'assistant', content: assistantContent || '(no response)' });
     } catch (err) {
+      if (err instanceof Error && err.name === 'AbortError') return;
       addThreadMessage(space.id, threadId, { role: 'assistant', content: '⚠ Error getting response.' });
     } finally {
       setIsLoading(false);
+      abortRef.current = null;
     }
   };
 

@@ -7,6 +7,8 @@ import {
   Sparkles, ZoomIn, ZoomOut, AlertCircle, Cpu
 } from 'lucide-react';
 import { useUIStore } from '@/stores/uiStore';
+import { useSharedMemoryStore } from '@/stores/sharedMemoryStore';
+
 
 // Load ForceGraph3D dynamically to prevent hydration/document issues on the server
 const ForceGraph3D = dynamic(
@@ -63,6 +65,10 @@ export function Cognee3DGraph() {
   const fgRef = useRef<any>(null);
   const [dimensions, setDimensions] = useState({ width: 800, height: 600 });
   const addToast = useUIStore((s) => s.addToast);
+  const memory = useSharedMemoryStore((s) => s.memory);
+  const goals = useSharedMemoryStore((s) => s.goals);
+  const journal = useSharedMemoryStore((s) => s.journal);
+
 
   // Resize listener
   useEffect(() => {
@@ -79,15 +85,22 @@ export function Cognee3DGraph() {
     return () => observer.disconnect();
   }, []);
 
-  // Fetch Cognee graph data
+  // Fetch graph data — POST so we can send client-side store knowledge
   const fetchGraphData = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
-      const res = await fetch('/api/cognee/graph?limit=150');
+      const res = await fetch('/api/cognee/graph?limit=200', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          memories: memory.slice(0, 100),
+          goals: goals.slice(0, 50),
+          journal: journal.slice(0, 60),
+        }),
+      });
       const data = await res.json();
       if (data.success) {
-        // Map edges to "links" property which react-force-graph expects
         const links = (data.edges || []).map((e: any) => ({
           ...e,
           source: e.source,
@@ -98,11 +111,12 @@ export function Cognee3DGraph() {
         setError(data.error || 'Failed to fetch graph data');
       }
     } catch (err: any) {
-      setError(err.message || 'Network error fetching Cognee graph');
+      setError(err.message || 'Network error fetching knowledge graph');
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [memory, goals, journal]);
+
 
   useEffect(() => {
     fetchGraphData();
@@ -236,14 +250,14 @@ export function Cognee3DGraph() {
         {loading && (
           <div className="absolute inset-0 flex flex-col items-center justify-center bg-[#0d0d0d]/80 z-20 gap-3">
             <RefreshCw className="w-8 h-8 text-[var(--accent)] animate-spin" />
-            <p className="text-xs text-zinc-400 font-mono">Loading 3D Knowledge Graph...</p>
+            <p className="text-xs text-zinc-400 font-mono">Loading Knowledge Graph...</p>
           </div>
         )}
 
         {error && (
           <div className="absolute inset-0 flex flex-col items-center justify-center bg-[#0d0d0d]/95 z-20 max-w-md mx-auto text-center gap-3">
             <AlertCircle className="w-10 h-10 text-red-500" />
-            <p className="text-sm font-semibold text-red-400">Failed to Load Cognee Graph</p>
+            <p className="text-sm font-semibold text-red-400">Failed to Load Knowledge Graph</p>
             <p className="text-xs text-zinc-500 font-mono leading-relaxed">{error}</p>
             <button 
               onClick={fetchGraphData} 
@@ -309,7 +323,7 @@ export function Cognee3DGraph() {
           <div className="bg-black/70 border border-zinc-800 rounded-lg p-3 shadow-xl backdrop-blur-md font-mono text-[10px] text-zinc-400 space-y-1">
             <div className="flex items-center gap-1 text-[var(--accent)] font-semibold mb-1">
               <Cpu className="w-3.5 h-3.5" />
-              <span>JARVIS CORE</span>
+              <span>KNOWLEDGE GRAPH</span>
             </div>
             <div>Nodes: <span className="text-zinc-200">{graphData.nodes.length}</span></div>
             <div>Relationships: <span className="text-zinc-200">{graphData.links.length}</span></div>
