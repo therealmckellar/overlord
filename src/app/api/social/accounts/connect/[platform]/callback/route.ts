@@ -16,7 +16,7 @@ const TOKEN_URLS: Record<string, string> = {
 };
 
 const CLIENT_SECRET_ENVS: Record<string, string> = {
-  x: 'TWITTER_CLIENT_SECRET',
+  x: 'X_CLIENT_SECRET',
   linkedin: 'LINKEDIN_CLIENT_SECRET',
   instagram: 'INSTAGRAM_CLIENT_SECRET',
   facebook: 'FACEBOOK_CLIENT_SECRET',
@@ -26,7 +26,7 @@ const CLIENT_SECRET_ENVS: Record<string, string> = {
 };
 
 const CLIENT_ID_ENVS: Record<string, string> = {
-  x: 'TWITTER_CLIENT_ID',
+  x: 'X_CLIENT_ID',
   linkedin: 'LINKEDIN_CLIENT_ID',
   instagram: 'INSTAGRAM_CLIENT_ID',
   facebook: 'FACEBOOK_CLIENT_ID',

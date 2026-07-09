@@ -16,7 +16,7 @@ const OAUTH_CONFIGS: Record<string, {
 }> = {
   x: {
     authUrl: 'https://twitter.com/i/oauth2/authorize',
-    clientIdEnv: 'TWITTER_CLIENT_ID',
+    clientIdEnv: 'X_CLIENT_ID',
     scope: 'tweet.read users.read offline.access',
     extraParams: { code_challenge_method: 'plain' },
   },
