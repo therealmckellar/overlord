@@ -268,6 +268,13 @@ export async function GET(req: Request, { params }: Params) {
 
     revalidatePath('/api/social/accounts');
 
+    // Bridge to Hermes (xurl): mirror this live X token so Hermes is connected too
+    try {
+      await fetch('http://localhost:9125/api/internal/sync-x-hermes', { method: 'POST' });
+    } catch {
+      // non-fatal — Hermes bridge will catch up on next cron
+    }
+
     // Return gorgeous successful authorization page
     return new NextResponse(
       `<!DOCTYPE html>
