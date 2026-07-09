@@ -15,7 +15,7 @@ import { Cognee3DGraph } from './Cognee3DGraph';
 
 interface VaultMemory {
   id: string;
-  filename: string;
+  filename?: string;
   source: string;
   type: string;
   tags: string[];
@@ -216,8 +216,10 @@ export function MemoryGalaxy({ isOpen = true, onClose }: Partial<MemoryGalaxyPro
   }, [addToast]);
 
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const [canvasDimensions, setCanvasDimensions] = useState({ width: 0, height: 0 });
 
   const {
+    memories,
     searchQuery, setSearchQuery,
     filterTag, setFilterTag,
     filterSource, setFilterSource,
@@ -229,6 +231,26 @@ export function MemoryGalaxy({ isOpen = true, onClose }: Partial<MemoryGalaxyPro
   const filtered = getFilteredMemories();
   const allTags = getAllTags();
   const allSources = getAllSources();
+
+  // Resize observer to track canvas parent dimensions
+  useEffect(() => {
+    if (viewMode !== 'graph' || !canvasRef.current) return;
+    const canvas = canvasRef.current;
+    const parent = canvas.parentElement;
+    if (!parent) return;
+
+    const resizeObserver = new ResizeObserver((entries) => {
+      for (const entry of entries) {
+        setCanvasDimensions({
+          width: entry.contentRect.width,
+          height: entry.contentRect.height,
+        });
+      }
+    });
+
+    resizeObserver.observe(parent);
+    return () => resizeObserver.disconnect();
+  }, [viewMode]);
 
   // ─── Vault sync ────────────────────────────────────────────────────────────
 
@@ -248,15 +270,15 @@ export function MemoryGalaxy({ isOpen = true, onClose }: Partial<MemoryGalaxyPro
 
   // ─── Graph generation ─────────────────────────────────────────────────────
 
-  const generateGraphData = useCallback((memories: VaultMemory[]): GraphData => {
+  const generateGraphData = useCallback((memoriesToRender: VaultMemory[]): GraphData => {
     const nodes: GraphNode[] = [];
     const edges: GraphEdge[] = [];
     const tagNodes = new Map<string, number>();
     const sourceNodes = new Map<string, number>();
 
     // Create memory nodes
-    memories.forEach((mem, i) => {
-      const angle = (i / memories.length) * Math.PI * 2;
+    memoriesToRender.forEach((mem, i) => {
+      const angle = (i / memoriesToRender.length) * Math.PI * 2;
       const radius = 150 + Math.random() * 100;
       const color = TYPE_COLORS[mem.type] || TYPE_COLORS.memory;
 
@@ -265,8 +287,8 @@ export function MemoryGalaxy({ isOpen = true, onClose }: Partial<MemoryGalaxyPro
         label: mem.content.slice(0, 40) + (mem.content.length > 40 ? '...' : ''),
         type: 'memory',
         color,
-        x: 400 + Math.cos(angle) * radius,
-        y: 300 + Math.sin(angle) * radius,
+        x: Math.cos(angle) * radius,
+        y: Math.sin(angle) * radius,
         connections: 0,
       });
 
@@ -281,8 +303,8 @@ export function MemoryGalaxy({ isOpen = true, onClose }: Partial<MemoryGalaxyPro
             label: `#${tag}`,
             type: 'tag',
             color: TYPE_COLORS.tag,
-            x: 400 + Math.cos(tagAngle) * tagRadius,
-            y: 300 + Math.sin(tagAngle) * tagRadius,
+            x: Math.cos(tagAngle) * tagRadius,
+            y: Math.sin(tagAngle) * tagRadius,
             connections: 0,
           });
         }
@@ -298,8 +320,8 @@ export function MemoryGalaxy({ isOpen = true, onClose }: Partial<MemoryGalaxyPro
           label: src,
           type: 'source',
           color: SOURCE_COLORS[src] || TYPE_COLORS.source,
-          x: 400 + (Math.random() - 0.5) * 300,
-          y: 300 + (Math.random() - 0.5) * 300,
+          x: (Math.random() - 0.5) * 300,
+          y: (Math.random() - 0.5) * 300,
           connections: 0,
         });
       }
@@ -321,13 +343,31 @@ export function MemoryGalaxy({ isOpen = true, onClose }: Partial<MemoryGalaxyPro
 
   const loadGraph = useCallback(async () => {
     setIsLoadingGraph(true);
-    const mems = await syncFromVault();
-    if (mems.length > 0) {
-      const data = generateGraphData(mems);
+    const vaultMems = await syncFromVault();
+    
+    // Combine with local Zustand memories
+    const combined: VaultMemory[] = [...vaultMems];
+    memories.forEach((local) => {
+      if (!combined.some(v => v.id === local.id)) {
+        combined.push({
+          id: local.id,
+          source: local.source,
+          type: 'fact',
+          tags: local.tags,
+          content: local.content,
+          createdAt: new Date(local.createdAt).toISOString()
+        });
+      }
+    });
+
+    if (combined.length > 0) {
+      const data = generateGraphData(combined);
       setGraphData(data);
+    } else {
+      setGraphData({ nodes: [], edges: [] });
     }
     setIsLoadingGraph(false);
-  }, [syncFromVault, generateGraphData]);
+  }, [syncFromVault, generateGraphData, memories]);
 
   useEffect(() => {
     if (isOpen && viewMode === 'graph') {
@@ -366,21 +406,26 @@ export function MemoryGalaxy({ isOpen = true, onClose }: Partial<MemoryGalaxyPro
   // ─── Canvas rendering ─────────────────────────────────────────────────────
 
   useEffect(() => {
-    if (viewMode !== 'graph' || !graphData || !canvasRef.current) return;
+    if (viewMode !== 'graph' || !graphData || !canvasRef.current || canvasDimensions.width === 0) return;
 
     const canvas = canvasRef.current;
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
 
     const dpr = window.devicePixelRatio || 1;
-    const rect = canvas.getBoundingClientRect();
-    canvas.width = rect.width * dpr;
-    canvas.height = rect.height * dpr;
+    const width = canvasDimensions.width;
+    const height = canvasDimensions.height;
+
+    canvas.width = width * dpr;
+    canvas.height = height * dpr;
     ctx.scale(dpr, dpr);
+
+    const centerX = width / 2;
+    const centerY = height / 2;
 
     // Clear
     ctx.fillStyle = '#0d0d0d';
-    ctx.fillRect(0, 0, rect.width, rect.height);
+    ctx.fillRect(0, 0, width, height);
 
     // Draw edges
     graphData.edges.forEach((edge) => {
@@ -389,8 +434,8 @@ export function MemoryGalaxy({ isOpen = true, onClose }: Partial<MemoryGalaxyPro
       if (!src || !tgt) return;
 
       ctx.beginPath();
-      ctx.moveTo(src.x, src.y);
-      ctx.lineTo(tgt.x, tgt.y);
+      ctx.moveTo(centerX + src.x, centerY + src.y);
+      ctx.lineTo(centerX + tgt.x, centerY + tgt.y);
       ctx.strokeStyle = 'rgba(100, 116, 139, 0.2)';
       ctx.lineWidth = 1;
       ctx.stroke();
@@ -400,18 +445,20 @@ export function MemoryGalaxy({ isOpen = true, onClose }: Partial<MemoryGalaxyPro
     graphData.nodes.forEach((node) => {
       const isSelected = selectedGraphNode === node.id;
       const radius = node.type === 'memory' ? 6 + node.connections : 5;
+      const nodeX = centerX + node.x;
+      const nodeY = centerY + node.y;
 
       // Glow
       if (isSelected) {
         ctx.beginPath();
-        ctx.arc(node.x, node.y, radius + 8, 0, Math.PI * 2);
+        ctx.arc(nodeX, nodeY, radius + 8, 0, Math.PI * 2);
         ctx.fillStyle = node.color + '30';
         ctx.fill();
       }
 
       // Node
       ctx.beginPath();
-      ctx.arc(node.x, node.y, radius, 0, Math.PI * 2);
+      ctx.arc(nodeX, nodeY, radius, 0, Math.PI * 2);
       ctx.fillStyle = node.color;
       ctx.fill();
 
@@ -419,9 +466,9 @@ export function MemoryGalaxy({ isOpen = true, onClose }: Partial<MemoryGalaxyPro
       ctx.font = node.type === 'memory' ? '10px Inter' : '9px Inter';
       ctx.fillStyle = isSelected ? '#f1f5f9' : '#94a3b8';
       ctx.textAlign = 'center';
-      ctx.fillText(node.label, node.x, node.y + radius + 12);
+      ctx.fillText(node.label, nodeX, nodeY + radius + 12);
     });
-  }, [viewMode, graphData, selectedGraphNode]);
+  }, [viewMode, graphData, selectedGraphNode, canvasDimensions]);
 
   // ─── Handlers ─────────────────────────────────────────────────────────────
 
@@ -705,8 +752,10 @@ export function MemoryGalaxy({ isOpen = true, onClose }: Partial<MemoryGalaxyPro
                       if (!rect) return;
                       const x = e.clientX - rect.left;
                       const y = e.clientY - rect.top;
+                      const centerX = rect.width / 2;
+                      const centerY = rect.height / 2;
                       const clicked = graphData.nodes.find(
-                        n => Math.hypot(n.x - x, n.y - y) < 15
+                        n => Math.hypot((centerX + n.x) - x, (centerY + n.y) - y) < 15
                       );
                       setSelectedGraphNode(clicked?.id || null);
                     }}
@@ -755,7 +804,7 @@ export function MemoryGalaxy({ isOpen = true, onClose }: Partial<MemoryGalaxyPro
                     onClick={loadGraph}
                     className="px-4 py-2 text-xs rounded-lg bg-[var(--accent)] text-white hover:bg-[var(--accent-hover)] transition-colors"
                   >
-                    Load from Obsidian Vault
+                    Load & Sync Memories
                   </button>
                 </div>
               )}
