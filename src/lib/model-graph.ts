@@ -1,13 +1,25 @@
 /**
  * Model Graph — Strict Agent Routing Layer
- * 
+ *
  * Every task in Overlord MUST go through the correct agent/model path.
  * The orchestrator (Hermes/OWL) does NOT do work directly — it delegates.
- * 
+ *
  * This module enforces the routing so no task runs on the wrong model.
+ *
+ * ─── DESIGN PRINCIPLES (applied from the "Agent Stack That Ships" thesis) ───
+ * 1. LAYERED FRONTIER TIERS — the hardest sub-problems get the strongest
+ *    available model (our free-tier analog of Fable 5 / GPT-5.6 frontier
+ *    pairing). We cannot use Anthropic/paid OpenAI per policy, so the
+ *    frontier tier is the biggest OpenRouter free models (Nemotron 3 Ultra,
+ *    gpt-oss-120b reasoning, Hermes 3 405B).
+ * 2. AUTONOMOUS PIPELINE — a self-driving role ("ships while you sleep")
+ *    that orchestrates build→checkpoint→ship without a human in the loop.
+ * 3. CHECKPOINTS — every build/worker role that can SHIP sets `checkpoint`,
+ *    meaning it must pass a review gate (reviewer / security) before ship.
+ *    `requiresCheckpoint(role)` encodes "checkpoint after every piece."
  */
 
-export type AgentRole = 
+export type AgentRole =
   | 'orchestrator'    // Hermes — delegates only, never does work
   | 'planner'         // Task planning & decomposition
   | 'architect'       // System architecture & design
@@ -30,7 +42,9 @@ export type AgentRole =
   | 'kanban-worker'   // Kanban ticket executor
   | 'marketing'       // Marketing campaigns
   | 'content-creator'  // Content creation (MCF)
-  | 'content-editor';  // Content review (MCF)
+  | 'content-editor'  // Content review (MCF)
+  | 'reasoning'       // Frontier reasoning tier — hardest sub-problems (free analog of Fable 5 / GPT-5.6)
+  | 'pipeline';       // Autonomous end-to-end orchestration ("ships while you sleep")
 
 export type TaskCategory =
   | 'image-generation'
@@ -46,6 +60,7 @@ export type TaskCategory =
   | 'landing-page'
   | 'code-build'
   | 'code-review'
+  | 'content-review'     // Explicit content (non-code) review — separated from code-review
   | 'security-audit'
   | 'performance-audit'
   | 'docs-copy'
@@ -54,6 +69,8 @@ export type TaskCategory =
   | 'codebase-explore'
   | 'refactor'
   | 'data-analysis'
+  | 'deep-reasoning'     // Hardest reasoning sub-problems → frontier tier
+  | 'autonomous-pipeline' // Self-driving build→checkpoint→ship
   | 'general';
 
 export interface AgentConfig {
@@ -63,6 +80,12 @@ export interface AgentConfig {
   agentFlag: string;       // opencode --agent <flag>
   maxTokens: number;
   allowedTasks: TaskCategory[];
+  /**
+   * If true, this role can SHIP and must pass a review checkpoint
+   * (reviewer / security / content-editor) before going live.
+   * Encodes the "checkpoint after every piece" principle.
+   */
+  checkpoint?: boolean;
 }
 
 // ─── THE MODEL GRAPH ──────────────────────────────────────────────
@@ -108,7 +131,8 @@ export const MODEL_GRAPH: Record<AgentRole, AgentConfig> = {
     model: 'meta-llama/llama-3.3-70b-instruct:free',
     provider: 'openrouter',
     agentFlag: 'builder',
-    maxTokens: 16384,
+    maxTokens: 32768, // raised for autonomous/long builds
+    checkpoint: true, // must pass review before ship
     allowedTasks: [
       'image-generation',
       'video-creation',
@@ -287,7 +311,8 @@ export const MODEL_GRAPH: Record<AgentRole, AgentConfig> = {
     model: 'openai/gpt-oss-120b:free',
     provider: 'openrouter',
     agentFlag: 'kanban-worker',
-    maxTokens: 16384,
+    maxTokens: 32768, // raised for autonomous/long builds
+    checkpoint: true, // must pass review before ship
     allowedTasks: [
       'code-build',
       'refactor',
@@ -323,9 +348,42 @@ export const MODEL_GRAPH: Record<AgentRole, AgentConfig> = {
     agentFlag: 'content-editor',
     maxTokens: 8192,
     allowedTasks: [
+      'content-review', // content (non-code) review only — code-review routes to `reviewer`
       'docs-copy',
-      'code-review',
     ],
+  },
+
+  // ─── FRONTIER REASONING TIER ───────────────────────────────────
+  // Free-tier analog of the article's "biggest model on the hardest build."
+  // gpt-oss-120b is OpenAI's open reasoning model — strongest free
+  // reasoning-capable model on OpenRouter. Used for the hardest
+  // sub-problems that the 405B planner can't crack in one pass.
+  reasoning: {
+    role: 'reasoning',
+    model: 'openai/gpt-oss-120b:free',
+    provider: 'openrouter',
+    agentFlag: 'reasoning',
+    maxTokens: 16384,
+    allowedTasks: [
+      'deep-reasoning',
+      'deep-research',
+      'data-analysis',
+    ],
+  },
+
+  // ─── AUTONOMOUS PIPELINE ───────────────────────────────────────
+  // "Ships while you sleep." Self-driving orchestration: takes a goal,
+  // decomposes, dispatches builders, enforces a checkpoint, and ships.
+  // Uses the biggest free model (Nemotron 3 Ultra 550B) for the
+  // autonomous planning/dispatch loop.
+  pipeline: {
+    role: 'pipeline',
+    model: 'nvidia/nemotron-3-ultra-550b-a55b:free',
+    provider: 'openrouter',
+    agentFlag: 'pipeline',
+    maxTokens: 16384,
+    checkpoint: true, // autonomous runs MUST checkpoint before ship
+    allowedTasks: ['autonomous-pipeline'],
   },
 };
 
@@ -346,7 +404,8 @@ export const TASK_ROUTING: Record<TaskCategory, AgentRole> = {
   'mindmap':             'researcher',
   'flashcards':          'researcher',
   'data-analysis':       'trading',
-  'code-review':         'content-editor',
+  'code-review':         'reviewer',          // FIX: was content-editor — code review is a code role
+  'content-review':      'content-editor',    // NEW: explicit non-code review lane
   'security-audit':      'security',
   'performance-audit':   'perf',
   'docs-copy':           'marketing',
@@ -354,6 +413,8 @@ export const TASK_ROUTING: Record<TaskCategory, AgentRole> = {
   'e2e-test':            'e2e',
   'codebase-explore':    'explorer',
   'refactor':            'refactor',
+  'deep-reasoning':      'reasoning',         // NEW: frontier tier for hardest sub-problems
+  'autonomous-pipeline': 'pipeline',          // NEW: self-driving build→checkpoint→ship
   'general':             'fast',
 };
 
@@ -392,6 +453,14 @@ export function getAgentForPersona(persona: string): AgentConfig {
 export function isTaskAllowed(task: TaskCategory, role: AgentRole): boolean {
   const config = MODEL_GRAPH[role];
   return config.allowedTasks.includes(task);
+}
+
+/**
+ * Returns true if the role can SHIP and therefore must pass a review
+ * checkpoint before going live. Encodes "checkpoint after every piece."
+ */
+export function requiresCheckpoint(role: AgentRole): boolean {
+  return MODEL_GRAPH[role].checkpoint === true;
 }
 
 /**
