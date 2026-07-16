@@ -34,7 +34,7 @@ export async function GET() {
     const actualModel = config.model;
     
     const hasReasoningFallbacks = config.fallback_providers?.some(
-      p => p.model.includes('nemotron-3-ultra') || p.model.includes('qwen3-next')
+      (p: any) => p.model.includes('nemotron-3-ultra') || p.model.includes('qwen3-next')
     );
 
     const isEnhanced = (actualModel === expectedModel) && hasReasoningFallbacks;

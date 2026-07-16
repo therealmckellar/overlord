@@ -18,7 +18,7 @@ export async function GET(req: NextRequest) {
 
       return NextResponse.json({ user: toSafeUser(user) });
     } catch (error: unknown) {
-      if (error instanceof Error && error.code === 'ERR_JWT_EXPIRED') {
+      if (error instanceof Error && (error as any).code === 'ERR_JWT_EXPIRED') {
         // Access token expired - try to auto-refresh if refresh token exists
         const refreshToken = req.cookies.get('refreshToken')?.value;
         if (!refreshToken) {

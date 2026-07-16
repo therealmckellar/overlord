@@ -6,7 +6,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { getAgentForTask, buildAgentCommand, enforceRouting, TaskCategory, MODEL_GRAPH } from '@/lib/model-graph';
+import { getAgentForTask, buildAgentCommand, enforceRouting, TaskCategory, MODEL_GRAPH, TASK_ROUTING } from '@/lib/model-graph';
 import { exec } from 'child_process';
 import { promisify } from 'util';
 

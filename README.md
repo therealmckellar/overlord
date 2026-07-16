@@ -1,6 +1,6 @@
 <div align="center">
 
-<img src=".github/hero-dark.svg" alt="Overlord — Agent Command Center" width="100%" />
+<img src=".github/hero-dark.png" alt="Overlord — Agent Command Center" width="100%" />
 
 <br />
 
@@ -8,7 +8,7 @@
 
 <br />
 
-<img src=".github/dashboard-preview.svg" alt="Overlord Dashboard Preview" width="100%" />
+<img src=".github/dashboard-preview.png" alt="Overlord Dashboard Preview" width="100%" />
 
 </div>
 

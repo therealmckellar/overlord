@@ -2,7 +2,6 @@
 
 import React from 'react';
 import { TrendingWidget } from '@/components/dashboard/TrendingWidget';
-import { useMockHealthData, useMockMissionsData } from '@/hooks/use-mock-data';
 import { Activity, Cpu, Zap, AlertCircle, Play, Plus, ArrowUpRight, ArrowDownRight, Minus } from 'lucide-react';
 
 export default function Dashboard() {

@@ -90,6 +90,8 @@ interface UIState {
   // Voice
   voiceEnabled: boolean;
   toggleVoice: () => void;
+  selectedVoice: string;
+  setSelectedVoice: (voice: string) => void;
 }
 
 export const useUIStore = create<UIState>()(
@@ -179,6 +181,8 @@ export const useUIStore = create<UIState>()(
       // Voice
       voiceEnabled: false,
       toggleVoice: () => set((s) => ({ voiceEnabled: !s.voiceEnabled })),
+      selectedVoice: 'aura-asteria-en',
+      setSelectedVoice: (voice) => set({ selectedVoice: voice }),
     }),
     {
       name: 'agent-os-ui',
@@ -192,6 +196,7 @@ export const useUIStore = create<UIState>()(
         selectedModel: state.selectedModel,
         reasoningEffort: state.reasoningEffort,
         voiceEnabled: state.voiceEnabled,
+        selectedVoice: state.selectedVoice,
         currentMode: state.currentMode,
       }),
 

@@ -318,6 +318,8 @@ export function LoopEngineering({ isOpen, onClose }: LoopEngineeringProps) {
             setMaxIter={setFormMaxIter}
             prompt={formPrompt}
             setPrompt={setFormPrompt}
+            formRubric={formRubric}
+            setFormRubric={setFormRubric}
             onSubmit={handleCreateLoop}
             onCancel={() => setShowForm(false)}
           />
@@ -361,13 +363,14 @@ export function LoopEngineering({ isOpen, onClose }: LoopEngineeringProps) {
 
 /* ─── New Loop Form ─── */
 function NewLoopForm({
-  name, setName, description, setDescription, model, setModel, maxIter, setMaxIter, prompt, setPrompt, onSubmit, onCancel,
+  name, setName, description, setDescription, model, setModel, maxIter, setMaxIter, prompt, setPrompt, formRubric, setFormRubric, onSubmit, onCancel,
 }: {
   name: string; setName: (v: string) => void;
   description: string; setDescription: (v: string) => void;
   model: string; setModel: (v: string) => void;
   maxIter: number; setMaxIter: (v: number) => void;
   prompt: string; setPrompt: (v: string) => void;
+  formRubric: string; setFormRubric: (v: string) => void;
   onSubmit: () => void;
   onCancel: () => void;
 }) {

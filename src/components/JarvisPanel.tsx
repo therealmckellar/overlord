@@ -17,6 +17,17 @@ const SUGGESTED_COMMANDS = [
   { label: 'Check missions', command: 'check missions' },
 ];
 
+const DEEPGRAM_VOICES = [
+  { id: 'aura-asteria-en', name: 'Asteria (US Female)', lang: 'en-US' },
+  { id: 'aura-luna-en', name: 'Luna (US Female)', lang: 'en-US' },
+  { id: 'aura-stella-en', name: 'Stella (US Female)', lang: 'en-US' },
+  { id: 'aura-athena-en', name: 'Athena (UK Female)', lang: 'en-GB' },
+  { id: 'aura-zeus-en', name: 'Zeus (US Male)', lang: 'en-US' },
+  { id: 'aura-orion-en', name: 'Orion (US Male)', lang: 'en-US' },
+  { id: 'aura-helios-en', name: 'Helios (UK Male)', lang: 'en-GB' },
+  { id: 'aura-perseus-en', name: 'Perseus (US Male)', lang: 'en-US' },
+];
+
 interface JarvisMessage {
   id: string;
   type: 'user' | 'jarvis';
@@ -174,29 +185,14 @@ export function JarvisPanel() {
   const { isListening, isSpeaking, isSupported, transcript, lastCommand, toggle, speak } = useJarvis(handleCommand);
 
   // Voice selection
-  const [voices, setVoices] = useState<SpeechSynthesisVoice[]>([]);
-  const [selectedVoice, setSelectedVoice] = useState<SpeechSynthesisVoice | null>(null);
+  const selectedVoiceId = useUIStore((s) => s.selectedVoice || 'aura-asteria-en');
+  const setSelectedVoiceId = useUIStore((s) => s.setSelectedVoice);
   const [voicePickerOpen, setVoicePickerOpen] = useState(false);
 
-  useEffect(() => {
-    const loadVoices = () => {
-      const available = window.speechSynthesis?.getVoices() || [];
-      if (available.length > 0) {
-        setVoices(available);
-        // Prefer a deep/male English voice, fallback to first available
-        const preferred = available.find(v => /daniel|david|google uk english male|microsoft david|mark|james/i.test(v.name))
-          || available.find(v => v.lang.startsWith('en'))
-          || available[0];
-        setSelectedVoice(preferred || null);
-      }
-    };
-    loadVoices();
-    window.speechSynthesis?.addEventListener('voiceschanged', loadVoices);
-    return () => window.speechSynthesis?.removeEventListener('voiceschanged', loadVoices);
-  }, []);
+  const selectedVoice = DEEPGRAM_VOICES.find(v => v.id === selectedVoiceId) || DEEPGRAM_VOICES[0];
 
   const handleSpeak = useCallback((text: string) => {
-    speak(text, selectedVoice);
+    speak(text, selectedVoice.id);
   }, [speak, selectedVoice]);
 
   return (
@@ -365,32 +361,30 @@ export function JarvisPanel() {
           </div>
 
           {/* Voice Picker */}
-          {voices.length > 0 && (
-            <div className="relative">
-              <button
-                onClick={() => setVoicePickerOpen(!voicePickerOpen)}
-                className="flex items-center gap-1 px-2 py-1 text-[10px] rounded-lg bg-[var(--bg-secondary)] border border-[var(--border)] text-[var(--text-secondary)] hover:bg-[var(--bg-tertiary)] transition-colors max-w-[120px]"
-                title="Change voice"
-              >
-                <span className="truncate">{selectedVoice?.name.split(' ').slice(0, 2).join(' ') || 'Voice'}</span>
-                <ChevronDown className="w-3 h-3 shrink-0" />
-              </button>
-              {voicePickerOpen && (
-                <div className="absolute bottom-full right-0 mb-1 w-56 max-h-48 overflow-y-auto rounded-lg border border-[var(--border)] bg-[var(--bg)] shadow-xl z-50">
-                  {voices.map((v) => (
-                    <button
-                      key={v.name}
-                      onClick={() => { setSelectedVoice(v); setVoicePickerOpen(false); }}
-                      className={`w-full text-left px-3 py-1.5 text-[11px] transition-colors ${selectedVoice?.name === v.name ? 'bg-[var(--accent)]/10 text-[var(--accent)]' : 'text-[var(--text-secondary)] hover:bg-[var(--bg-tertiary)]'}`}
-                    >
-                      <div className="truncate font-medium">{v.name}</div>
-                      <div className="text-[9px] text-[var(--text-muted)]">{v.lang} {v.localService ? '• local' : '• remote'}</div>
-                    </button>
-                  ))}
-                </div>
-              )}
-            </div>
-          )}
+          <div className="relative">
+            <button
+              onClick={() => setVoicePickerOpen(!voicePickerOpen)}
+              className="flex items-center gap-1 px-2 py-1 text-[10px] rounded-lg bg-[var(--bg-secondary)] border border-[var(--border)] text-[var(--text-secondary)] hover:bg-[var(--bg-tertiary)] transition-colors max-w-[120px]"
+              title="Change voice"
+            >
+              <span className="truncate">{selectedVoice.name.split(' ')[0]}</span>
+              <ChevronDown className="w-3 h-3 shrink-0" />
+            </button>
+            {voicePickerOpen && (
+              <div className="absolute bottom-full right-0 mb-1 w-56 max-h-48 overflow-y-auto rounded-lg border border-[var(--border)] bg-[var(--bg)] shadow-xl z-50">
+                {DEEPGRAM_VOICES.map((v) => (
+                  <button
+                    key={v.id}
+                    onClick={() => { setSelectedVoiceId(v.id); setVoicePickerOpen(false); }}
+                    className={`w-full text-left px-3 py-1.5 text-[11px] transition-colors ${selectedVoice.id === v.id ? 'bg-[var(--accent)]/10 text-[var(--accent)]' : 'text-[var(--text-secondary)] hover:bg-[var(--bg-tertiary)]'}`}
+                  >
+                    <div className="truncate font-medium">{v.name}</div>
+                    <div className="text-[9px] text-[var(--text-muted)]">{v.lang} • Deepgram Aura</div>
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
 
           <InlineModelSelector compact />
         </div>

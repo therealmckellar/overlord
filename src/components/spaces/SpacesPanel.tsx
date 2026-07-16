@@ -508,7 +508,10 @@ function ThreadChatView({ space, threadId }: { space: Space; threadId: string })
 
     try {
       // Build message history from this thread only (fully isolated from main chat)
-      const threadMessages = (space.threads ?? []).find((t) => t.id === threadId)?.messages ?? [];
+      // Retrieve the absolute latest space state to avoid stale closure references
+      const latestSpace = useSpaceStore.getState().spaces.find(s => s.id === space.id);
+      const latestThread = (latestSpace?.threads ?? []).find((t) => t.id === threadId);
+      const threadMessages = latestThread?.messages ?? [];
       const history = threadMessages.slice(-20).map((m) => ({
         sender: { role: m.role },
         content: m.content,

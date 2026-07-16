@@ -2,11 +2,13 @@
 
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useUIStore } from '@/stores/uiStore';
+import { useConnectorStore } from '@/stores/connectorStore';
 
 export const useTTS = () => {
   const [isSpeaking, setIsSpeaking] = useState(false);
   const [isPaused, setIsPaused] = useState(false);
   const soundsEnabled = useUIStore((s) => s.soundsEnabled);
+  const selectedVoice = useUIStore((s) => s.selectedVoice || 'aura-asteria-en');
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
   const stop = useCallback(() => {
@@ -38,12 +40,22 @@ export const useTTS = () => {
     stop();
 
     try {
+      const deepgramKeyObj = useConnectorStore.getState().apiKeys.find(k => k.service === 'deepgram');
+      const deepgramKey = deepgramKeyObj?.enabled ? deepgramKeyObj.key : '';
+
+      const headers: Record<string, string> = {
+        'Content-Type': 'application/json',
+      };
+      if (deepgramKey) {
+        headers['Authorization'] = `Bearer ${deepgramKey}`;
+      }
+
       const response = await fetch('/api/tts', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers,
         body: JSON.stringify({
           text,
-          voice: options.voice,
+          voice: options.voice || selectedVoice,
         }),
       });
 

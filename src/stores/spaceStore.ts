@@ -500,40 +500,40 @@ export const useSpaceStore = create<SpaceState>()(
         const spacesRaw = Array.isArray(state.spaces) ? state.spaces : [];
         return {
           ...state,
-          spaces: spacesRaw.map((s: any) => ({
-            files: [],
-            artifacts: [],
-            attachments: [],
-            links: [],
-            skills: [],
-            threads: [],
-            pinnedItems: [],
-            members: [{ id: 'owner', name: 'Rich', role: 'owner' }],
-            masterPrompt: '',
-            customInstructions: '',
-            model: '',
-            provider: '',
-            color: '#3b82f6',
-            icon: '📁',
-            ...s,
-            // Ensure all arrays are arrays (guard against null/undefined from old data)
-            files:        Array.isArray(s.files)        ? s.files        : [],
-            artifacts:    Array.isArray(s.artifacts)    ? s.artifacts    : [],
-            attachments:  Array.isArray(s.attachments)  ? s.attachments  : [],
-            links:        Array.isArray(s.links)        ? s.links        : [],
-            skills:       Array.isArray(s.skills)       ? s.skills       : [],
-            pinnedItems:  Array.isArray(s.pinnedItems)  ? s.pinnedItems  : [],
-            members:      Array.isArray(s.members)      ? s.members      : [{ id: 'owner', name: 'Rich', role: 'owner' }],
-            threads:      Array.isArray(s.threads)
-              ? s.threads.map((t: any) => ({
-                  messages: [],
-                  messageCount: 0,
-                  lastActivity: Date.now(),
-                  ...t,
-                  messages: Array.isArray(t.messages) ? t.messages : [],
-                }))
-              : [],
-          })),
+          spaces: spacesRaw.map((s: any) => {
+            const merged = {
+              masterPrompt: '',
+              customInstructions: '',
+              model: '',
+              provider: '',
+              color: '#3b82f6',
+              icon: '📁',
+              ...s,
+            };
+            return {
+              ...merged,
+              files:        Array.isArray(merged.files)        ? merged.files        : [],
+              artifacts:    Array.isArray(merged.artifacts)    ? merged.artifacts    : [],
+              attachments:  Array.isArray(merged.attachments)  ? merged.attachments  : [],
+              links:        Array.isArray(merged.links)        ? merged.links        : [],
+              skills:       Array.isArray(merged.skills)       ? merged.skills       : [],
+              pinnedItems:  Array.isArray(merged.pinnedItems)  ? merged.pinnedItems  : [],
+              members:      Array.isArray(merged.members)      ? merged.members      : [{ id: 'owner', name: 'Rich', role: 'owner' }],
+              threads:      Array.isArray(merged.threads)
+                ? merged.threads.map((t: any) => {
+                    const mergedT = {
+                      messageCount: 0,
+                      lastActivity: Date.now(),
+                      ...t,
+                    };
+                    return {
+                      ...mergedT,
+                      messages: Array.isArray(mergedT.messages) ? mergedT.messages : [],
+                    };
+                  })
+                : [],
+            };
+          }),
         };
       },
       onRehydrateStorage: () => (state) => {

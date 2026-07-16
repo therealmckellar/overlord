@@ -9,8 +9,10 @@ export function getDb(): Database.Database {
   const dbPath = process.env.DB_PATH || path.join(process.cwd(), "data", "overlord.db");
   // Ensure the data directory exists before opening (silently fails on fresh installs otherwise)
   mkdirSync(path.dirname(dbPath), { recursive: true });
-  db = new Database(dbPath);
-  db.pragma("journal_mode = WAL");
+  const newDb = new Database(dbPath);
+  newDb.pragma("journal_mode = WAL");
+  db = newDb;
+  initTables();
   return db;
 }
 

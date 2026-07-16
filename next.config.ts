@@ -9,7 +9,7 @@ const withPWA = nextPWA({
   skipWaiting: true,
 });
 
-const nextConfig: NextConfig = {
+const nextConfig: any = {
   // Hardcoded port — Overlord NEVER uses 3000 (that's Documenso)
   allowedDevOrigins: ['100.105.191.123', 'localhost'],
   turbopack: {},

@@ -1,6 +1,8 @@
 'use client';
 
 import { useState, useEffect, useCallback, useRef } from 'react';
+import { useUIStore } from '@/stores/uiStore';
+import { useConnectorStore } from '@/stores/connectorStore';
 
 interface JarvisState {
   isListening: boolean;
@@ -198,10 +200,21 @@ export function useJarvis(onCommand?: JarvisCommandCallback) {
     // We now delegate TTS to the useTTS hook via the JarvisPanel or the useTTS hook directly
     // This function is kept for compatibility but should be used via the useTTS hook
     try {
+      const selectedVoice = useUIStore.getState().selectedVoice || 'aura-asteria-en';
+      const deepgramKeyObj = useConnectorStore.getState().apiKeys.find(k => k.service === 'deepgram');
+      const deepgramKey = deepgramKeyObj?.enabled ? deepgramKeyObj.key : '';
+
+      const headers: Record<string, string> = {
+        'Content-Type': 'application/json',
+      };
+      if (deepgramKey) {
+        headers['Authorization'] = `Bearer ${deepgramKey}`;
+      }
+
       const response = await fetch('/api/tts', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ text, voice }),
+        headers,
+        body: JSON.stringify({ text, voice: voice || selectedVoice }),
       });
       if (!response.ok) throw new Error('TTS failed');
       const blob = await response.blob();
