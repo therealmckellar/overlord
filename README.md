@@ -16,13 +16,13 @@
 
 ## What is Overlord?
 
-Overlord is a **multi-agent command center** built on Next.js that orchestrates AI-powered workflows across specialized agents — Planner, Architect, Builder, Reviewer, Security, SDR, and more. It provides:
+Overlord is a **multi-agent command center** built on Next.js that orchestrates AI-powered workflows across specialized agents — Planner, Architect, Builder, Reviewer, Security, SDR, and more. It pairs a visual UI with a deterministic execution layer (SQLite-backed state, PWA support) so agent runs are observable, replayable, and routeable across providers. It provides:
 
 - **Model Graph** — Visualize and route between AI models (Nemotron Ultra, GPT-OSS, Nex-N2, etc.) with full slug visibility (`:free` suffix on all applicable)
 - **Chat** — Multi-model conversations with inline model switching and agent dispatch
 - **Cron** — Schedule and monitor recurring agent tasks
 - **Plugins** — Extend capabilities with a plugin architecture
-- **Workflows** — Chain agents into pipelines (Plan → Architect → Build → Review)
+- **Workflows** — Chain agents into pipelines (Plan -> Architect -> Build -> Review)
 - **Channels** — Connect to Discord, Telegram, and other platforms
 - **Config** — Manage Overlord settings and agent configurations
 - **MCP** — Model Context Protocol server management
@@ -46,19 +46,19 @@ Overlord is a **multi-agent command center** built on Next.js that orchestrates 
 │  └──────────┘ └──────────┘ └──────────────────────┘│
 └─────────────────────────────────────────────────────┘
                          │
-                    Next.js API
+               Next.js API (src/)
                          │
-              ┌──────────┴──────────┐
-              │     OpenRouter      │
-              │  (Model Routing)    │
-              └─────────────────────┘
+         ┌───────────────┴───────────────┐
+         │   SQLite state (better-sqlite3) │
+         │     OpenRouter (Model Routing)  │
+         └─────────────────────────────────┘
 ```
 
 ## Agent Paths
 
 | Path | Agents | Use Case |
 |------|--------|----------|
-| **Path 1** | Planner → Architect → Builder → Reviewer | Complex multi-step builds |
+| **Path 1** | Planner -> Architect -> Builder -> Reviewer | Complex multi-step builds |
 | **Path 2** | Builder | Heavy fix / fast build |
 | **Path 3** | Docs | Specs, documentation, copy |
 | **Path 4** | Fast | Narrow fix, quick task |
@@ -71,10 +71,25 @@ Overlord is a **multi-agent command center** built on Next.js that orchestrates 
 
 ## Tech Stack
 
-- **Next.js 16** — App router, React Server Components
+- **Next.js** (App Router) — React Server Components, PWA via `next-pwa`
+- **React / lucide-react** — UI
 - **Tailwind CSS** — Utility-first styling
-- **Zustand** — State management
+- **Zustand** (`stores/`) — Client state management
+- **better-sqlite3** — Local agent/state persistence
+- **react-force-graph-3d / three** — Model Graph visualization
 - **OpenRouter** — Multi-provider model routing (all `:free` models)
+- **shiki / react-markdown / katex** — Rendering for chat and docs
+
+## Project Structure
+
+- `src/` — Application source (routes, API, agents)
+- `components/` — UI components
+- `stores/` — Zustand client state
+- `data/` — Static/data assets
+- `public/` — Static assets
+- `scripts/` — Build and maintenance scripts
+- `tests/` — Test suite (`test-results/` for output)
+- `.github/` — Hero/preview assets and CI workflows
 
 ## Getting Started
 
