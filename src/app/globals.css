@@ -9,49 +9,49 @@
 
 :root {
   /* Base backgrounds — dark navy command center */
-  --bg: #0d1117;
-  --bg-secondary: #161b22;
-  --bg-tertiary: #1c2333;
-  --bg-elevated: #21262d;
+  --bg: #0d0d1e;
+  --bg-secondary: #12122a;
+  --bg-tertiary: #161635;
+  --bg-elevated: #1e1e3a;
 
   /* Text */
-  --text: #e6edf3;
-  --text-secondary: #8b949e;
-  --text-muted: #484f58;
+  --text: #f8fafc;
+  --text-secondary: #94a3b8;
+  --text-muted: #475569;
 
   /* Borders */
-  --border: #30363d;
-  --border-subtle: #21262d;
+  --border: #2a2a4e;
+  --border-subtle: #1e1e35;
 
   /* Accent — sky blue/cyan matching reference image teal */
-  --accent: #0ea5e9;
-  --accent-hover: #38bdf8;
-  --accent-muted: #0369a1;
-  --accent-glow: rgba(14, 165, 233, 0.15);
-  --accent-glow-strong: rgba(14, 165, 233, 0.3);
+  --accent: #06b6d4;
+  --accent-hover: #22d3ee;
+  --accent-muted: #0891b2;
+  --accent-glow: rgba(6, 182, 212, 0.15);
+  --accent-glow-strong: rgba(6, 182, 212, 0.3);
 
   /* Semantic colors */
-  --success: #3fb950;
-  --success-bg: rgba(63, 185, 80, 0.1);
-  --warning: #d29922;
-  --warning-bg: rgba(210, 153, 34, 0.1);
-  --error: #f85149;
-  --error-bg: rgba(248, 81, 73, 0.1);
-  --info: #58a6ff;
-  --info-bg: rgba(88, 166, 255, 0.1);
+  --success: #10b981;
+  --success-bg: rgba(16, 185, 129, 0.1);
+  --warning: #f59e0b;
+  --warning-bg: rgba(245, 158, 11, 0.1);
+  --error: #ef4444;
+  --error-bg: rgba(239, 68, 68, 0.1);
+  --info: #8b5cf6;
+  --info-bg: rgba(139, 92, 246, 0.1);
 
   /* Chat bubbles */
-  --user-bubble: #1c3a5e;
-  --assistant-bubble: #161b22;
+  --user-bubble: rgba(6, 182, 212, 0.15);
+  --assistant-bubble: #1e1e3a;
 
   /* Code */
-  --code-bg: #0d1117;
-  --code-text: #c9d1d9;
+  --code-bg: #0e0e22;
+  --code-text: #cbd5e1;
 
   /* Shadows */
-  --shadow: rgba(0, 0, 0, 0.5);
-  --shadow-lg: rgba(0, 0, 0, 0.7);
-  --overlay: rgba(0, 0, 0, 0.75);
+  --shadow: rgba(0, 0, 0, 0.6);
+  --shadow-lg: rgba(0, 0, 0, 0.85);
+  --overlay: rgba(0, 0, 0, 0.85);
 
   /* Tailwind v4 compatibility */
   --background: var(--bg);
@@ -59,8 +59,8 @@
 
   /* Nav-specific accent (the bright teal from "NAV" label in image) */
   --nav-accent: #00d4ff;
-  --nav-active-bg: rgba(14, 165, 233, 0.12);
-  --nav-active-border: #0ea5e9;
+  --nav-active-bg: rgba(6, 182, 212, 0.12);
+  --nav-active-border: #06b6d4;
 }
 
 /* ============================================================
@@ -404,7 +404,12 @@ body {
   margin: 0;
   padding: 0;
   height: 100%;
-  background: var(--bg);
+  background-color: var(--bg);
+  background-image: 
+    radial-gradient(circle at 50% 10%, rgba(139, 92, 246, 0.05), transparent 50%),
+    radial-gradient(circle at 10% 80%, rgba(6, 182, 212, 0.03), transparent 40%),
+    radial-gradient(rgba(255, 255, 255, 0.009) 1px, transparent 0);
+  background-size: 100% 100%, 100% 100%, 32px 32px;
   color: var(--text);
   font-family: var(--font-sans, 'Inter', system-ui, -apple-system, sans-serif);
   -webkit-font-smoothing: antialiased;
