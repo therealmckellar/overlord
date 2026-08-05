@@ -243,8 +243,8 @@ export type StudioTab = 'library' | 'generator' | 'arena';
 export const ARENA_MODELS = [
   { value: 'google/gemma-4-31b-it:free', label: 'Gemma 4 31B', category: 'flagship' },
   { value: 'nvidia/nemotron-3-ultra-550b-a55b:free', label: 'Nemotron Ultra 550B', category: 'heavy' },
-  { value: 'openai/gpt-oss-120b:free', label: 'GPT-OSS 120B', category: 'heavy' },
-  { value: 'cognitivecomputations/hermes-3-llama-3.1-405b:free', label: 'Hermes 3 405B', category: 'research' },
+  { value: 'openai/gpt-oss-20b:free', label: 'GPT-OSS 20B', category: 'heavy' },
+  { value: 'nvidia/nemotron-3-ultra-550b-a55b:free', label: 'Nemotron Ultra 550B', category: 'research' },
   { value: 'google/gemma-4-31b-it:free', label: 'Gemma 4 31B', category: 'balanced' },
   { value: 'google/gemma-4-26b-a4b-it:free', label: 'Gemma 4 26B', category: 'balanced' },
   { value: 'nvidia/nemotron-3-super-120b-a12b:free', label: 'Nemotron Super 120B', category: 'heavy' },
@@ -252,14 +252,14 @@ export const ARENA_MODELS = [
   { value: 'poolside/laguna-m.1:free', label: 'Laguna M.1', category: 'fixer' },
   { value: 'cohere/north-mini-code:free', label: 'North Mini Code', category: 'fast' },
   { value: 'openai/gpt-oss-20b:free', label: 'GPT-OSS 20B', category: 'light' },
-  { value: 'meta-llama/llama-3.2-3b-instruct:free', label: 'Llama 3.2 3B', category: 'light' },
+  { value: 'nvidia/nemotron-3-nano-30b-a3b:free', label: 'Nemotron 3 Nano 30B', category: 'light' },
 ] as const;
 
 export const GENERATOR_MODELS = [
   { value: 'google/gemma-4-31b-it:free', label: 'Gemma 4 31B' },
-  { value: 'openai/gpt-oss-120b:free', label: 'GPT-OSS 120B' },
   { value: 'nvidia/nemotron-3-ultra-550b-a55b:free', label: 'Nemotron Ultra 550B' },
-  { value: 'cognitivecomputations/hermes-3-llama-3.1-405b:free', label: 'Hermes 3 405B' },
+  { value: 'poolside/laguna-m.1:free', label: 'Laguna M.1' },
+  { value: 'nvidia/nemotron-3-super-120b-a12b:free', label: 'Nemotron Super 120B' },
 ] as const;
 
 interface PromptState {

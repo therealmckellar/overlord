@@ -150,7 +150,7 @@ export const useConnectorStore = create<ConnectorState>()(
       webhooks: [],
       modelDefaults: {
         defaultModel: 'google/gemma-4-31b-it:free',
-        fallbackModel: 'openai/gpt-oss-120b:free',
+        fallbackModel: 'nvidia/nemotron-3-super-120b-a12b:free',
         defaultTemperature: 0.7,
         defaultMaxTokens: 4096,
         defaultReasoningEffort: 'medium',

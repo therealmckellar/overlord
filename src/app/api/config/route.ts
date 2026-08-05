@@ -80,7 +80,7 @@ export async function GET() {
       service: 'cognee',
       key: maskKey(key),
       maskedKey: maskKey(key),
-      model: process.env.COGNEE_LLM_MODEL || 'openai/gpt-oss-120b:free',
+      model: process.env.COGNEE_LLM_MODEL || 'nvidia/nemotron-3-ultra-550b-a55b:free',
       enabled: true,
       source: 'env',
     });

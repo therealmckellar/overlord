@@ -13,10 +13,10 @@ import { logEvent } from '@/lib/event-bus';
 const ALLOWED_ROLES = ['planner', 'builder', 'reviewer', 'build-fixer', 'security', 'silent-failure', 'fast', 'utility', 'researcher'];
 const ALLOWED_MODELS = [
   'openrouter/nex-agi/nex-n2-pro:free',
-  'openrouter/openai/gpt-oss-120b:free',
+  'openrouter/nvidia/nemotron-3-ultra-550b-a55b:free',
   'openrouter/openai/gpt-oss-20b:free',
   'openrouter/google/gemma-4-31b-it:free',
-  'openrouter/moonshotai/kimi-k2.6:free',
+  'openrouter/nvidia/nemotron-3-ultra-550b-a55b:free',
 ];
 
 // Track spawned processes

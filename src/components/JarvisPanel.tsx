@@ -6,6 +6,7 @@ import { useMessageStore } from '@/stores/messageStore';
 import { useKanbanStore } from '@/stores/kanbanStore';
 import { useChatStream } from '@/hooks/useChatStream';
 import { useJarvis } from '@/hooks/useJarvis';
+import { SPEECH_MODELS } from '@/lib/model-graph';
 import { Mic, MicOff, Volume2, VolumeX, History, Loader2, ChevronDown } from 'lucide-react';
 import { InlineModelSelector } from '@/components/ui/InlineModelSelector';
 
@@ -386,7 +387,7 @@ export function JarvisPanel() {
             )}
           </div>
 
-          <InlineModelSelector compact />
+          <InlineModelSelector compact models={SPEECH_MODELS} />
         </div>
       </div>
     </div>

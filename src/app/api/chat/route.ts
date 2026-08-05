@@ -1,21 +1,27 @@
 import { NextRequest, NextResponse } from 'next/server';
 
+// Environment variables
 const OPENROUTER_API_KEY = process.env.OPENROUTER_SPACES_API_KEY || process.env.OPENROUTER_API_KEY;
 const OPENROUTER_BASE_URL = process.env.OPENROUTER_BASE_URL || 'https://openrouter.ai/api/v1';
+
+const MIMO_API_KEY = process.env.MIMO_API_KEY;
+const MIMO_API_BASE_URL = process.env.MIMO_API_BASE_URL || 'https://token-plan-sgp.xiaomimimo.com/v1';
 
 interface ChatMessage {
   role: 'system' | 'user' | 'assistant';
   content: string;
 }
 
-export async function POST(req: NextRequest) {
-  if (!OPENROUTER_API_KEY) {
-    return NextResponse.json(
-      { error: 'OPENROUTER_API_KEY not configured' },
-      { status: 500 }
-    );
-  }
+/**
+ * Detect if the model is a Mimo model (not available on OpenRouter)
+ */
+function isMimoModel(model: string): boolean {
+  // Mimo models are accessed via direct API, not OpenRouter
+  // They start with 'mimo-v2.5' and don't have a vendor prefix like 'xiaomi/mimo...'
+  return model.startsWith('mimo-v2.5') && !model.includes('/');
+}
 
+export async function POST(req: NextRequest) {
   const body = await req.json();
   const { messages, model, systemPrompt } = body as {
     messages: { sender: { role: string }; content: string }[];
@@ -24,6 +30,22 @@ export async function POST(req: NextRequest) {
   };
 
   const selectedModel = model || process.env.OPENROUTER_MODEL || 'google/gemma-4-31b-it:free';
+  const useMimo = isMimoModel(selectedModel);
+
+  // Validate credentials for the selected provider
+  if (useMimo && !MIMO_API_KEY) {
+    return NextResponse.json(
+      { error: 'MIMO_API_KEY not configured. Cannot use Mimo models without direct API access.' },
+      { status: 500 }
+    );
+  }
+
+  if (!useMimo && !OPENROUTER_API_KEY) {
+    return NextResponse.json(
+      { error: 'OPENROUTER_API_KEY not configured' },
+      { status: 500 }
+    );
+  }
 
   // Build OpenAI-format messages
   const openaiMessages: ChatMessage[] = [];
@@ -48,14 +70,30 @@ export async function POST(req: NextRequest) {
   }
 
   try {
-    const response = await fetch(`${OPENROUTER_BASE_URL}/chat/completions`, {
-      method: 'POST',
-      headers: {
+    let apiEndpoint: string;
+    let headers: Record<string, string>;
+
+    if (useMimo) {
+      // Route to Mimo direct API
+      apiEndpoint = `${MIMO_API_BASE_URL}/chat/completions`;
+      headers = {
+        'Authorization': `Bearer ${MIMO_API_KEY}`,
+        'Content-Type': 'application/json',
+      };
+    } else {
+      // Route to OpenRouter
+      apiEndpoint = `${OPENROUTER_BASE_URL}/chat/completions`;
+      headers = {
         'Authorization': `Bearer ${OPENROUTER_API_KEY}`,
         'Content-Type': 'application/json',
         'HTTP-Referer': 'https://overlord.local',
         'X-Title': 'Overlord Agent OS',
-      },
+      };
+    }
+
+    const response = await fetch(apiEndpoint, {
+      method: 'POST',
+      headers,
       body: JSON.stringify({
         model: selectedModel,
         messages: openaiMessages,
@@ -66,14 +104,15 @@ export async function POST(req: NextRequest) {
 
     if (!response.ok) {
       const errorText = await response.text();
-      console.error('OpenRouter error:', response.status, errorText);
+      const provider = useMimo ? 'Mimo' : 'OpenRouter';
+      console.error(`${provider} error:`, response.status, errorText);
       return NextResponse.json(
-        { error: `OpenRouter error ${response.status}: ${errorText.slice(0, 200)}` },
+        { error: `${provider} error ${response.status}: ${errorText.slice(0, 200)}` },
         { status: response.status }
       );
     }
 
-    // Stream SSE from OpenRouter to client
+    // Stream SSE from the API to client (same logic works for both providers)
     const encoder = new TextEncoder();
     const stream = new ReadableStream({
       async start(controller) {
@@ -85,12 +124,10 @@ export async function POST(req: NextRequest) {
 
         const decoder = new TextDecoder();
         let buffer = '';
-
         try {
           while (true) {
             const { done, value } = await reader.read();
             if (done) break;
-
             buffer += decoder.decode(value, { stream: true });
             const lines = buffer.split('\n');
             buffer = lines.pop() || '';

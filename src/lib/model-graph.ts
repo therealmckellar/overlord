@@ -103,7 +103,7 @@ export const MODEL_GRAPH: Record<AgentRole, AgentConfig> = {
 
   planner: {
     role: 'planner',
-    model: 'nousresearch/hermes-3-llama-3.1-405b:free',
+    model: 'nvidia/nemotron-3-ultra-550b-a55b:free',
     provider: 'openrouter',
     agentFlag: 'planner',
     maxTokens: 16384,
@@ -116,7 +116,7 @@ export const MODEL_GRAPH: Record<AgentRole, AgentConfig> = {
 
   architect: {
     role: 'architect',
-    model: 'nousresearch/hermes-3-llama-3.1-405b:free',
+    model: 'nvidia/nemotron-3-ultra-550b-a55b:free',
     provider: 'openrouter',
     agentFlag: 'architect',
     maxTokens: 16384,
@@ -128,10 +128,10 @@ export const MODEL_GRAPH: Record<AgentRole, AgentConfig> = {
 
   builder: {
     role: 'builder',
-    model: 'meta-llama/llama-3.3-70b-instruct:free',
+    model: 'poolside/laguna-m.1:free', // best free codegen, 262K ctx
     provider: 'openrouter',
     agentFlag: 'builder',
-    maxTokens: 32768, // raised for autonomous/long builds
+    maxTokens: 65536, // raised for autonomous/long builds (1M ctx headroom)
     checkpoint: true, // must pass review before ship
     allowedTasks: [
       'image-generation',
@@ -146,10 +146,10 @@ export const MODEL_GRAPH: Record<AgentRole, AgentConfig> = {
 
   'build-fixer': {
     role: 'build-fixer',
-    model: 'meta-llama/llama-3.3-70b-instruct:free',
+    model: 'nvidia/nemotron-3-super-120b-a12b:free', // fast (93 t/s), 1M ctx
     provider: 'openrouter',
     agentFlag: 'build-fixer',
-    maxTokens: 16384,
+    maxTokens: 32768,
     allowedTasks: [
       'code-build',
       'code-review',
@@ -159,7 +159,7 @@ export const MODEL_GRAPH: Record<AgentRole, AgentConfig> = {
 
   researcher: {
     role: 'researcher',
-    model: 'nousresearch/hermes-3-llama-3.1-405b:free',
+    model: 'nvidia/nemotron-3-ultra-550b-a55b:free',
     provider: 'openrouter',
     agentFlag: 'researcher',
     maxTokens: 16384,
@@ -175,7 +175,7 @@ export const MODEL_GRAPH: Record<AgentRole, AgentConfig> = {
 
   reviewer: {
     role: 'reviewer',
-    model: 'meta-llama/llama-3.3-70b-instruct:free',
+    model: 'poolside/laguna-m.1:free',
     provider: 'openrouter',
     agentFlag: 'reviewer',
     maxTokens: 8192,
@@ -184,7 +184,7 @@ export const MODEL_GRAPH: Record<AgentRole, AgentConfig> = {
 
   security: {
     role: 'security',
-    model: 'nousresearch/hermes-3-llama-3.1-405b:free',
+    model: 'nvidia/nemotron-3-ultra-550b-a55b:free',
     provider: 'openrouter',
     agentFlag: 'security',
     maxTokens: 8192,
@@ -193,7 +193,7 @@ export const MODEL_GRAPH: Record<AgentRole, AgentConfig> = {
 
   perf: {
     role: 'perf',
-    model: 'meta-llama/llama-3.3-70b-instruct:free',
+    model: 'poolside/laguna-m.1:free',
     provider: 'openrouter',
     agentFlag: 'perf',
     maxTokens: 8192,
@@ -236,7 +236,7 @@ export const MODEL_GRAPH: Record<AgentRole, AgentConfig> = {
 
   e2e: {
     role: 'e2e',
-    model: 'meta-llama/llama-3.3-70b-instruct:free',
+    model: 'poolside/laguna-m.1:free',
     provider: 'openrouter',
     agentFlag: 'e2e',
     maxTokens: 8192,
@@ -254,19 +254,19 @@ export const MODEL_GRAPH: Record<AgentRole, AgentConfig> = {
 
   refactor: {
     role: 'refactor',
-    model: 'meta-llama/llama-3.3-70b-instruct:free',
+    model: 'poolside/laguna-m.1:free', // 262K ctx, solid code model
     provider: 'openrouter',
     agentFlag: 'refactor',
-    maxTokens: 8192,
+    maxTokens: 16384,
     allowedTasks: ['refactor'],
   },
 
   fast: {
     role: 'fast',
-    model: 'google/gemma-4-31b-it:free',
+    model: 'poolside/laguna-xs-2.1:free', // fastest free coder (109 t/s) for narrow fixes
     provider: 'openrouter',
     agentFlag: 'fast',
-    maxTokens: 4096,
+    maxTokens: 8192,
     allowedTasks: [
       'code-build',
       'refactor',
@@ -276,7 +276,7 @@ export const MODEL_GRAPH: Record<AgentRole, AgentConfig> = {
 
   trading: {
     role: 'trading',
-    model: 'meta-llama/llama-3.3-70b-instruct:free',
+    model: 'poolside/laguna-m.1:free',
     provider: 'openrouter',
     agentFlag: 'trading-worker',
     maxTokens: 8192,
@@ -296,7 +296,7 @@ export const MODEL_GRAPH: Record<AgentRole, AgentConfig> = {
   },
   'kanban-orchestrator': {
     role: 'kanban-orchestrator',
-    model: 'nvidia/nemotron-3-ultra-550b-a55b:free',
+    model: 'nvidia/nemotron-3-super-120b-a12b:free', // 1M ctx, 93 t/s — fast dispatch
     provider: 'openrouter',
     agentFlag: 'kanban-orchestrator',
     maxTokens: 16384,
@@ -308,7 +308,7 @@ export const MODEL_GRAPH: Record<AgentRole, AgentConfig> = {
   },
   'kanban-worker': {
     role: 'kanban-worker',
-    model: 'openai/gpt-oss-120b:free',
+    model: 'nvidia/nemotron-3-ultra-550b-a55b:free', // 1M ctx, frontier reasoning for long builds
     provider: 'openrouter',
     agentFlag: 'kanban-worker',
     maxTokens: 32768, // raised for autonomous/long builds
@@ -355,12 +355,11 @@ export const MODEL_GRAPH: Record<AgentRole, AgentConfig> = {
 
   // ─── FRONTIER REASONING TIER ───────────────────────────────────
   // Free-tier analog of the article's "biggest model on the hardest build."
-  // gpt-oss-120b is OpenAI's open reasoning model — strongest free
-  // reasoning-capable model on OpenRouter. Used for the hardest
-  // sub-problems that the 405B planner can't crack in one pass.
+  // Nemotron 3 Ultra 550B is the largest free model (1M ctx) — used for the
+  // hardest sub-problems that the 405B planner can't crack in one pass.
   reasoning: {
     role: 'reasoning',
-    model: 'openai/gpt-oss-120b:free',
+    model: 'nvidia/nemotron-3-ultra-550b-a55b:free',
     provider: 'openrouter',
     agentFlag: 'reasoning',
     maxTokens: 16384,
@@ -378,7 +377,7 @@ export const MODEL_GRAPH: Record<AgentRole, AgentConfig> = {
   // autonomous planning/dispatch loop.
   pipeline: {
     role: 'pipeline',
-    model: 'nvidia/nemotron-3-ultra-550b-a55b:free',
+    model: 'nvidia/nemotron-3-super-120b-a12b:free', // 1M ctx, 93 t/s — completes long autonomous runs
     provider: 'openrouter',
     agentFlag: 'pipeline',
     maxTokens: 16384,
@@ -490,30 +489,36 @@ export function getAllAgents(): AgentConfig[] {
   return Object.values(MODEL_GRAPH).filter((a) => a.role !== 'orchestrator');
 }
 
-export const ALLOWED_MODELS = [
-  { value: 'cohere/north-mini-code:free', label: 'North Mini Code (free)' },
-  { value: 'cognitivecomputations/hermes-3-llama-3.1-405b:free', label: 'Hermes 3 405B Instruct (free)' },
-  { value: 'poolside/laguna-xs-2.1:free', label: 'Laguna XS 2.1 (free)' },
+export interface AllowedModel {
+  value: string;
+  label: string;
+  speechEnabled?: boolean;
+}
+
+export const ALLOWED_MODELS: AllowedModel[] = [
+  // ─── Speech-enabled models (MiMo direct API) ───
+  { value: 'mimo-v2.5', label: 'MiMo v2.5', speechEnabled: true },
+  { value: 'mimo-v2.5-pro', label: 'MiMo v2.5 Pro', speechEnabled: true },
+  { value: 'mimo-v2.5-asr', label: 'MiMo v2.5 ASR', speechEnabled: true },
+  { value: 'mimo-v2.5-tts', label: 'MiMo v2.5 TTS', speechEnabled: true },
+  { value: 'mimo-v2.5-tts-voiceclone', label: 'MiMo v2.5 Voice Clone', speechEnabled: true },
+  { value: 'mimo-v2.5-tts-voicedesign', label: 'MiMo v2.5 Voice Design', speechEnabled: true },
+  // ─── Text-only models ───
+  { value: 'tencent/hy3:free', label: 'Tencent Hy3 (free)' },
   { value: 'nvidia/nemotron-3-ultra-550b-a55b:free', label: 'Nemotron 3 Ultra (free)' },
-  { value: 'nvidia/nemotron-3-nano-omni-12b:free', label: 'Nemotron 3 Nano Omni (free)' },
-  { value: 'poolside/laguna-xs.2:free', label: 'Laguna XS.2 (free)' },
-  { value: 'poolside/laguna-m.1:free', label: 'Laguna M.1 (free)' },
-  { value: 'google/gemma-4-26b-a4b-it:free', label: 'Gemma 4 26B A4B (free)' },
-  { value: 'google/gemma-4-31b-it:free', label: 'Gemma 4 31B (free)' },
   { value: 'nvidia/nemotron-3-super-120b-a12b:free', label: 'Nemotron 3 Super (free)' },
-  { value: 'meta-llama/llama-nemotron-embed-vl-1b-v2:free', label: 'Llama Nemotron Embed VL 1B V2 (free)' },
-  { value: 'liquid/lfm2.5-1.2b-thinking:free', label: 'LFM2.5-1.2B-Thinking (free)' },
-  { value: 'liquid/lfm2.5-1.2b-instruct:free', label: 'LFM2.5-1.2B-Instruct (free)' },
+  { value: 'poolside/laguna-m.1:free', label: 'Laguna M.1 (free)' },
+  { value: 'poolside/laguna-xs-2.1:free', label: 'Laguna XS 2.1 (free)' },
+  { value: 'cohere/north-mini-code:free', label: 'North Mini Code (free)' },
   { value: 'nvidia/nemotron-3-nano-30b-a3b:free', label: 'Nemotron 3 Nano 30B A3B (free)' },
-  { value: 'nvidia/nemotron-nano-12b-2-vl:free', label: 'Nemotron Nano 12B 2 VL (free)' },
-  { value: 'qwen/qwen3-next-80b-a3b-instruct:free', label: 'Qwen3 Next 80B A3B Instruct (free)' },
+  { value: 'nvidia/nemotron-3-nano-omni-30b-a3b-reasoning:free', label: 'Nemotron 3 Nano Omni (free)' },
+  { value: 'nvidia/nemotron-nano-12b-v2-vl:free', label: 'Nemotron Nano 12B 2 VL (free)' },
   { value: 'nvidia/nemotron-nano-9b-v2:free', label: 'Nemotron Nano 9B V2 (free)' },
-  { value: 'openai/gpt-oss-120b:free', label: 'gpt-oss-120b (free)' },
+  { value: 'google/gemma-4-31b-it:free', label: 'Gemma 4 31B (free)' },
+  { value: 'google/gemma-4-26b-a4b-it:free', label: 'Gemma 4 26B A4B (free)' },
   { value: 'openai/gpt-oss-20b:free', label: 'gpt-oss-20b (free)' },
-  { value: 'qwen/qwen3-coder-480b-a35b:free', label: 'Qwen3 Coder 480B A35B (free)' },
-  { value: 'meta-llama/llama-3.3-70b-instruct:free', label: 'Llama 3.3 70B Instruct (free)' },
-  { value: 'meta-llama/llama-3.2-3b-instruct:free', label: 'Llama 3.2 3B Instruct (free)' },
-  { value: 'openai/gpt-4o-mini', label: 'GPT-4o-mini' },
+  { value: 'nvidia/nemotron-3.5-content-safety:free', label: 'Nemotron 3.5 Content Safety (free)' },
+  { value: 'openai/gpt-4o-mini', label: 'GPT-4o-mini (paid)' },
 ];
 
 /**
@@ -538,6 +543,27 @@ export const UNIQUE_MODELS: Array<{
     agents,
   };
 });
+
+/**
+ * Speech-enabled models only — used by Jarvis voice panel
+ * to filter the model selector to models that support TTS/ASR.
+ */
+export const SPEECH_MODELS = UNIQUE_MODELS.filter(
+  (m) => ALLOWED_MODELS.find((a) => a.value === m.value)?.speechEnabled === true
+);
+
+/**
+ * TTS-only models — used by Jarvis voice panel for text-to-speech selection.
+ */
+export const TTS_MODELS = UNIQUE_MODELS.filter(
+  (m) => {
+    const allowed = ALLOWED_MODELS.find((a) => a.value === m.value);
+    return allowed?.speechEnabled === true && 
+           (m.value.includes('-tts') || 
+            m.value === 'mimo-v2.5' ||  // base mimo can do TTS via audio modality
+            m.value === 'mimo-v2.5-pro');
+  }
+);
 
 /**
  * Validate that a task is being routed to the correct agent.

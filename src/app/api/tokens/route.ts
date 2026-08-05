@@ -7,8 +7,8 @@ export async function GET() {
   // In production, this would aggregate from session logs
   const modelBreakdown = [
     { model: 'openrouter/owl-alpha', tokens: 2_450_000, cost: 0.245, requests: 145 },
-    { model: 'openai/gpt-oss-120b:free', tokens: 1_820_000, cost: 0.0, requests: 89 },
-    { model: 'moonshotai/kimi-k2.6:free', tokens: 980_000, cost: 0.0, requests: 52 },
+    { model: 'nvidia/nemotron-3-ultra-550b-a55b:free', tokens: 1_820_000, cost: 0.0, requests: 89 },
+    { model: 'nvidia/nemotron-3-nano-30b-a3b:free', tokens: 980_000, cost: 0.0, requests: 52 },
     { model: 'google/gemma-4-31b-it:free', tokens: 1_150_000, cost: 0.0, requests: 67 },
     { model: 'nvidia/nemotron-3-super-120b-a12b:free', tokens: 760_000, cost: 0.0, requests: 34 },
     { model: 'nex-agi/nex-n2-pro:free', tokens: 540_000, cost: 0.0, requests: 28 },

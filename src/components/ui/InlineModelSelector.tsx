@@ -13,16 +13,19 @@ interface InlineModelSelectorProps {
   /** Compact variant (just icon + short label). Default: false */
   compact?: boolean;
   className?: string;
+  /** Override the model list (e.g. SPEECH_MODELS for Jarvis). Default: UNIQUE_MODELS */
+  models?: Array<{ value: string; label: string; agents?: string[] }>;
 }
 
-export function InlineModelSelector({ value, onChange, compact = false, className = '' }: InlineModelSelectorProps) {
+export function InlineModelSelector({ value, onChange, compact = false, className = '', models }: InlineModelSelectorProps) {
   const globalModel = useUIStore((s) => s.selectedModel);
   const setGlobalModel = useUIStore((s) => s.setSelectedModel);
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
 
+  const modelList = models || UNIQUE_MODELS;
   const activeModel = value || globalModel;
-  const currentInfo = UNIQUE_MODELS.find((m) => m.value === activeModel);
+  const currentInfo = modelList.find((m) => m.value === activeModel);
   const displayLabel = currentInfo?.label || activeModel || 'Model';
 
   const handleChange = (modelValue: string) => {
@@ -63,7 +66,7 @@ export function InlineModelSelector({ value, onChange, compact = false, classNam
           <div className="px-2 py-1 text-[9px] uppercase tracking-wider text-[var(--text-muted)] font-medium sticky top-0 bg-[var(--bg-secondary)]">
             Model
           </div>
-          {UNIQUE_MODELS.map((m) => (
+          {modelList.map((m) => (
             <button
               key={m.value}
               onClick={() => handleChange(m.value)}
