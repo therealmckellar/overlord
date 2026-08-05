@@ -2,7 +2,6 @@
 
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useUIStore } from '@/stores/uiStore';
-import { useConnectorStore } from '@/stores/connectorStore';
 
 export const useTTS = () => {
   const [isSpeaking, setIsSpeaking] = useState(false);
@@ -40,19 +39,9 @@ export const useTTS = () => {
     stop();
 
     try {
-      const deepgramKeyObj = useConnectorStore.getState().apiKeys.find(k => k.service === 'deepgram');
-      const deepgramKey = deepgramKeyObj?.enabled ? deepgramKeyObj.key : '';
-
-      const headers: Record<string, string> = {
-        'Content-Type': 'application/json',
-      };
-      if (deepgramKey) {
-        headers['Authorization'] = `Bearer ${deepgramKey}`;
-      }
-
       const response = await fetch('/api/tts', {
         method: 'POST',
-        headers,
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           text,
           voice: options.voice || selectedVoice,
