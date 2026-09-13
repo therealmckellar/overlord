@@ -30,7 +30,7 @@ export default function WorkspacePanel() {
         body: JSON.stringify({
           taskId: 'merge-' + activeWs.id,
           originalScope: 'Merge workspace changes',
-          actualOutput: 'Sample output for merge',
+          actualOutput: `Merging workspace ${activeWs.name} (${activeWs.branch || 'unknown'} → ${activeWs.base_branch || 'main'})`,
           modifiedFiles: [],
           declaredFiles: [],
         }),
@@ -48,7 +48,7 @@ export default function WorkspacePanel() {
           driftType: data.analysis.driftType,
           status: 'pending',
           detectedAt: new Date(),
-          actualOutput: 'Sample output for merge',
+          actualOutput: `Merging workspace ${activeWs.name} (${activeWs.branch || 'unknown'} → ${activeWs.base_branch || 'main'})`,
         });
       }
       

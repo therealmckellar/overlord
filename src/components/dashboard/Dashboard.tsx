@@ -1,10 +1,26 @@
 'use client';
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { TrendingWidget } from '@/components/dashboard/TrendingWidget';
-import { Activity, Cpu, Zap, AlertCircle, Play, Plus, ArrowUpRight, ArrowDownRight, Minus } from 'lucide-react';
+import TaskEventFeed from '@/components/TaskEventFeed';
 
 export default function Dashboard() {
+  const [health, setHealth] = useState<{ status: string; agents?: number } | null>(null);
+
+  useEffect(() => {
+    // Fetch real health status
+    fetch('/api/health')
+      .then(r => r.json())
+      .then(data => setHealth(data))
+      .catch(() => setHealth({ status: 'unknown' }));
+
+    // Fetch agent count
+    fetch('/api/agents/status')
+      .then(r => r.json())
+      .then(data => setHealth(prev => ({ ...prev, status: prev?.status || 'ok', agents: data.agents?.length || 0 })))
+      .catch(() => {});
+  }, []);
+
   const handleOpenSocial = () => {
     window.dispatchEvent(new CustomEvent('overlord-navigate', { detail: 'social' }));
   };
@@ -15,36 +31,43 @@ export default function Dashboard() {
       <div className="flex justify-between items-center">
         <div>
           <h1 className="text-xl font-bold text-[var(--text)] tracking-tight">Command Center</h1>
-          <p className="text-[12px] text-[var(--text-muted)] mt-0.5">System status: Nominal</p>
+          <p className="text-[12px] text-[var(--text-muted)] mt-0.5">
+            {health ? (
+              <>
+                Status: <span className={health.status === 'ok' ? 'text-[var(--success)]' : 'text-[var(--warning)]'}>
+                  {health.status === 'ok' ? 'Connected' : health.status}
+                </span>
+                {health.agents !== undefined && (
+                  <span className="ml-2">· {health.agents} agents</span>
+                )}
+              </>
+            ) : (
+              'Checking connection...'
+            )}
+          </p>
         </div>
         <div className="flex gap-2">
           <button
             onClick={() => window.dispatchEvent(new CustomEvent('overlord-navigate', { detail: 'agentOffice' }))}
             className="btn btn-primary btn-sm"
           >
-            <Plus size={13} /> Spawn Agent
+            🏢 Bot Office
           </button>
           <button
             onClick={() => window.dispatchEvent(new CustomEvent('overlord-navigate', { detail: 'taskboard' }))}
             className="btn btn-secondary btn-sm"
           >
-            Task Board
+            📋 Task Board
           </button>
         </div>
       </div>
 
-      {/* Bottom Row */}
+      {/* Content */}
       <div className="grid grid-cols-1 xl:grid-cols-3 gap-5 flex-1 min-h-0">
-        {/* Active Missions */}
+        {/* Live Agent Activity Feed */}
         <div className="xl:col-span-2 card overflow-hidden flex flex-col">
-          <div className="panel-header">
-            <span className="panel-title">Active Missions</span>
-            <span className="badge badge-info">Monitoring Live Pipeline...</span>
-          </div>
-          <div className="overflow-auto flex-1 p-4">
-             <div className="text-center py-12 text-[var(--text-muted)] italic text-sm">
-               Connecting to live mission pipeline...
-             </div>
+          <div className="overflow-auto flex-1">
+            <TaskEventFeed />
           </div>
         </div>
 
@@ -53,36 +76,6 @@ export default function Dashboard() {
           <TrendingWidget onOpenSocial={handleOpenSocial} />
         </div>
       </div>
-    </div>
-  );
-}
-
-function HealthCard({ title, value, icon, trend, color }: {
-  title: string;
-  value: string;
-  icon: React.ReactNode;
-  trend: 'up' | 'down' | 'stable';
-  color: string;
-}) {
-  const TrendIcon = trend === 'up' ? ArrowUpRight : trend === 'down' ? ArrowDownRight : Minus;
-  const trendColor = trend === 'up' ? 'var(--success)' : trend === 'down' ? 'var(--error)' : 'var(--text-muted)';
-
-  return (
-    <div className="card p-4 relative overflow-hidden group hover:border-[var(--border)] transition-all">
-      {/* Accent line at bottom */}
-      <div className="absolute bottom-0 left-0 right-0 h-[2px] opacity-0 group-hover:opacity-100 transition-opacity"
-        style={{ background: `linear-gradient(90deg, ${color}60, ${color}20)` }} />
-
-      <div className="flex items-center justify-between mb-3">
-        <div className="p-1.5 rounded-md bg-[var(--bg-tertiary)] text-[var(--text-muted)] group-hover:text-[var(--text)] transition-colors">
-          {icon}
-        </div>
-        <span className="flex items-center gap-0.5 text-[10px] font-semibold" style={{ color: trendColor }}>
-          <TrendIcon size={10} />
-        </span>
-      </div>
-      <div className="text-[22px] font-bold tracking-tight" style={{ color }}>{value}</div>
-      <div className="text-[9px] text-[var(--text-muted)] uppercase tracking-widest font-semibold mt-1">{title}</div>
     </div>
   );
 }

@@ -43,3 +43,7 @@ next-env.d.ts
 data/overlord.db
 data/overlord.db-wal
 data/overlord.db-shm
+
+# scripts with credentials
+scripts/take-screenshots.py
+scripts/debug-screenshot.py
